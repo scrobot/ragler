@@ -1,0 +1,42 @@
+import { z } from 'zod';
+
+export const envSchema = z.object({
+  // Server
+  PORT: z.coerce.number().int().positive().default(3000),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  // Redis
+  REDIS_HOST: z.string().min(1, 'REDIS_HOST is required'),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+
+  // Qdrant
+  QDRANT_URL: z.string().url('QDRANT_URL must be a valid URL'),
+
+  // OpenAI
+  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
+
+  // Rate limiting
+  THROTTLE_TTL: z.coerce.number().int().positive().default(60000),
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+});
+
+export type EnvConfig = z.infer<typeof envSchema>;
+
+export function validateEnv(): EnvConfig {
+  const result = envSchema.safeParse(process.env);
+
+  if (!result.success) {
+    const formatted = result.error.format();
+    const errors = Object.entries(formatted)
+      .filter(([key]) => key !== '_errors')
+      .map(([key, value]) => {
+        const messages = (value as { _errors: string[] })._errors;
+        return `  ${key}: ${messages.join(', ')}`;
+      })
+      .join('\n');
+
+    throw new Error(`Environment validation failed:\n${errors}`);
+  }
+
+  return result.data;
+}

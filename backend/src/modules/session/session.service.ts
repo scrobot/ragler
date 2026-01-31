@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import { IngestService, SessionData } from '../ingest/ingest.service';
+import { IngestService } from '../ingest/ingest.service';
 import { QdrantClientService } from '../../infrastructure/qdrant';
 import {
   SessionResponseDto,

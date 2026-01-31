@@ -3,3 +3,4 @@ export * from './ingest';
 export * from './session';
 export * from './llm';
 export * from './vector';
+export * from './health';

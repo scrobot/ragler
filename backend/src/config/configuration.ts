@@ -1,13 +1,24 @@
-export default () => ({
-  port: parseInt(process.env.PORT || '3000', 10),
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  },
-  qdrant: {
-    url: process.env.QDRANT_URL || 'http://localhost:6333',
-  },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
-  },
-});
+import { validateEnv } from './env.schema';
+
+export default () => {
+  const env = validateEnv();
+
+  return {
+    port: env.PORT,
+    nodeEnv: env.NODE_ENV,
+    redis: {
+      host: env.REDIS_HOST,
+      port: env.REDIS_PORT,
+    },
+    qdrant: {
+      url: env.QDRANT_URL,
+    },
+    openai: {
+      apiKey: env.OPENAI_API_KEY,
+    },
+    throttle: {
+      ttl: env.THROTTLE_TTL,
+      limit: env.THROTTLE_LIMIT,
+    },
+  };
+};

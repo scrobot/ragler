@@ -18,7 +18,7 @@ export class QdrantClientService implements OnModuleInit {
     try {
       const collections = await this.client.getCollections();
       this.logger.log(`Connected to Qdrant. Found ${collections.collections.length} collections.`);
-    } catch (error) {
+    } catch {
       this.logger.warn('Could not connect to Qdrant. Ensure Qdrant is running.');
     }
   }
