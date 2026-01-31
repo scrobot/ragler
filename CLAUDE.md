@@ -1,7 +1,8 @@
 # Claude Code — Project Operating Context
 
 ## Source of truth (MANDATORY)
-This project is defined by three canonical documents:
+
+This project is defined by two canonical documents:
 
 - **Business Requirements** → `docs/brd.md`
   - product scope, MVP boundaries
@@ -16,21 +17,16 @@ This project is defined by three canonical documents:
   - lifecycle of drafts and publishing
   - non-negotiable architectural decisions
 
-- **Engineering Standards** → `docs/standards.md`
-  - production engineering practices
-  - git discipline and commit workflow
-  - release management (changesets)
-  - definition of done
-
 When in doubt:
 - product or UX question → BRD
 - technical or architectural question → SAD
-- how to implement / commit / release → Standards
+
 Never invent requirements outside these documents.
 
 ---
 
 ## Your role in this project
+
 You are a **coding assistant operating strictly in HITL mode**.
 
 You:
@@ -48,47 +44,223 @@ You do NOT:
 ---
 
 ## Engineering principles (NON-NEGOTIABLE)
+
 - LLM output is **proposal-based only**
 - All user-facing changes require explicit confirmation
 - Drafts live in Redis; published data lives in Qdrant
 - Publishing uses **atomic replacement**
 - Collection must be selected **before** publish
 - Simple vs Advanced mode is enforced in UI **and** API
-- Strong Explicit typing is better then dynamic implicit one. Use Zod for validation.
+- Strong explicit typing is better than dynamic implicit. Use Zod for validation.
 
 ---
 
-## How to work (TDD-driven, HITL workflow)
+## How to work
 
-For any non-trivial task, follow this **mandatory** sequence:
+### Trunk Based Development + TDD Flow (MANDATORY)
 
-### Phase 1: Preparation
-1. Read relevant sections of `docs/brd.md` and/or `docs/sad.md`
-2. Use Plan Mode to propose an implementation plan
-3. **Wait for user confirmation**
+Every feature follows this sequence:
 
-### Phase 2: Implementation (TDD)
-4. Create a **feature branch** (e.g., `feat/task-name` or `fix/bug-name`)
-5. **Write tests FIRST** (Red phase)
-6. Implement code to make tests pass (Green phase)
-7. Refactor if needed (Refactor phase)
-8. Run full test suite locally — must be green
+```
+1. Feature Branch    → Create short-lived branch from main
+2. RED               → Write failing tests first
+3. GREEN             → Implement minimal code to pass tests
+4. REFACTOR          → Clean up while tests stay green
+5. Commit            → Atomic commit with passing tests
+6. Changeset         → Create changeset if behavior changed (pnpm changeset)
+7. Documentation     → Run /document-code to cover new code and update README
+8. HITL Gate         → STOP, present changes for review, wait for approval
+```
 
-### Phase 3: Commit & Release
-9. Stage and commit changes (atomic commits)
-10. Create changeset (`pnpm changeset`) if required
-11. Commit the changeset
+### Rules
+- Never write implementation before tests
+- Never commit while tests are failing
+- Never push without explicit user approval
+- Keep feature branches short-lived
+- Always document new features for better DX
+### Test file locations (MANDATORY)
+All tests MUST be placed in the `test/` folder, never colocated with source code:
+```
+backend/test/
+├── unit/           → unit tests (mirror src/ structure)
+│   └── module/
+│       └── service.spec.ts
+├── app.e2e-spec.ts → e2e tests
+└── jest-e2e.json
+```
+Never place `*.spec.ts` files inside `src/`.
 
-### Phase 4: HITL Gate
-12. **STOP and wait for user command to push**
-    - Never push automatically
-    - Report: "Ready to push. Awaiting your confirmation."
+---
 
-This workflow is NON-NEGOTIABLE. Every feature, fix, or refactor follows this sequence.
+## Git discipline
+
+### Atomicity
+One commit = ONE of:
+- Single feature slice
+- Single bugfix
+- Single refactor (no behavior change)
+- Single test improvement
+- Single build/config adjustment
+
+If changes span multiple concerns → split into multiple commits.
+
+### Branch naming
+```
+feat/short-description   → new features
+fix/short-description    → bug fixes
+refactor/short-desc      → refactoring
+chore/short-description  → maintenance
+```
+
+### Commit messages
+Use Conventional Commits:
+```
+feat(scope): description
+fix(scope): description
+refactor(scope): description
+test(scope): description
+chore(scope): description
+```
+
+Scope: `api`, `sessions`, `qdrant`, `ingest`, `ui`, etc.
+Describe user-visible intent, not implementation details.
+
+### Safety
+- Never commit: secrets, credentials, API keys, tokens
+- Do not leave uncommitted changes between steps
+- Revert unused exploratory edits
+
+---
+
+## Production engineering
+
+You are not just implementing logic — you are designing **runtime behavior** of a production system.
+
+### Runtime considerations
+For every change, assess:
+- IO-bound vs CPU-bound operations
+- Event loop / thread blocking potential
+- Memory allocation patterns
+- Unbounded queues / buffers
+
+### Failure modes
+For each external dependency (HTTP, Redis, Qdrant, LLM):
+- Define timeout behavior
+- Classify errors: retryable vs non-retryable
+- Map to consistent API error shape
+- Fail explicitly — no silent failures
+
+### Idempotency
+- Can this operation be retried safely?
+- What happens on duplicate requests?
+- If not idempotent: redesign, guard, or document + test
+
+### Concurrency
+Consider:
+- Concurrent requests / double submits
+- Session locking (preview state)
+- Publish vs edit collisions
+- Race conditions on shared state
+
+Define ownership, locking, and conflict resolution.
+
+### Degradation & recovery
+Assume: pods restart, network flakes, deployments mid-request.
+Prefer: explicit errors + safe retry, consistent state after failures.
+No hidden in-memory state as source of truth.
+
+---
+
+## Observability (NON-NEGOTIABLE)
+
+### Structured logging
+- JSON logs with correlation IDs (request_id, session_id, user_id, source_id)
+- ERROR: failures requiring attention
+- WARN: degraded behavior / retries
+- INFO: key lifecycle transitions
+- Never log secrets
+
+### Required log events
+- `ingest_start` / `ingest_success` / `ingest_failure`
+- `chunking_start` / `chunking_success` / `chunking_failure`
+- `preview_lock` / `preview_validation_failed`
+- `publish_start` / `publish_delete_done` / `publish_upsert_done` / `publish_success` / `publish_failure`
+
+### Metrics (Prometheus-style)
+- `http_server_requests_total{route,method,status}`
+- `http_server_request_duration_seconds{route,method}`
+- `dependency_requests_total{dep,op,status}`
+- `dependency_request_duration_seconds{dep,op}`
+- `llm_requests_total{scenario,status}`
+- `publish_operations_total{status}`
+- `draft_sessions_active` (gauge)
+
+### Health checks
+- `GET /health/live` — process alive
+- `GET /health/ready` — critical deps healthy (Redis, Qdrant)
+
+---
+
+## Release management (Changesets)
+
+### When required
+Create a changeset for any PR that:
+- Changes runtime behavior
+- Changes public API
+- Fixes a bug
+- Adds a feature
+- Modifies operational behavior
+
+No changeset needed only for:
+- Internal refactors with zero observable change
+- Formatting, comments, docs-only
+- Test-only changes
+
+If unsure → create a changeset.
+
+### Semver classification
+- **patch**: bugfix, internal improvement, no API changes
+- **minor**: backward-compatible feature addition
+- **major**: breaking changes requiring user action
+
+### Changeset workflow
+```bash
+pnpm changeset           # Create changeset
+pnpm changeset version   # Before release: bump versions + changelog
+pnpm changeset publish   # Publish
+```
+
+---
+
+## Definition of done
+
+A task is NOT complete unless:
+- [ ] Tests written BEFORE implementation (TDD)
+- [ ] All tests passing
+- [ ] Observability present (logs, metrics, health checks)
+- [ ] Error handling follows conventions
+- [ ] Changeset included (when required)
+- [ ] Commits are atomic and logically ordered
+- [ ] Each commit is green
+- [ ] Documentation updated (/document-code)
+- [ ] User has explicitly approved
+
+**Final rule:** Code that works only in happy-path and is unobservable in prod is NOT production-ready.
+
+---
+
+## Quality bar
+
+- DTO validation on all inputs
+- Consistent error responses
+- Swagger/OpenAPI must stay in sync
+- Integration tests for primary flows
+- No silent data loss
 
 ---
 
 ## Scope guard
+
 You MUST treat the following as out of scope unless explicitly instructed:
 - realtime Confluence sync
 - bulk document crawling
@@ -100,17 +272,9 @@ You MUST treat the following as out of scope unless explicitly instructed:
 
 ---
 
-## Quality bar
-- DTO validation on all inputs
-- consistent error responses
-- Swagger/OpenAPI must stay in sync
-- integration tests for primary flows
-- no silent data loss
-
----
-
 ## If something is unclear
-Ask **one precise clarification question**  
+
+Ask **one precise clarification question**
 OR propose **2 options with trade-offs**
 
 Do not guess.
