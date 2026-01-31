@@ -1,24 +1,31 @@
 # Claude Code — Project Operating Context
 
 ## Source of truth (MANDATORY)
-This project is defined by two canonical documents:
+This project is defined by three canonical documents:
 
-- **Business Requirements** → `brd.md`
+- **Business Requirements** → `docs/brd.md`
   - product scope, MVP boundaries
   - user roles and modes
   - primary user flows
   - what must / must not be implemented
 
-- **Solution Architecture** → `sad.md`
+- **Solution Architecture** → `docs/sad.md`
   - system architecture
   - storage model (Redis, Qdrant)
   - API contracts
   - lifecycle of drafts and publishing
   - non-negotiable architectural decisions
 
+- **Engineering Standards** → `docs/standards.md`
+  - production engineering practices
+  - git discipline and commit workflow
+  - release management (changesets)
+  - definition of done
+
 When in doubt:
 - product or UX question → BRD
 - technical or architectural question → SAD
+- how to implement / commit / release → Standards
 Never invent requirements outside these documents.
 
 ---
@@ -51,15 +58,33 @@ You do NOT:
 
 ---
 
-## How to work
-For any non-trivial task:
-1. Read relevant sections of `brd.md` and/or `sad.md`
+## How to work (TDD-driven, HITL workflow)
+
+For any non-trivial task, follow this **mandatory** sequence:
+
+### Phase 1: Preparation
+1. Read relevant sections of `docs/brd.md` and/or `docs/sad.md`
 2. Use Plan Mode to propose an implementation plan
-3. Wait for confirmation
-4. Implement in small, atomic steps
-5. Write tests
-6. Run tests locally
-7. Only then propose commit
+3. **Wait for user confirmation**
+
+### Phase 2: Implementation (TDD)
+4. Create a **feature branch** (e.g., `feat/task-name` or `fix/bug-name`)
+5. **Write tests FIRST** (Red phase)
+6. Implement code to make tests pass (Green phase)
+7. Refactor if needed (Refactor phase)
+8. Run full test suite locally — must be green
+
+### Phase 3: Commit & Release
+9. Stage and commit changes (atomic commits)
+10. Create changeset (`pnpm changeset`) if required
+11. Commit the changeset
+
+### Phase 4: HITL Gate
+12. **STOP and wait for user command to push**
+    - Never push automatically
+    - Report: "Ready to push. Awaiting your confirmation."
+
+This workflow is NON-NEGOTIABLE. Every feature, fix, or refactor follows this sequence.
 
 ---
 
