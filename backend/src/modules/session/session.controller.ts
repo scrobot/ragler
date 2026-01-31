@@ -1,0 +1,100 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiForbiddenResponse,
+} from '@nestjs/swagger';
+import { SessionService } from './session.service';
+import {
+  SessionResponseDto,
+  MergeChunksDto,
+  SplitChunkDto,
+  UpdateChunkDto,
+  PublishDto,
+  PreviewResponseDto,
+  PublishResponseDto,
+} from './dto';
+import { User, RequestUser, UserRole } from '../../common/decorators';
+import { Roles } from '../../common/decorators';
+import { RoleGuard } from '../../common/guards';
+import { ErrorResponseDto } from '../../common/dto';
+
+@ApiTags('Session')
+@ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
+@ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
+@Controller('session')
+export class SessionController {
+  constructor(private readonly sessionService: SessionService) {}
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get session details' })
+  @ApiResponse({ status: 200, description: 'Session details', type: SessionResponseDto })
+  @ApiResponse({ status: 404, description: 'Session not found', type: ErrorResponseDto })
+  async getSession(@Param('id') id: string): Promise<SessionResponseDto> {
+    return this.sessionService.getSession(id);
+  }
+
+  @Post(':id/chunks/merge')
+  @ApiOperation({ summary: 'Merge chunks' })
+  @ApiResponse({ status: 200, description: 'Chunks merged', type: SessionResponseDto })
+  async mergeChunks(
+    @Param('id') id: string,
+    @Body() dto: MergeChunksDto,
+  ): Promise<SessionResponseDto> {
+    return this.sessionService.mergeChunks(id, dto);
+  }
+
+  @Post(':id/chunks/:chunkId/split')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.DEV, UserRole.ML)
+  @ApiOperation({ summary: 'Split chunk (Advanced Mode only)' })
+  @ApiResponse({ status: 200, description: 'Chunk split', type: SessionResponseDto })
+  @ApiForbiddenResponse({ description: 'Not available in Simple Mode', type: ErrorResponseDto })
+  async splitChunk(
+    @Param('id') id: string,
+    @Param('chunkId') chunkId: string,
+    @Body() dto: SplitChunkDto,
+    @User('role') role: UserRole,
+  ): Promise<SessionResponseDto> {
+    return this.sessionService.splitChunk(id, chunkId, dto, role);
+  }
+
+  @Patch(':id/chunks/:chunkId')
+  @ApiOperation({ summary: 'Update chunk text' })
+  @ApiResponse({ status: 200, description: 'Chunk updated', type: SessionResponseDto })
+  async updateChunk(
+    @Param('id') id: string,
+    @Param('chunkId') chunkId: string,
+    @Body() dto: UpdateChunkDto,
+  ): Promise<SessionResponseDto> {
+    return this.sessionService.updateChunk(id, chunkId, dto);
+  }
+
+  @Post(':id/preview')
+  @ApiOperation({ summary: 'Lock session and validate before publishing' })
+  @ApiResponse({ status: 200, description: 'Preview generated', type: PreviewResponseDto })
+  async preview(@Param('id') id: string): Promise<PreviewResponseDto> {
+    return this.sessionService.preview(id);
+  }
+
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Publish chunks to collection' })
+  @ApiResponse({ status: 200, description: 'Chunks published', type: PublishResponseDto })
+  async publish(
+    @Param('id') id: string,
+    @Body() dto: PublishDto,
+    @User() user: RequestUser,
+  ): Promise<PublishResponseDto> {
+    return this.sessionService.publish(id, dto, user.id);
+  }
+}
