@@ -1,69 +1,53 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export enum RefineScenario {
-  SIMPLIFY = 'simplify',
-  CLARIFY_TERMS = 'clarify_terms',
-  ADD_EXAMPLES = 'add_examples',
-  REWRITE_FOR_AUDIENCE = 'rewrite_for_audience',
-}
+export const RefineScenarioEnum = z.enum([
+  'simplify',
+  'clarify_terms',
+  'add_examples',
+  'rewrite_for_audience',
+]);
+export type RefineScenario = z.infer<typeof RefineScenarioEnum>;
 
-export class RefineRequestDto {
-  @ApiProperty({ enum: RefineScenario, example: RefineScenario.SIMPLIFY })
-  @IsEnum(RefineScenario)
-  scenario: RefineScenario;
+export const RefineRequestSchema = z.object({
+  scenario: RefineScenarioEnum,
+  chunkId: z.string().min(1, 'Chunk ID is required'),
+  targetAudience: z.string().optional(),
+});
 
-  @ApiProperty({ example: 'chunk_abc123', description: 'Chunk ID to refine' })
-  @IsString()
-  @IsNotEmpty()
-  chunkId: string;
+export class RefineRequestDto extends createZodDto(RefineRequestSchema) {}
 
-  @ApiProperty({ example: 'L2 Support', required: false, description: 'Target audience for rewriting' })
-  @IsString()
-  @IsOptional()
-  targetAudience?: string;
-}
+export const RefineResponseSchema = z.object({
+  chunkId: z.string(),
+  scenario: RefineScenarioEnum,
+  originalText: z.string(),
+  refinedText: z.string(),
+  applied: z.boolean(),
+});
 
-export class RefineResponseDto {
-  @ApiProperty({ example: 'chunk_abc123' })
-  chunkId: string;
+export type RefineResponseDto = z.infer<typeof RefineResponseSchema>;
 
-  @ApiProperty({ example: RefineScenario.SIMPLIFY })
-  scenario: RefineScenario;
+export const ChunkRequestSchema = z.object({
+  content: z.string().min(1, 'Content is required'),
+});
 
-  @ApiProperty({ example: 'This is the original text...' })
-  originalText: string;
+export class ChunkRequestDto extends createZodDto(ChunkRequestSchema) {}
 
-  @ApiProperty({ example: 'This is the simplified text...' })
-  refinedText: string;
+export const ChunkResponseSchema = z.object({
+  chunks: z.array(z.string()),
+});
 
-  @ApiProperty({ example: false, description: 'Whether the refinement was applied' })
-  applied: boolean;
-}
+export type ChunkResponseDto = z.infer<typeof ChunkResponseSchema>;
 
-export class ChunkRequestDto {
-  @ApiProperty({ example: 'Long document content to be chunked...' })
-  @IsString()
-  @IsNotEmpty()
-  content: string;
-}
+export const EmbeddingRequestSchema = z.object({
+  text: z.string().min(1, 'Text is required'),
+});
 
-export class ChunkResponseDto {
-  @ApiProperty({ example: ['Chunk 1 content...', 'Chunk 2 content...'] })
-  chunks: string[];
-}
+export class EmbeddingRequestDto extends createZodDto(EmbeddingRequestSchema) {}
 
-export class EmbeddingRequestDto {
-  @ApiProperty({ example: 'Text to generate embedding for' })
-  @IsString()
-  @IsNotEmpty()
-  text: string;
-}
+export const EmbeddingResponseSchema = z.object({
+  embedding: z.array(z.number()),
+  dimensions: z.number().int().positive(),
+});
 
-export class EmbeddingResponseDto {
-  @ApiProperty({ example: [0.1, 0.2, 0.3], description: 'Vector embedding' })
-  embedding: number[];
-
-  @ApiProperty({ example: 1536 })
-  dimensions: number;
-}
+export type EmbeddingResponseDto = z.infer<typeof EmbeddingResponseSchema>;

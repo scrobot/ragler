@@ -1,41 +1,35 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsUrl } from 'class-validator';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export enum SourceType {
-  CONFLUENCE = 'confluence',
-  WEB = 'web',
-  MANUAL = 'manual',
-}
+export const SourceTypeEnum = z.enum(['confluence', 'web', 'manual']);
+export type SourceType = z.infer<typeof SourceTypeEnum>;
 
-export class IngestRequestDto {
-  @ApiProperty({ enum: SourceType, example: SourceType.CONFLUENCE })
-  @IsEnum(SourceType)
-  sourceType: SourceType;
+export const IngestRequestSchema = z
+  .object({
+    sourceType: SourceTypeEnum,
+    url: z.string().url('Invalid URL format').optional(),
+    content: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.sourceType === 'manual') {
+        return !!data.content;
+      }
+      return !!data.url;
+    },
+    {
+      message: 'URL is required for confluence/web sources, content is required for manual source',
+    },
+  );
 
-  @ApiProperty({ example: 'https://company.atlassian.net/wiki/spaces/DOC/pages/123456', required: false })
-  @IsUrl()
-  @IsOptional()
-  url?: string;
+export class IngestRequestDto extends createZodDto(IngestRequestSchema) {}
 
-  @ApiProperty({ example: 'Manual content to be chunked...', required: false })
-  @IsString()
-  @IsOptional()
-  content?: string;
-}
+export const IngestResponseSchema = z.object({
+  sessionId: z.string(),
+  sourceType: SourceTypeEnum,
+  sourceUrl: z.string(),
+  status: z.string(),
+  createdAt: z.string(),
+});
 
-export class IngestResponseDto {
-  @ApiProperty({ example: 'session_abc123' })
-  sessionId: string;
-
-  @ApiProperty({ example: SourceType.CONFLUENCE })
-  sourceType: SourceType;
-
-  @ApiProperty({ example: 'https://company.atlassian.net/wiki/spaces/DOC/pages/123456' })
-  sourceUrl: string;
-
-  @ApiProperty({ example: 'DRAFT' })
-  status: string;
-
-  @ApiProperty({ example: '2026-01-31T12:00:00.000Z' })
-  createdAt: string;
-}
+export class IngestResponseDto extends createZodDto(IngestResponseSchema) {}

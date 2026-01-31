@@ -1,16 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MaxLength, IsOptional } from 'class-validator';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class CreateCollectionDto {
-  @ApiProperty({ example: 'Support FAQ', description: 'Collection name' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name: string;
+export const CreateCollectionSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be at most 100 characters'),
+  description: z
+    .string()
+    .max(500, 'Description must be at most 500 characters')
+    .optional(),
+});
 
-  @ApiProperty({ example: 'L2 support answers for common questions', description: 'Collection description' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  description?: string;
-}
+export class CreateCollectionDto extends createZodDto(CreateCollectionSchema) {}
+
+export type CreateCollectionInput = z.infer<typeof CreateCollectionSchema>;

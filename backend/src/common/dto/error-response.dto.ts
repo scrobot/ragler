@@ -1,18 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class ErrorResponseDto {
-  @ApiProperty({ example: 400 })
-  statusCode: number;
+export const ErrorResponseSchema = z.object({
+  statusCode: z.number().int(),
+  error: z.string(),
+  message: z.union([z.string(), z.array(z.string())]),
+  timestamp: z.string(),
+  path: z.string(),
+});
 
-  @ApiProperty({ example: 'Bad Request' })
-  error: string;
-
-  @ApiProperty({ example: 'Validation failed', oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] })
-  message: string | string[];
-
-  @ApiProperty({ example: '2026-01-31T12:00:00.000Z' })
-  timestamp: string;
-
-  @ApiProperty({ example: '/api/collections' })
-  path: string;
-}
+export class ErrorResponseDto extends createZodDto(ErrorResponseSchema) {}

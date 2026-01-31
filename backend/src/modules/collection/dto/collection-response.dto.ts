@@ -1,26 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class CollectionResponseDto {
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  id: string;
+export const CollectionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string(),
+  createdBy: z.string(),
+  createdAt: z.string(),
+});
 
-  @ApiProperty({ example: 'Support FAQ' })
-  name: string;
+export class CollectionResponseDto extends createZodDto(CollectionSchema) {}
 
-  @ApiProperty({ example: 'L2 support answers for common questions' })
-  description: string;
+export const CollectionListSchema = z.object({
+  collections: z.array(CollectionSchema),
+  total: z.number().int().nonnegative(),
+});
 
-  @ApiProperty({ example: 'user@company.com' })
-  createdBy: string;
-
-  @ApiProperty({ example: '2026-01-31T12:00:00.000Z' })
-  createdAt: string;
-}
-
-export class CollectionListResponseDto {
-  @ApiProperty({ type: [CollectionResponseDto] })
-  collections: CollectionResponseDto[];
-
-  @ApiProperty({ example: 5 })
-  total: number;
-}
+export class CollectionListResponseDto extends createZodDto(CollectionListSchema) {}

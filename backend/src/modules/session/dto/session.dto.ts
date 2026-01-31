@@ -1,97 +1,73 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsArray, IsOptional, ArrayMinSize, IsNumber } from 'class-validator';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class ChunkDto {
-  @ApiProperty({ example: 'chunk_abc123' })
-  id: string;
+export const ChunkSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  isDirty: z.boolean(),
+});
 
-  @ApiProperty({ example: 'This is the chunk content...' })
-  text: string;
+export type ChunkDto = z.infer<typeof ChunkSchema>;
 
-  @ApiProperty({ example: false })
-  isDirty: boolean;
-}
+export const SessionResponseSchema = z.object({
+  sessionId: z.string(),
+  sourceUrl: z.string(),
+  status: z.string(),
+  chunks: z.array(ChunkSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export class SessionResponseDto {
-  @ApiProperty({ example: 'session_abc123' })
-  sessionId: string;
+export class SessionResponseDto extends createZodDto(SessionResponseSchema) {}
 
-  @ApiProperty({ example: 'https://...' })
-  sourceUrl: string;
+export const MergeChunksSchema = z.object({
+  chunkIds: z
+    .array(z.string())
+    .min(2, 'At least 2 chunks are required for merge'),
+});
 
-  @ApiProperty({ example: 'DRAFT' })
-  status: string;
+export class MergeChunksDto extends createZodDto(MergeChunksSchema) {}
 
-  @ApiProperty({ type: [ChunkDto] })
-  chunks: ChunkDto[];
+export const SplitChunkSchema = z
+  .object({
+    splitPoints: z.array(z.number()).optional(),
+    newTextBlocks: z.array(z.string()).optional(),
+  })
+  .refine(
+    (data) => data.splitPoints || data.newTextBlocks,
+    {
+      message: 'Either splitPoints or newTextBlocks must be provided',
+    },
+  );
 
-  @ApiProperty({ example: '2026-01-31T12:00:00.000Z' })
-  createdAt: string;
+export class SplitChunkDto extends createZodDto(SplitChunkSchema) {}
 
-  @ApiProperty({ example: '2026-01-31T12:00:00.000Z' })
-  updatedAt: string;
-}
+export const UpdateChunkSchema = z.object({
+  text: z.string().min(1, 'Text is required'),
+});
 
-export class MergeChunksDto {
-  @ApiProperty({ example: ['chunk_1', 'chunk_2'], description: 'IDs of chunks to merge' })
-  @IsArray()
-  @ArrayMinSize(2)
-  @IsString({ each: true })
-  chunkIds: string[];
-}
+export class UpdateChunkDto extends createZodDto(UpdateChunkSchema) {}
 
-export class SplitChunkDto {
-  @ApiProperty({ example: [50, 120], description: 'Character indices to split at', required: false })
-  @IsArray()
-  @IsNumber({}, { each: true })
-  @IsOptional()
-  splitPoints?: number[];
+export const PublishSchema = z.object({
+  targetCollectionId: z.string().uuid('Invalid collection ID format'),
+});
 
-  @ApiProperty({ example: ['First part', 'Second part'], description: 'New text blocks after split', required: false })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  newTextBlocks?: string[];
-}
+export class PublishDto extends createZodDto(PublishSchema) {}
 
-export class UpdateChunkDto {
-  @ApiProperty({ example: 'Updated chunk content...' })
-  @IsString()
-  @IsNotEmpty()
-  text: string;
-}
+export const PreviewResponseSchema = z.object({
+  sessionId: z.string(),
+  status: z.string(),
+  chunks: z.array(ChunkSchema),
+  isValid: z.boolean(),
+  warnings: z.array(z.string()),
+});
 
-export class PublishDto {
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', description: 'Target collection ID' })
-  @IsString()
-  @IsNotEmpty()
-  targetCollectionId: string;
-}
+export class PreviewResponseDto extends createZodDto(PreviewResponseSchema) {}
 
-export class PreviewResponseDto {
-  @ApiProperty({ example: 'session_abc123' })
-  sessionId: string;
+export const PublishResponseSchema = z.object({
+  sessionId: z.string(),
+  publishedChunks: z.number().int().nonnegative(),
+  collectionId: z.string(),
+});
 
-  @ApiProperty({ example: 'PREVIEW' })
-  status: string;
-
-  @ApiProperty({ type: [ChunkDto] })
-  chunks: ChunkDto[];
-
-  @ApiProperty({ example: true })
-  isValid: boolean;
-
-  @ApiProperty({ example: [], description: 'Validation warnings if any' })
-  warnings: string[];
-}
-
-export class PublishResponseDto {
-  @ApiProperty({ example: 'session_abc123' })
-  sessionId: string;
-
-  @ApiProperty({ example: 5 })
-  publishedChunks: number;
-
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  collectionId: string;
-}
+export class PublishResponseDto extends createZodDto(PublishResponseSchema) {}

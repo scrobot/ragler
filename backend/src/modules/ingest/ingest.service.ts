@@ -39,7 +39,7 @@ export class IngestService {
     let sourceUrl = '';
 
     switch (dto.sourceType) {
-      case SourceType.MANUAL:
+      case 'manual':
         if (!dto.content) {
           throw new BadRequestException('Content is required for manual source type');
         }
@@ -47,7 +47,7 @@ export class IngestService {
         sourceUrl = 'manual://input';
         break;
 
-      case SourceType.CONFLUENCE:
+      case 'confluence':
         if (!dto.url) {
           throw new BadRequestException('URL is required for confluence source type');
         }
@@ -58,7 +58,7 @@ export class IngestService {
         content = `[Placeholder] Content from Confluence: ${dto.url}`;
         break;
 
-      case SourceType.WEB:
+      case 'web':
         if (!dto.url) {
           throw new BadRequestException('URL is required for web source type');
         }

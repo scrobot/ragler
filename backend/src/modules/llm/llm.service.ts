@@ -30,10 +30,10 @@ export class LlmService {
     this.logger.log(`Refining text with scenario: ${scenario}`);
 
     const prompts: Record<RefineScenario, string> = {
-      [RefineScenario.SIMPLIFY]: `Simplify the following text while preserving its meaning:\n\n${text}`,
-      [RefineScenario.CLARIFY_TERMS]: `Clarify technical terms and jargon in the following text:\n\n${text}`,
-      [RefineScenario.ADD_EXAMPLES]: `Add clarifying examples to the following text:\n\n${text}`,
-      [RefineScenario.REWRITE_FOR_AUDIENCE]: `Rewrite the following text for ${targetAudience || 'general audience'}:\n\n${text}`,
+      simplify: `Simplify the following text while preserving its meaning:\n\n${text}`,
+      clarify_terms: `Clarify technical terms and jargon in the following text:\n\n${text}`,
+      add_examples: `Add clarifying examples to the following text:\n\n${text}`,
+      rewrite_for_audience: `Rewrite the following text for ${targetAudience || 'general audience'}:\n\n${text}`,
     };
 
     try {
