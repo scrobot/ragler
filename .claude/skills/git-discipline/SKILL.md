@@ -1,5 +1,5 @@
 ---
-name: git-discipline-atomic-commits
+name: git-discipline
 description: Enforces atomic commits, clean history, and commit-after-step workflow
 ---
 
