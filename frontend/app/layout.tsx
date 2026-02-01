@@ -5,6 +5,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
 import { ThemeProvider } from 'next-themes';
+import { QueryProvider } from '@/lib/api/query-client';
+import { UserProvider } from '@/lib/context/user-context';
 
 import '@/styles/globals.css';
 const inter = Inter({ subsets: ['latin'] });
@@ -16,7 +18,6 @@ export const metadata: Metadata = {
   },
   description: 'Knowledge Management System for RAG with Human-in-the-Loop validation',
 };
-
 export default async function RootLayout({
   children,
 }: {
@@ -30,19 +31,23 @@ export default async function RootLayout({
           inter.className,
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          storageKey="nextjs-theme"
-          enableSystem
-          disableTransitionOnChange
-          enableColorScheme
-        >
-          <TooltipProvider delayDuration={0}>
-            <Suspense>{children}</Suspense>
-            <Toaster />
-          </TooltipProvider>
-        </ThemeProvider>       
+        <QueryProvider>
+          <UserProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              storageKey="nextjs-theme"
+              enableSystem
+              disableTransitionOnChange
+              enableColorScheme
+            >
+              <TooltipProvider delayDuration={0}>
+                <Suspense>{children}</Suspense>
+                <Toaster />
+              </TooltipProvider>
+            </ThemeProvider>
+          </UserProvider>
+        </QueryProvider>
       </body>
     </html>
   );

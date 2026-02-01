@@ -7,10 +7,6 @@ import { ReactNode } from 'react';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <QueryProvider>
-      <UserProvider>
-        <Layout1>{children}</Layout1>
-      </UserProvider>
-    </QueryProvider>
+    <Layout1>{children}</Layout1>
   );
 }
