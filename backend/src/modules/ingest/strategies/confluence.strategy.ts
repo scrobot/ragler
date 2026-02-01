@@ -1,8 +1,11 @@
 import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
 import { IngestStrategy, IngestResult } from './ingest.strategy';
 
+import { SourceType } from '@ingest/dto';
+
 @Injectable()
 export class ConfluenceStrategy implements IngestStrategy {
+  readonly sourceType: SourceType = 'confluence';
   private readonly logger = new Logger(ConfluenceStrategy.name);
 
   async ingest(url: string): Promise<IngestResult> {

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { VectorService } from '../../../src/modules/vector/vector.service';
-import { QdrantClientService } from '../../../src/infrastructure/qdrant';
-import { LlmService } from '../../../src/modules/llm/llm.service';
-import { SearchRequestDto } from '../../../src/modules/vector/dto';
+import { VectorService } from '@vector/vector.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
+import { LlmService } from '@llm/llm.service';
+import { SearchRequestDto } from '@vector/dto';
 
 describe('VectorService', () => {
   let service: VectorService;

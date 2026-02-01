@@ -1,10 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { RedisService } from '../../infrastructure/redis';
+import { RedisService } from '@infrastructure/redis';
 import { IngestRequestDto, IngestResponseDto, SourceType } from './dto';
-import { ConfluenceStrategy } from './strategies/confluence.strategy';
-import { WebStrategy } from './strategies/web.strategy';
+import { IngestStrategyResolver } from './strategies/ingest-strategy.resolver';
 
 export interface SessionData {
   sessionId: string;
@@ -28,47 +27,25 @@ export class IngestService {
 
   constructor(
     private readonly redisService: RedisService,
-    private readonly confluenceStrategy: ConfluenceStrategy,
-    private readonly webStrategy: WebStrategy,
+    private readonly strategyResolver: IngestStrategyResolver,
     private readonly configService: ConfigService,
   ) { }
 
   async ingest(dto: IngestRequestDto, userId: string): Promise<IngestResponseDto> {
     const sessionId = `session_${uuidv4()}`;
-    let content = '';
-    let sourceUrl = '';
 
-    switch (dto.sourceType) {
-      case 'manual':
-        if (!dto.content) {
-          throw new BadRequestException('Content is required for manual source type');
-        }
-        content = dto.content;
-        sourceUrl = 'manual://input';
-        break;
+    const strategy = this.strategyResolver.resolve(dto.sourceType);
+    const input = dto.sourceType === 'manual' ? dto.content : dto.url;
 
-      case 'confluence':
-        if (!dto.url) {
-          throw new BadRequestException('URL is required for confluence source type');
-        }
-        sourceUrl = dto.url;
-        // TODO: Uncomment when confluence strategy is implemented
-        // const confluenceResult = await this.confluenceStrategy.ingest(dto.url);
-        // content = confluenceResult.content;
-        content = `[Placeholder] Content from Confluence: ${dto.url}`;
-        break;
-
-      case 'web':
-        if (!dto.url) {
-          throw new BadRequestException('URL is required for web source type');
-        }
-        sourceUrl = dto.url;
-        // TODO: Uncomment when web strategy is implemented
-        // const webResult = await this.webStrategy.ingest(dto.url);
-        // content = webResult.content;
-        content = `[Placeholder] Content from web: ${dto.url}`;
-        break;
+    if (!input) {
+      throw new BadRequestException(
+        dto.sourceType === 'manual'
+          ? 'Content is required for manual source type'
+          : `URL is required for ${dto.sourceType} source type`,
+      );
     }
+
+    const { content, sourceUrl } = await strategy.ingest(input);
 
     const sessionData: SessionData = {
       sessionId,

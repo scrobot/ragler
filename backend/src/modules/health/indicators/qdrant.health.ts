@@ -4,7 +4,7 @@ import {
   HealthIndicatorResult,
   HealthCheckError,
 } from '@nestjs/terminus';
-import { QdrantClientService } from '../../../infrastructure/qdrant/qdrant.client';
+import { QdrantClientService } from '@infrastructure/qdrant/qdrant.client';
 
 @Injectable()
 export class QdrantHealthIndicator extends HealthIndicator {

@@ -24,17 +24,17 @@ import {
   PreviewResponseDto,
   PublishResponseDto,
 } from './dto';
-import { User, RequestUser, UserRole } from '../../common/decorators';
-import { Roles } from '../../common/decorators';
-import { RoleGuard } from '../../common/guards';
-import { ErrorResponseDto } from '../../common/dto';
+import { User, RequestUser, UserRole } from '@common/decorators';
+import { Roles } from '@common/decorators';
+import { RoleGuard } from '@common/guards';
+import { ErrorResponseDto } from '@common/dto';
 
 @ApiTags('Session')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
 @ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
 @Controller('session')
 export class SessionController {
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(private readonly sessionService: SessionService) { }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get session details' })

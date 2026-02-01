@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { QdrantClientService } from '../../infrastructure/qdrant';
-import { LlmService } from '../llm/llm.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
+import { LlmService } from '@llm/llm.service';
 import { SearchRequestDto, SearchResponseDto, SearchResultDto } from './dto';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class VectorService {
   constructor(
     private readonly qdrantClient: QdrantClientService,
     private readonly llmService: LlmService,
-  ) {}
+  ) { }
 
   async search(dto: SearchRequestDto): Promise<SearchResponseDto> {
     const collectionName = `kb_${dto.collectionId}`;

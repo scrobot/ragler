@@ -18,17 +18,17 @@ import {
 } from '@nestjs/swagger';
 import { CollectionService } from './collection.service';
 import { CreateCollectionDto, CollectionResponseDto, CollectionListResponseDto } from './dto';
-import { User, UserRole, RequestUser } from '../../common/decorators';
-import { Roles } from '../../common/decorators';
-import { RoleGuard } from '../../common/guards';
-import { ErrorResponseDto } from '../../common/dto';
+import { User, UserRole, RequestUser } from '@common/decorators';
+import { Roles } from '@common/decorators';
+import { RoleGuard } from '@common/guards';
+import { ErrorResponseDto } from '@common/dto';
 
 @ApiTags('Collections')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
 @ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
 @Controller('collections')
 export class CollectionController {
-  constructor(private readonly collectionService: CollectionService) {}
+  constructor(private readonly collectionService: CollectionService) { }
 
   @Get()
   @ApiOperation({ summary: 'List all collections' })

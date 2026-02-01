@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { LlmService } from '../../../src/modules/llm/llm.service';
-import { RefineScenario } from '../../../src/modules/llm/dto';
+import { LlmService } from '@llm/llm.service';
+import { RefineScenario } from '@llm/dto';
 
 // Mock OpenAI
 const mockCreate = jest.fn();

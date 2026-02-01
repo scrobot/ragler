@@ -1,10 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { IngestService, SessionData } from '../../../src/modules/ingest/ingest.service';
-import { RedisService } from '../../../src/infrastructure/redis';
-import { ConfluenceStrategy } from '../../../src/modules/ingest/strategies/confluence.strategy';
-import { WebStrategy } from '../../../src/modules/ingest/strategies/web.strategy';
-
+import { IngestService, SessionData } from '@ingest/ingest.service';
+import { RedisService } from '@infrastructure/redis';
+import { IngestStrategyResolver } from '@ingest/strategies/ingest-strategy.resolver';
 import { ConfigService } from '@nestjs/config';
 
 // Mock uuid to return predictable values
@@ -15,9 +13,9 @@ jest.mock('uuid', () => ({
 describe('IngestService', () => {
   let service: IngestService;
   let mockRedisService: jest.Mocked<Pick<RedisService, 'getJson' | 'setJson' | 'del'>>;
-  let mockConfluenceStrategy: jest.Mocked<ConfluenceStrategy>;
-  let mockWebStrategy: jest.Mocked<WebStrategy>;
+  let mockStrategyResolver: jest.Mocked<IngestStrategyResolver>;
   let mockConfigService: jest.Mocked<ConfigService>;
+  let mockStrategy: any;
 
   const createMockSession = (overrides: Partial<SessionData> = {}): SessionData => ({
     sessionId: 'session_test-uuid-1234',
@@ -42,13 +40,13 @@ describe('IngestService', () => {
       del: jest.fn(),
     };
 
-    mockConfluenceStrategy = {
+    mockStrategy = {
       ingest: jest.fn(),
-    } as unknown as jest.Mocked<ConfluenceStrategy>;
+    };
 
-    mockWebStrategy = {
-      ingest: jest.fn(),
-    } as unknown as jest.Mocked<WebStrategy>;
+    mockStrategyResolver = {
+      resolve: jest.fn().mockReturnValue(mockStrategy),
+    } as unknown as jest.Mocked<IngestStrategyResolver>;
 
     mockConfigService = {
       get: jest.fn((key: string) => {
@@ -61,8 +59,7 @@ describe('IngestService', () => {
       providers: [
         IngestService,
         { provide: RedisService, useValue: mockRedisService },
-        { provide: ConfluenceStrategy, useValue: mockConfluenceStrategy },
-        { provide: WebStrategy, useValue: mockWebStrategy },
+        { provide: IngestStrategyResolver, useValue: mockStrategyResolver },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -77,10 +74,18 @@ describe('IngestService', () => {
   describe('ingest', () => {
     describe('manual source type', () => {
       it('should create session with manual content', async () => {
+        mockStrategy.ingest.mockResolvedValue({
+          content: 'My manual content',
+          sourceUrl: 'manual://input',
+        });
+
         const result = await service.ingest(
           { sourceType: 'manual', content: 'My manual content' },
           'user-1',
         );
+
+        expect(mockStrategyResolver.resolve).toHaveBeenCalledWith('manual');
+        expect(mockStrategy.ingest).toHaveBeenCalledWith('My manual content');
 
         expect(mockRedisService.setJson).toHaveBeenCalledWith(
           'session:session_test-uuid-1234',
@@ -113,6 +118,7 @@ describe('IngestService', () => {
         ).rejects.toThrow('Content is required for manual source type');
       });
 
+
       it('should throw BadRequestException when content is empty string for manual type', async () => {
         await expect(
           service.ingest({ sourceType: 'manual', content: '' }, 'user-1'),
@@ -121,23 +127,29 @@ describe('IngestService', () => {
     });
 
     describe('confluence source type', () => {
-      it('should create session with confluence placeholder content', async () => {
+      it('should create session with confluence content', async () => {
+        mockStrategy.ingest.mockResolvedValue({
+          content: 'Confluence content',
+          sourceUrl: 'https://company.atlassian.net/wiki/page',
+        });
+
         const result = await service.ingest(
           { sourceType: 'confluence', url: 'https://company.atlassian.net/wiki/page' },
           'user-1',
         );
+
+        expect(mockStrategyResolver.resolve).toHaveBeenCalledWith('confluence');
+        expect(mockStrategy.ingest).toHaveBeenCalledWith('https://company.atlassian.net/wiki/page');
 
         expect(mockRedisService.setJson).toHaveBeenCalledWith(
           'session:session_test-uuid-1234',
           expect.objectContaining({
             sourceType: 'confluence',
             sourceUrl: 'https://company.atlassian.net/wiki/page',
-            content: '[Placeholder] Content from Confluence: https://company.atlassian.net/wiki/page',
+            content: 'Confluence content',
           }),
           86400,
         );
-        expect(result.sourceType).toBe('confluence');
-        expect(result.sourceUrl).toBe('https://company.atlassian.net/wiki/page');
       });
 
       it('should throw BadRequestException when URL is missing for confluence type', async () => {
@@ -151,23 +163,29 @@ describe('IngestService', () => {
     });
 
     describe('web source type', () => {
-      it('should create session with web placeholder content', async () => {
+      it('should create session with web content', async () => {
+        mockStrategy.ingest.mockResolvedValue({
+          content: 'Web content',
+          sourceUrl: 'https://example.com/docs',
+        });
+
         const result = await service.ingest(
           { sourceType: 'web', url: 'https://example.com/docs' },
           'user-1',
         );
+
+        expect(mockStrategyResolver.resolve).toHaveBeenCalledWith('web');
+        expect(mockStrategy.ingest).toHaveBeenCalledWith('https://example.com/docs');
 
         expect(mockRedisService.setJson).toHaveBeenCalledWith(
           'session:session_test-uuid-1234',
           expect.objectContaining({
             sourceType: 'web',
             sourceUrl: 'https://example.com/docs',
-            content: '[Placeholder] Content from web: https://example.com/docs',
+            content: 'Web content',
           }),
           86400,
         );
-        expect(result.sourceType).toBe('web');
-        expect(result.sourceUrl).toBe('https://example.com/docs');
       });
 
       it('should throw BadRequestException when URL is missing for web type', async () => {
@@ -181,6 +199,11 @@ describe('IngestService', () => {
     });
 
     it('should set correct TTL for session (24 hours)', async () => {
+      mockStrategy.ingest.mockResolvedValue({
+        content: 'Test content',
+        sourceUrl: 'manual://input',
+      });
+
       await service.ingest({ sourceType: 'manual', content: 'Test' }, 'user-1');
 
       expect(mockRedisService.setJson).toHaveBeenCalledWith(

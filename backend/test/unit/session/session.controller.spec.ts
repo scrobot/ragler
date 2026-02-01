@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SessionController } from '../../../src/modules/session/session.controller';
-import { SessionService } from '../../../src/modules/session/session.service';
-import { UserRole, RequestUser } from '../../../src/common/decorators';
+import { SessionController } from '@session/session.controller';
+import { SessionService } from '@session/session.service';
+import { UserRole, RequestUser } from '@common/decorators';
 import {
   SessionResponseDto,
   PreviewResponseDto,

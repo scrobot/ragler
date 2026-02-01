@@ -32,6 +32,24 @@
       ],
       "@infrastructure/*": [
         "src/infrastructure/*"
+      ],
+      "@collection/*": [
+        "src/modules/collection/*"
+      ],
+      "@health/*": [
+        "src/modules/health/*"
+      ],
+      "@ingest/*": [
+        "src/modules/ingest/*"
+      ],
+      "@llm/*": [
+        "src/modules/llm/*"
+      ],
+      "@session/*": [
+        "src/modules/session/*"
+      ],
+      "@vector/*": [
+        "src/modules/vector/*"
       ]
     }
   },

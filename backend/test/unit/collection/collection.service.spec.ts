@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException } from '@nestjs/common';
-import { CollectionService } from '../../../src/modules/collection/collection.service';
-import { QdrantClientService, SYS_REGISTRY_COLLECTION } from '../../../src/infrastructure/qdrant';
+import { CollectionService } from '@collection/collection.service';
+import { QdrantClientService, SYS_REGISTRY_COLLECTION } from '@infrastructure/qdrant';
 
 // Mock uuid to return predictable values
 jest.mock('uuid', () => ({

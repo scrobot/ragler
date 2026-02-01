@@ -1,8 +1,8 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import { IngestService } from '../ingest/ingest.service';
-import { QdrantClientService } from '../../infrastructure/qdrant';
+import { IngestService } from '@ingest/ingest.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
 import {
   SessionResponseDto,
   MergeChunksDto,
@@ -12,7 +12,7 @@ import {
   PreviewResponseDto,
   PublishResponseDto,
 } from './dto';
-import { UserRole } from '../../common/decorators';
+import { UserRole } from '@common/decorators';
 
 @Injectable()
 export class SessionService {
@@ -21,7 +21,7 @@ export class SessionService {
   constructor(
     private readonly ingestService: IngestService,
     private readonly qdrantClient: QdrantClientService,
-  ) {}
+  ) { }
 
   async getSession(sessionId: string): Promise<SessionResponseDto> {
     const session = await this.ingestService.getSession(sessionId);

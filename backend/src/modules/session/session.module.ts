@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SessionController } from './session.controller';
 import { SessionService } from './session.service';
-import { IngestModule } from '../ingest/ingest.module';
+import { IngestModule } from '@ingest/ingest.module';
 
 @Module({
   imports: [IngestModule],
@@ -9,4 +9,4 @@ import { IngestModule } from '../ingest/ingest.module';
   providers: [SessionService],
   exports: [SessionService],
 })
-export class SessionModule {}
+export class SessionModule { }

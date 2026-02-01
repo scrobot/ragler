@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { SessionService } from '../../../src/modules/session/session.service';
-import { IngestService, SessionData } from '../../../src/modules/ingest/ingest.service';
-import { QdrantClientService } from '../../../src/infrastructure/qdrant';
-import { UserRole } from '../../../src/common/decorators';
+import { SessionService } from '@session/session.service';
+import { IngestService, SessionData } from '@ingest/ingest.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
+import { UserRole } from '@common/decorators';
 
 describe('SessionService', () => {
   let service: SessionService;

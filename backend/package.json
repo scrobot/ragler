@@ -80,6 +80,19 @@
       "src/**/*.(t|j)s"
     ],
     "coverageDirectory": "coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@common/(.*)$": "<rootDir>/src/common/$1",
+      "^@config/(.*)$": "<rootDir>/src/config/$1",
+      "^@modules/(.*)$": "<rootDir>/src/modules/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
+      "^@collection/(.*)$": "<rootDir>/src/modules/collection/$1",
+      "^@health/(.*)$": "<rootDir>/src/modules/health/$1",
+      "^@ingest/(.*)$": "<rootDir>/src/modules/ingest/$1",
+      "^@llm/(.*)$": "<rootDir>/src/modules/llm/$1",
+      "^@session/(.*)$": "<rootDir>/src/modules/session/$1",
+      "^@vector/(.*)$": "<rootDir>/src/modules/vector/$1"
+    }
   }
 }

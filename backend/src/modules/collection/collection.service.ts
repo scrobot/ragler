@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { QdrantClientService, SYS_REGISTRY_COLLECTION } from '../../infrastructure/qdrant';
+import { QdrantClientService, SYS_REGISTRY_COLLECTION } from '@infrastructure/qdrant';
 import { CreateCollectionDto, CollectionResponseDto, CollectionListResponseDto } from './dto';
 
 interface CollectionPayload {
@@ -15,7 +15,7 @@ interface CollectionPayload {
 export class CollectionService {
   private readonly logger = new Logger(CollectionService.name);
 
-  constructor(private readonly qdrantClient: QdrantClientService) {}
+  constructor(private readonly qdrantClient: QdrantClientService) { }
 
   async ensureRegistryExists(): Promise<void> {
     const exists = await this.qdrantClient.collectionExists(SYS_REGISTRY_COLLECTION);
