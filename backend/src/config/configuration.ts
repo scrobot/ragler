@@ -34,5 +34,9 @@ export default () => {
       apiToken: env.CONFLUENCE_API_TOKEN,
       fetchTimeout: env.CONFLUENCE_FETCH_TIMEOUT,
     },
+    manual: {
+      maxContentLength: env.MANUAL_MAX_CONTENT_LENGTH,
+      minContentLength: env.MANUAL_MIN_CONTENT_LENGTH,
+    },
   };
 };

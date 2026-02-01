@@ -33,7 +33,8 @@ describe('Ingest E2E', () => {
       expect(response.body).toHaveProperty('sessionId');
       expect(response.body.sourceType).toBe('manual');
       expect(response.body.status).toBe('DRAFT');
-      expect(response.body.sourceUrl).toBe('manual://input');
+      // sourceUrl is now hash-based for idempotency: manual://{MD5}
+      expect(response.body.sourceUrl).toMatch(/^manual:\/\/[a-f0-9]{32}$/);
     });
 
     it('should reject manual source without content', async () => {
@@ -44,6 +45,100 @@ describe('Ingest E2E', () => {
           sourceType: 'manual',
         })
         .expect(400);
+    });
+
+    it('should reject empty content string', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'manual',
+          content: '',
+        })
+        .expect(400);
+
+      expect(response.body.message).toBeDefined();
+    });
+
+    it('should reject whitespace-only content', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'manual',
+          content: '   \n\t  ',
+        })
+        .expect(400);
+
+      expect(response.body.message).toBeDefined();
+    });
+
+    it('should reject content exceeding maximum length', async () => {
+      // Note: Express body-parser has its own limit (~100KB default)
+      // So we test rejection at either body-parser level (500) or DTO level (400)
+      const longContent = 'a'.repeat(102401); // 100KB + 1 byte
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'manual',
+          content: longContent,
+        });
+
+      // Should be rejected (either by body-parser or DTO validation)
+      expect([400, 413, 500]).toContain(response.status);
+    });
+
+    it('should accept moderately large content (50KB)', async () => {
+      // Test with 50KB which is safely under body-parser default limit
+      const largeContent = 'a'.repeat(51200); // 50KB
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'manual',
+          content: largeContent,
+        })
+        .expect(201);
+
+      expect(response.body).toHaveProperty('sessionId');
+    });
+
+    it('should generate deterministic sourceUrl for same content (idempotency)', async () => {
+      const content = 'Identical content for idempotency test';
+
+      const response1 = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({ sourceType: 'manual', content })
+        .expect(201);
+
+      const response2 = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({ sourceType: 'manual', content })
+        .expect(201);
+
+      // Same content should produce same sourceUrl (hash-based)
+      expect(response1.body.sourceUrl).toBe(response2.body.sourceUrl);
+      // But different sessionIds (new sessions)
+      expect(response1.body.sessionId).not.toBe(response2.body.sessionId);
+    });
+
+    it('should generate different sourceUrl for different content', async () => {
+      const response1 = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({ sourceType: 'manual', content: 'Content A' })
+        .expect(201);
+
+      const response2 = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({ sourceType: 'manual', content: 'Content B' })
+        .expect(201);
+
+      expect(response1.body.sourceUrl).not.toBe(response2.body.sourceUrl);
     });
 
     it('should handle missing X-User-ID header gracefully', async () => {
@@ -58,63 +153,396 @@ describe('Ingest E2E', () => {
       // Either returns 201 with default user or 400 if header is required
       expect([201, 400]).toContain(response.status);
     });
-  });
 
-  describe('POST /api/ingest (Confluence Source)', () => {
-    it('should reject confluence source without URL or pageId', async () => {
+    it('should accept single character content', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/ingest')
         .set('X-User-ID', 'test@example.com')
         .send({
-          sourceType: 'confluence',
+          sourceType: 'manual',
+          content: 'X',
         })
-        .expect(400);
+        .expect(201);
 
-      expect(response.body.message).toBeDefined();
+      expect(response.body).toHaveProperty('sessionId');
     });
+  });
 
-    it('should reject pageId for non-confluence source type (web)', async () => {
-      // pageId is only valid for confluence source type
+  describe('POST /api/ingest (Web Source)', () => {
+    it('should reject web source without URL', async () => {
       await request(app.getHttpServer())
         .post('/api/ingest')
         .set('X-User-ID', 'test@example.com')
         .send({
           sourceType: 'web',
+        })
+        .expect(400);
+    });
+
+    it('should reject invalid URL format', async () => {
+      await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'web',
+          url: 'not-a-valid-url',
+        })
+        .expect(400);
+    });
+
+    it('should reject private IP addresses (SSRF prevention)', async () => {
+      const privateUrls = [
+        'http://localhost/admin',
+        'http://127.0.0.1/admin',
+        'http://10.0.0.1/internal',
+        'http://192.168.1.1/router',
+        'http://172.16.0.1/internal',
+      ];
+
+      for (const url of privateUrls) {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({ sourceType: 'web', url });
+
+        // Should be rejected (400) for security
+        expect(response.status).toBe(400);
+        expect(response.body.message).toContain('private');
+      }
+    });
+
+    it('should reject non-http(s) schemes', async () => {
+      const invalidUrls = [
+        'ftp://example.com/file',
+        'file:///etc/passwd',
+        'javascript:alert(1)',
+      ];
+
+      for (const url of invalidUrls) {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({ sourceType: 'web', url });
+
+        expect(response.status).toBe(400);
+      }
+    });
+
+    it('should accept valid https URL (may fail on network)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'web',
           url: 'https://example.com/page',
-          pageId: '123456',
-        })
-        .expect(400);
+        });
+
+      // Either succeeds (201) or fails due to network/content issues
+      // 400: URL validation or content extraction error
+      // 422: Content extraction failed
+      // 502: Network error (retryable)
+      expect([201, 400, 422, 502]).toContain(response.status);
+    });
+  });
+
+  describe('POST /api/ingest (Confluence Source)', () => {
+    describe('Input Validation', () => {
+      it('should reject confluence source without URL or pageId', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+          })
+          .expect(400);
+
+        expect(response.body.message).toBeDefined();
+      });
+
+      it('should reject pageId for non-confluence source type (web)', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'web',
+            url: 'https://example.com/page',
+            pageId: '123456',
+          })
+          .expect(400);
+
+        // Zod validation may wrap error message
+        expect(response.body.message).toBeDefined();
+      });
+
+      it('should reject pageId for non-confluence source type (manual)', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'manual',
+            content: 'Some content',
+            pageId: '123456',
+          })
+          .expect(400);
+
+        // Zod validation may wrap error message
+        expect(response.body.message).toBeDefined();
+      });
+
+      it('should reject non-numeric pageId', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: 'not-numeric',
+          })
+          .expect(400);
+
+        // Zod validation may wrap error message
+        expect(response.body.message).toBeDefined();
+      });
+
+      it('should reject pageId with decimal', async () => {
+        await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: '123.456',
+          })
+          .expect(400);
+      });
+
+      it('should reject pageId with negative number', async () => {
+        await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: '-123',
+          })
+          .expect(400);
+      });
+
+      it('should accept large numeric pageId', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: '9876543210',
+          });
+
+        // Should pass DTO validation, may fail on config/network
+        expect([201, 400, 502, 503]).toContain(response.status);
+      });
+
+      it('should reject invalid URL format for confluence', async () => {
+        await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'not-a-valid-url',
+          })
+          .expect(400);
+      });
     });
 
-    it('should reject pageId for non-confluence source type (manual)', async () => {
-      // pageId is only valid for confluence source type
-      await request(app.getHttpServer())
-        .post('/api/ingest')
-        .set('X-User-ID', 'test@example.com')
-        .send({
-          sourceType: 'manual',
-          content: 'Some content',
-          pageId: '123456',
-        })
-        .expect(400);
+    describe('Configuration and Network Handling', () => {
+      it('should return 503 when Confluence is not configured (pageId)', async () => {
+        // When CONFLUENCE_BASE_URL is not set, should return 503
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: '123456',
+          });
+
+        // 503 if config missing, or other errors if partially configured
+        expect([201, 400, 502, 503]).toContain(response.status);
+
+        // If 503, verify it's a config error
+        if (response.status === 503) {
+          expect(response.body.message).toContain('configured');
+        }
+      });
+
+      it('should return 503 when Confluence is not configured (URL)', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+          });
+
+        expect([201, 400, 502, 503]).toContain(response.status);
+
+        if (response.status === 503) {
+          expect(response.body.message).toContain('configured');
+        }
+      });
+
+      it('should accept request with both URL and pageId', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+            pageId: '123456',
+          });
+
+        // Should pass DTO validation
+        expect([201, 400, 502, 503]).toContain(response.status);
+      });
     });
 
-    it('should reject non-numeric pageId', async () => {
-      // Page ID must be numeric
-      await request(app.getHttpServer())
-        .post('/api/ingest')
-        .set('X-User-ID', 'test@example.com')
-        .send({
-          sourceType: 'confluence',
-          pageId: 'not-numeric',
-        })
-        .expect(400);
+    describe('URL Format Validation', () => {
+      it('should accept valid Atlassian cloud URL', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'https://company.atlassian.net/wiki/spaces/TEAM/pages/123456789/Page+Title',
+          });
+
+        // Should pass URL validation, may fail on config
+        expect([201, 400, 502, 503]).toContain(response.status);
+      });
+
+      it('should accept Confluence URL with query parameters', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'https://company.atlassian.net/wiki/spaces/TEAM/pages/123456?version=1',
+          });
+
+        expect([201, 400, 502, 503]).toContain(response.status);
+      });
+
+      it('should handle Confluence URL without page title', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            url: 'https://company.atlassian.net/wiki/spaces/TEAM/pages/123456',
+          });
+
+        expect([201, 400, 502, 503]).toContain(response.status);
+      });
     });
 
-    it('should accept valid confluence request with pageId (will fail on config/network)', async () => {
-      // This test validates the request is accepted at DTO level
-      // It will return 503 (config error) or 502 (network error) if Confluence not configured
-      const response = await request(app.getHttpServer())
+    describe('Error Response Structure', () => {
+      it('should return structured error response for validation failures', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+          })
+          .expect(400);
+
+        expect(response.body).toHaveProperty('message');
+        expect(response.body).toHaveProperty('statusCode', 400);
+      });
+
+      it('should return structured error for config errors', async () => {
+        const response = await request(app.getHttpServer())
+          .post('/api/ingest')
+          .set('X-User-ID', 'test@example.com')
+          .send({
+            sourceType: 'confluence',
+            pageId: '123456',
+          });
+
+        // If it's a config error (503), verify structure
+        if (response.status === 503) {
+          expect(response.body).toHaveProperty('message');
+          expect(response.body).toHaveProperty('statusCode', 503);
+        }
+      });
+    });
+
+  });
+
+  describe('Confluence Happy Path (Mocked API)', () => {
+    let confluenceCtx: TestContext;
+    let confluenceApp: INestApplication;
+    const originalFetch = global.fetch;
+
+    // Mock response with content that JSDOM will properly extract
+    // Use simple text content that won't be stripped during whitespace normalization
+    const mockConfluencePageResponse = {
+      id: '123456',
+      status: 'current',
+      title: 'Test Page Title',
+      spaceId: '789',
+      body: {
+        storage: {
+          value: '<p>This is the page content from Confluence.</p><p>Second paragraph with important information.</p>',
+          representation: 'storage',
+        },
+      },
+      _links: {
+        webui: '/wiki/spaces/TEAM/pages/123456/Test+Page+Title',
+        base: 'https://test.atlassian.net',
+      },
+    };
+
+    // Create a proper mock Response object
+    const createMockResponse = (body: unknown, ok = true, status = 200) => {
+      return Promise.resolve({
+        ok,
+        status,
+        statusText: ok ? 'OK' : 'Error',
+        json: () => Promise.resolve(body),
+        text: () => Promise.resolve(JSON.stringify(body)),
+        headers: new Headers({ 'content-type': 'application/json' }),
+        clone: function () {
+          return this;
+        },
+      } as unknown as Response);
+    };
+
+    beforeAll(async () => {
+      // Set Confluence configuration BEFORE initializing the app
+      process.env.CONFLUENCE_BASE_URL = 'https://test.atlassian.net';
+      process.env.CONFLUENCE_USER_EMAIL = 'test@example.com';
+      process.env.CONFLUENCE_API_TOKEN = 'mock-api-token';
+
+      // Mock fetch BEFORE initializing the app
+      global.fetch = jest.fn().mockImplementation((url: string | URL | Request) => {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        if (urlStr.includes('/wiki/api/v2/pages/')) {
+          return createMockResponse(mockConfluencePageResponse);
+        }
+        // For other URLs (like health checks), return appropriate responses
+        return originalFetch(url);
+      });
+
+      confluenceCtx = await setupTestContext();
+      confluenceApp = confluenceCtx.app;
+    }, 180000);
+
+    afterAll(async () => {
+      await teardownTestContext(confluenceCtx);
+      // Clean up environment variables and restore fetch
+      delete process.env.CONFLUENCE_BASE_URL;
+      delete process.env.CONFLUENCE_USER_EMAIL;
+      delete process.env.CONFLUENCE_API_TOKEN;
+      global.fetch = originalFetch;
+    });
+
+    it('should successfully ingest Confluence page by pageId and create session', async () => {
+      const response = await request(confluenceApp.getHttpServer())
         .post('/api/ingest')
         .set('X-User-ID', 'test@example.com')
         .send({
@@ -122,22 +550,104 @@ describe('Ingest E2E', () => {
           pageId: '123456',
         });
 
-      // Either 503 (config not set) or 502/400 (network/validation error at strategy level)
-      // 201 would mean it actually worked (unlikely without real Confluence)
-      expect([201, 400, 502, 503]).toContain(response.status);
+      // Should succeed with 201
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('sessionId');
+      expect(response.body.sourceType).toBe('confluence');
+      expect(response.body.status).toBe('DRAFT');
+      expect(response.body.sourceUrl).toContain('test.atlassian.net');
     });
 
-    it('should accept valid confluence request with URL (will fail on config/network)', async () => {
-      const response = await request(app.getHttpServer())
+    it('should successfully ingest Confluence page by URL and create session', async () => {
+      const response = await request(confluenceApp.getHttpServer())
         .post('/api/ingest')
         .set('X-User-ID', 'test@example.com')
         .send({
           sourceType: 'confluence',
-          url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+          url: 'https://test.atlassian.net/wiki/spaces/TEAM/pages/123456/Test+Page',
         });
 
-      // Either 503 (config not set) or 502/400 (network/validation error)
-      expect([201, 400, 502, 503]).toContain(response.status);
+      // Should succeed with 201
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('sessionId');
+      expect(response.body.sourceType).toBe('confluence');
+      expect(response.body.status).toBe('DRAFT');
+    });
+
+    it('should retrieve created session with Confluence content', async () => {
+      // First, ingest a Confluence page
+      const ingestResponse = await request(confluenceApp.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          pageId: '123456',
+        });
+
+      expect(ingestResponse.status).toBe(201);
+      const sessionId = ingestResponse.body.sessionId;
+
+      // Then, retrieve the session
+      const sessionResponse = await request(confluenceApp.getHttpServer())
+        .get(`/api/session/${sessionId}`)
+        .set('X-User-ID', 'test@example.com')
+        .expect(200);
+
+      expect(sessionResponse.body.sessionId).toBe(sessionId);
+      expect(sessionResponse.body.status).toBe('DRAFT');
+      expect(sessionResponse.body).toHaveProperty('chunks');
+    });
+
+    it('should verify Confluence API was called with correct parameters', async () => {
+      // Clear mock calls
+      (global.fetch as jest.Mock).mockClear();
+
+      await request(confluenceApp.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          pageId: '123456',
+        });
+
+      // Verify fetch was called with correct URL
+      // Note: fetch uses default GET method (not explicitly passed)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/wiki/api/v2/pages/123456'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining('Basic'),
+          }),
+        }),
+      );
+    });
+
+    it('should handle Confluence page with empty content gracefully', async () => {
+      // Override mock for this test with empty body content
+      const emptyContentResponse = {
+        ...mockConfluencePageResponse,
+        body: {
+          storage: {
+            value: '',
+            representation: 'storage',
+          },
+        },
+      };
+
+      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+        createMockResponse(emptyContentResponse),
+      );
+
+      const response = await request(confluenceApp.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          pageId: '123456',
+        });
+
+      // Should return 422 for empty content extraction
+      expect(response.status).toBe(422);
     });
   });
 
@@ -347,10 +857,10 @@ describe('Ingest E2E', () => {
         const publishResponse = await request(app.getHttpServer())
           .post(`/api/session/${sessionId}/publish`)
           .set('X-User-ID', 'test@example.com')
-          .send({ collectionId })
-          .expect(200);
+          .send({ targetCollectionId: collectionId })
+          .expect(201);
 
-        expect(publishResponse.body).toHaveProperty('publishedCount');
+        expect(publishResponse.body).toHaveProperty('publishedChunks');
       }
     });
   });

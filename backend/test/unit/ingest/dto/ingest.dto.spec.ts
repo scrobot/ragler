@@ -153,4 +153,52 @@ describe('IngestRequestSchema', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('content validation', () => {
+    it('should reject empty content string', () => {
+      const result = IngestRequestSchema.safeParse({
+        sourceType: 'manual',
+        content: '',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.errors[0].message).toContain('Content cannot be empty');
+      }
+    });
+
+    it('should accept content at minimum length (1 character)', () => {
+      const result = IngestRequestSchema.safeParse({
+        sourceType: 'manual',
+        content: 'X',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept content at maximum length (100KB)', () => {
+      const result = IngestRequestSchema.safeParse({
+        sourceType: 'manual',
+        content: 'a'.repeat(102400),
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject content exceeding maximum length (100KB)', () => {
+      const result = IngestRequestSchema.safeParse({
+        sourceType: 'manual',
+        content: 'a'.repeat(102401),
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.errors[0].message).toContain('Content exceeds maximum length');
+      }
+    });
+
+    it('should accept typical content', () => {
+      const result = IngestRequestSchema.safeParse({
+        sourceType: 'manual',
+        content: 'This is typical content that a user might enter.',
+      });
+      expect(result.success).toBe(true);
+    });
+  });
 });

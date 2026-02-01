@@ -8,7 +8,11 @@ export const IngestRequestSchema = z
   .object({
     sourceType: SourceTypeEnum,
     url: z.string().url('Invalid URL format').optional(),
-    content: z.string().optional(),
+    content: z
+      .string()
+      .min(1, 'Content cannot be empty')
+      .max(102400, 'Content exceeds maximum length of 100KB')
+      .optional(),
     pageId: z.string().regex(/^\d+$/, 'Page ID must be numeric').optional(),
   })
   .refine(

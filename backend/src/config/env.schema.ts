@@ -32,6 +32,10 @@ export const envSchema = z.object({
   CONFLUENCE_USER_EMAIL: z.string().email().optional(),
   CONFLUENCE_API_TOKEN: z.string().min(1).optional(),
   CONFLUENCE_FETCH_TIMEOUT: z.coerce.number().int().positive().default(30000),
+
+  // Manual ingestion
+  MANUAL_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(102400), // 100KB
+  MANUAL_MIN_CONTENT_LENGTH: z.coerce.number().int().nonnegative().default(1),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
