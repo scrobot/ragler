@@ -10,9 +10,10 @@ import {
   SheetBody,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { UserDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/user-dropdown-menu';
+// import { UserDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/user-dropdown-menu';
 import { SidebarMenu } from './sidebar-menu';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -64,7 +65,9 @@ export function Header() {
                   side="left"
                   close={false}
                 >
-                  <SheetHeader className="p-0 space-y-0" />
+                  <SheetHeader className="p-0 space-y-0">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  </SheetHeader>
                   <SheetBody className="p-0 overflow-y-auto">
                     <SidebarMenu />
                   </SheetBody>
@@ -79,15 +82,7 @@ export function Header() {
 
         {/* HeaderTopbar */}
         <div className="flex items-center gap-3">
-          <UserDropdownMenu
-            trigger={
-              <img
-                className="size-9 rounded-full border-2 border-green-500 shrink-0 cursor-pointer"
-                src={toAbsoluteUrl('/media/avatars/300-2.png')}
-                alt="User Avatar"
-              />
-            }
-          />
+          {/* User profile removed as per requirement */}
         </div>
       </div>
     </header>

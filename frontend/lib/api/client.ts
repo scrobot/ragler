@@ -2,16 +2,20 @@ import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { ApiError, UserRole } from '@/types/api';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export class ApiClient {
   private userId: string;
   private userRole: UserRole;
   private client: AxiosInstance;
 
-  constructor(userId: string = 'user-1', userRole: UserRole = 'L2') {
+  constructor(userId: string = 'user-1', userRole: UserRole = 'ML') {
     this.userId = userId;
     this.userRole = userRole;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_role', 'ML');
+    }
 
     this.client = axios.create({
       baseURL: API_BASE_URL,

@@ -7,22 +7,16 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: LayoutDashboard,
     path: '/dashboard',
   },
-  { heading: 'Knowledge' },
+  { heading: 'Knowledge Base' },
   {
-    title: 'Sources',
+    title: 'Ingestion',
     icon: FileText,
-    children: [
-      { title: 'All Sources', path: '/sources' },
-      { title: 'New Source', path: '/sources/new' },
-    ],
+    path: '/ingest',
   },
   {
     title: 'Collections',
     icon: FolderOpen,
-    children: [
-      { title: 'All Collections', path: '/collections' },
-      { title: 'New Collection', path: '/collections/new' },
-    ],
+    path: '/collections',
   },
 ];
 
