@@ -20,5 +20,8 @@ export default () => {
       ttl: env.THROTTLE_TTL,
       limit: env.THROTTLE_LIMIT,
     },
+    session: {
+      ttl: env.SESSION_TTL,
+    },
   };
 };

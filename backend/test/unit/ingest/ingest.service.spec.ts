@@ -5,6 +5,8 @@ import { RedisService } from '../../../src/infrastructure/redis';
 import { ConfluenceStrategy } from '../../../src/modules/ingest/strategies/confluence.strategy';
 import { WebStrategy } from '../../../src/modules/ingest/strategies/web.strategy';
 
+import { ConfigService } from '@nestjs/config';
+
 // Mock uuid to return predictable values
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid-1234'),
@@ -15,6 +17,7 @@ describe('IngestService', () => {
   let mockRedisService: jest.Mocked<Pick<RedisService, 'getJson' | 'setJson' | 'del'>>;
   let mockConfluenceStrategy: jest.Mocked<ConfluenceStrategy>;
   let mockWebStrategy: jest.Mocked<WebStrategy>;
+  let mockConfigService: jest.Mocked<ConfigService>;
 
   const createMockSession = (overrides: Partial<SessionData> = {}): SessionData => ({
     sessionId: 'session_test-uuid-1234',
@@ -47,12 +50,20 @@ describe('IngestService', () => {
       ingest: jest.fn(),
     } as unknown as jest.Mocked<WebStrategy>;
 
+    mockConfigService = {
+      get: jest.fn((key: string) => {
+        if (key === 'session.ttl') return 86400;
+        return null;
+      }),
+    } as unknown as jest.Mocked<ConfigService>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IngestService,
         { provide: RedisService, useValue: mockRedisService },
         { provide: ConfluenceStrategy, useValue: mockConfluenceStrategy },
         { provide: WebStrategy, useValue: mockWebStrategy },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 

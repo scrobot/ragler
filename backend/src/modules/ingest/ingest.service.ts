@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '../../infrastructure/redis';
 import { IngestRequestDto, IngestResponseDto, SourceType } from './dto';
@@ -21,8 +22,6 @@ export interface SessionData {
   updatedAt: string;
 }
 
-const SESSION_TTL_SECONDS = 3600 * 24; // 24 hours
-
 @Injectable()
 export class IngestService {
   private readonly logger = new Logger(IngestService.name);
@@ -31,7 +30,8 @@ export class IngestService {
     private readonly redisService: RedisService,
     private readonly confluenceStrategy: ConfluenceStrategy,
     private readonly webStrategy: WebStrategy,
-  ) {}
+    private readonly configService: ConfigService,
+  ) { }
 
   async ingest(dto: IngestRequestDto, userId: string): Promise<IngestResponseDto> {
     const sessionId = `session_${uuidv4()}`;
@@ -82,7 +82,11 @@ export class IngestService {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.redisService.setJson(`session:${sessionId}`, sessionData, SESSION_TTL_SECONDS);
+    await this.redisService.setJson(
+      `session:${sessionId}`,
+      sessionData,
+      this.configService.get<number>('session.ttl'),
+    );
 
     this.logger.log(`Created session ${sessionId} for user ${userId}`);
 
@@ -111,7 +115,11 @@ export class IngestService {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.redisService.setJson(`session:${sessionId}`, updated, SESSION_TTL_SECONDS);
+    await this.redisService.setJson(
+      `session:${sessionId}`,
+      updated,
+      this.configService.get<number>('session.ttl'),
+    );
   }
 
   async deleteSession(sessionId: string): Promise<void> {

@@ -18,6 +18,9 @@ export const envSchema = z.object({
   // Rate limiting
   THROTTLE_TTL: z.coerce.number().int().positive().default(60000),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+
+  // Session
+  SESSION_TTL: z.coerce.number().int().positive().default(86400),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
