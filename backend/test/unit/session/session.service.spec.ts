@@ -3,14 +3,18 @@ import { NotFoundException, BadRequestException, ForbiddenException } from '@nes
 import { SessionService } from '@session/session.service';
 import { IngestService, SessionData } from '@ingest/ingest.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
+import { LlmService } from '@llm/llm.service';
 import { UserRole } from '@common/decorators';
+import { LlmEmbeddingApiError } from '@llm/errors/llm-embedding.errors';
 
 describe('SessionService', () => {
   let service: SessionService;
   let mockIngestService: jest.Mocked<Pick<IngestService, 'getSession' | 'updateSession' | 'deleteSession'>>;
   let mockQdrantClient: jest.Mocked<Pick<QdrantClientService, 'collectionExists' | 'deletePointsByFilter' | 'upsertPoints'>>;
+  let mockLlmService: jest.Mocked<Pick<LlmService, 'generateEmbeddings'>>;
 
   const validCollectionId = '550e8400-e29b-41d4-a716-446655440000';
+  const mockEmbedding = new Array(1536).fill(0.01);
 
   const createMockSession = (overrides: Partial<SessionData> = {}): SessionData => ({
     sessionId: 'session_test-123',
@@ -42,11 +46,19 @@ describe('SessionService', () => {
       upsertPoints: jest.fn(),
     };
 
+    mockLlmService = {
+      generateEmbeddings: jest.fn().mockImplementation((texts: string[]) => {
+        // Return an array of mock embeddings matching the input length
+        return Promise.resolve(texts.map(() => [...mockEmbedding]));
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SessionService,
         { provide: IngestService, useValue: mockIngestService },
         { provide: QdrantClientService, useValue: mockQdrantClient },
+        { provide: LlmService, useValue: mockLlmService },
       ],
     }).compile();
 
@@ -477,6 +489,111 @@ describe('SessionService', () => {
       });
       expect(points[0].payload.source_id).toBeDefined();
       expect(points[0].payload.last_modified_at).toBeDefined();
+    });
+
+    describe('embedding generation', () => {
+      it('should generate embeddings for each chunk before upserting', async () => {
+        const mockSession = createMockSession({
+          chunks: [
+            { id: 'chunk_1', text: 'First chunk', isDirty: false },
+            { id: 'chunk_2', text: 'Second chunk', isDirty: false },
+          ],
+        });
+        mockIngestService.getSession.mockResolvedValue(mockSession);
+        mockQdrantClient.collectionExists.mockResolvedValue(true);
+        mockLlmService.generateEmbeddings.mockResolvedValue([
+          mockEmbedding,
+          mockEmbedding,
+        ]);
+
+        await service.publish(
+          'session_test-123',
+          { targetCollectionId: validCollectionId },
+          'user-1',
+        );
+
+        expect(mockLlmService.generateEmbeddings).toHaveBeenCalledWith(
+          ['First chunk', 'Second chunk'],
+          'session_test-123',
+        );
+      });
+
+      it('should use real embeddings in upserted points', async () => {
+        const mockSession = createMockSession({
+          chunks: [{ id: 'chunk_1', text: 'Test content', isDirty: false }],
+        });
+        const testEmbedding = new Array(1536).fill(0.123);
+        mockIngestService.getSession.mockResolvedValue(mockSession);
+        mockQdrantClient.collectionExists.mockResolvedValue(true);
+        mockLlmService.generateEmbeddings.mockResolvedValue([testEmbedding]);
+
+        await service.publish(
+          'session_test-123',
+          { targetCollectionId: validCollectionId },
+          'user-1',
+        );
+
+        const upsertCall = mockQdrantClient.upsertPoints.mock.calls[0];
+        const points = upsertCall[1];
+
+        expect(points[0].vector).toEqual(testEmbedding);
+      });
+
+      it('should fail publish if embedding generation fails', async () => {
+        const mockSession = createMockSession();
+        mockIngestService.getSession.mockResolvedValue(mockSession);
+        mockQdrantClient.collectionExists.mockResolvedValue(true);
+        mockLlmService.generateEmbeddings.mockRejectedValue(
+          new LlmEmbeddingApiError('OpenAI rate limit exceeded', true),
+        );
+
+        await expect(
+          service.publish(
+            'session_test-123',
+            { targetCollectionId: validCollectionId },
+            'user-1',
+          ),
+        ).rejects.toThrow(LlmEmbeddingApiError);
+      });
+
+      it('should NOT delete old chunks if embedding generation fails', async () => {
+        const mockSession = createMockSession();
+        mockIngestService.getSession.mockResolvedValue(mockSession);
+        mockQdrantClient.collectionExists.mockResolvedValue(true);
+        mockLlmService.generateEmbeddings.mockRejectedValue(
+          new LlmEmbeddingApiError('Server error', true),
+        );
+
+        await expect(
+          service.publish(
+            'session_test-123',
+            { targetCollectionId: validCollectionId },
+            'user-1',
+          ),
+        ).rejects.toThrow();
+
+        expect(mockQdrantClient.deletePointsByFilter).not.toHaveBeenCalled();
+        expect(mockQdrantClient.upsertPoints).not.toHaveBeenCalled();
+      });
+
+      it('should not call generateEmbeddings when all chunks are empty', async () => {
+        const mockSession = createMockSession({
+          chunks: [
+            { id: 'chunk_1', text: '', isDirty: false },
+            { id: 'chunk_2', text: '   ', isDirty: false },
+          ],
+        });
+        mockIngestService.getSession.mockResolvedValue(mockSession);
+        mockQdrantClient.collectionExists.mockResolvedValue(true);
+
+        await service.publish(
+          'session_test-123',
+          { targetCollectionId: validCollectionId },
+          'user-1',
+        );
+
+        expect(mockLlmService.generateEmbeddings).not.toHaveBeenCalled();
+      });
     });
   });
 });

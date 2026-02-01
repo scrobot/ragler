@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import { IngestService } from '@ingest/ingest.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
+import { LlmService } from '@llm/llm.service';
 import {
   SessionResponseDto,
   MergeChunksDto,
@@ -21,6 +22,7 @@ export class SessionService {
   constructor(
     private readonly ingestService: IngestService,
     private readonly qdrantClient: QdrantClientService,
+    private readonly llmService: LlmService,
   ) { }
 
   async getSession(sessionId: string): Promise<SessionResponseDto> {
@@ -203,36 +205,49 @@ export class SessionService {
       throw new NotFoundException(`Collection ${dto.targetCollectionId} not found`);
     }
 
-    const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
+    // Filter valid chunks FIRST (before any operations)
+    const validChunks = session.chunks.filter((c) => c.text.trim());
 
+    // If no valid chunks, skip embedding generation and Qdrant operations
+    if (validChunks.length === 0) {
+      await this.ingestService.deleteSession(sessionId);
+      this.logger.log(`Published 0 chunks from session ${sessionId} (all chunks empty)`);
+      return {
+        sessionId,
+        publishedChunks: 0,
+        collectionId: dto.targetCollectionId,
+      };
+    }
+
+    // Generate embeddings BEFORE any Qdrant delete (atomic safety)
+    // If embedding fails, we don't lose existing data
+    const texts = validChunks.map((c) => c.text);
+    const embeddings = await this.llmService.generateEmbeddings(texts, sessionId);
+
+    const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
+    const now = new Date().toISOString();
+
+    // Build points with real embeddings
+    const points = validChunks.map((chunk, index) => ({
+      id: uuidv4(),
+      vector: embeddings[index],
+      payload: {
+        content: chunk.text,
+        source_id: sourceId,
+        source_url: session.sourceUrl,
+        source_type: session.sourceType,
+        last_modified_by: userId,
+        last_modified_at: now,
+        revision: 1,
+      },
+    }));
+
+    // Atomic replacement: delete old, then upsert new
     await this.qdrantClient.deletePointsByFilter(collectionName, {
       must: [{ key: 'source_id', match: { value: sourceId } }],
     });
 
-    const now = new Date().toISOString();
-
-    // TODO: Generate actual embeddings via LLM module
-    const dummyVector = new Array(1536).fill(0).map(() => Math.random() * 0.01);
-
-    const points = session.chunks
-      .filter((c) => c.text.trim())
-      .map((chunk) => ({
-        id: uuidv4(),
-        vector: dummyVector,
-        payload: {
-          content: chunk.text,
-          source_id: sourceId,
-          source_url: session.sourceUrl,
-          source_type: session.sourceType,
-          last_modified_by: userId,
-          last_modified_at: now,
-          revision: 1,
-        },
-      }));
-
-    if (points.length > 0) {
-      await this.qdrantClient.upsertPoints(collectionName, points);
-    }
+    await this.qdrantClient.upsertPoints(collectionName, points);
 
     await this.ingestService.deleteSession(sessionId);
 

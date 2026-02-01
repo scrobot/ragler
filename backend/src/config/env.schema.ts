@@ -36,6 +36,16 @@ export const envSchema = z.object({
   // Manual ingestion
   MANUAL_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(102400), // 100KB
   MANUAL_MIN_CONTENT_LENGTH: z.coerce.number().int().nonnegative().default(1),
+
+  // LLM chunking
+  LLM_CHUNKING_TIMEOUT: z.coerce.number().int().positive().default(60000), // 60s
+  LLM_CHUNKING_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
+  LLM_CHUNKING_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(30000), // 30k chars
+
+  // LLM embedding
+  LLM_EMBEDDING_TIMEOUT: z.coerce.number().int().positive().default(30000), // 30s
+  LLM_EMBEDDING_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
+  LLM_EMBEDDING_BATCH_SIZE: z.coerce.number().int().positive().default(100), // Max texts per API call
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -16,6 +16,18 @@ export default () => {
     openai: {
       apiKey: env.OPENAI_API_KEY,
     },
+    llm: {
+      chunking: {
+        timeout: env.LLM_CHUNKING_TIMEOUT,
+        maxRetries: env.LLM_CHUNKING_MAX_RETRIES,
+        maxContentLength: env.LLM_CHUNKING_MAX_CONTENT_LENGTH,
+      },
+      embedding: {
+        timeout: env.LLM_EMBEDDING_TIMEOUT,
+        maxRetries: env.LLM_EMBEDDING_MAX_RETRIES,
+        batchSize: env.LLM_EMBEDDING_BATCH_SIZE,
+      },
+    },
     throttle: {
       ttl: env.THROTTLE_TTL,
       limit: env.THROTTLE_LIMIT,
