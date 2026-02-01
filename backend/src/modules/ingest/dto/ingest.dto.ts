@@ -9,16 +9,34 @@ export const IngestRequestSchema = z
     sourceType: SourceTypeEnum,
     url: z.string().url('Invalid URL format').optional(),
     content: z.string().optional(),
+    pageId: z.string().regex(/^\d+$/, 'Page ID must be numeric').optional(),
   })
   .refine(
     (data) => {
       if (data.sourceType === 'manual') {
         return !!data.content;
       }
+      if (data.sourceType === 'confluence') {
+        // Confluence accepts either url OR pageId
+        return !!data.url || !!data.pageId;
+      }
+      // Web requires url
       return !!data.url;
     },
     {
-      message: 'URL is required for confluence/web sources, content is required for manual source',
+      message: 'URL is required for web sources, URL or pageId for confluence, content for manual',
+    },
+  )
+  .refine(
+    (data) => {
+      // pageId is only valid for confluence source type
+      if (data.pageId && data.sourceType !== 'confluence') {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'pageId is only valid for confluence source type',
     },
   );
 
