@@ -133,7 +133,7 @@ describe('IngestService', () => {
           sourceUrl: 'https://company.atlassian.net/wiki/page',
         });
 
-        const result = await service.ingest(
+        await service.ingest(
           { sourceType: 'confluence', url: 'https://company.atlassian.net/wiki/page' },
           'user-1',
         );
@@ -169,7 +169,7 @@ describe('IngestService', () => {
           sourceUrl: 'https://example.com/docs',
         });
 
-        const result = await service.ingest(
+        await service.ingest(
           { sourceType: 'web', url: 'https://example.com/docs' },
           'user-1',
         );
