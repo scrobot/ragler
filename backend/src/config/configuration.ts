@@ -28,5 +28,11 @@ export default () => {
       userAgent: env.WEB_FETCH_USER_AGENT,
       maxContentLength: env.WEB_MAX_CONTENT_LENGTH,
     },
+    confluence: {
+      baseUrl: env.CONFLUENCE_BASE_URL,
+      userEmail: env.CONFLUENCE_USER_EMAIL,
+      apiToken: env.CONFLUENCE_API_TOKEN,
+      fetchTimeout: env.CONFLUENCE_FETCH_TIMEOUT,
+    },
   };
 };

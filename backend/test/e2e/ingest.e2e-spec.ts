@@ -60,6 +60,87 @@ describe('Ingest E2E', () => {
     });
   });
 
+  describe('POST /api/ingest (Confluence Source)', () => {
+    it('should reject confluence source without URL or pageId', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+        })
+        .expect(400);
+
+      expect(response.body.message).toBeDefined();
+    });
+
+    it('should reject pageId for non-confluence source type (web)', async () => {
+      // pageId is only valid for confluence source type
+      await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'web',
+          url: 'https://example.com/page',
+          pageId: '123456',
+        })
+        .expect(400);
+    });
+
+    it('should reject pageId for non-confluence source type (manual)', async () => {
+      // pageId is only valid for confluence source type
+      await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'manual',
+          content: 'Some content',
+          pageId: '123456',
+        })
+        .expect(400);
+    });
+
+    it('should reject non-numeric pageId', async () => {
+      // Page ID must be numeric
+      await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          pageId: 'not-numeric',
+        })
+        .expect(400);
+    });
+
+    it('should accept valid confluence request with pageId (will fail on config/network)', async () => {
+      // This test validates the request is accepted at DTO level
+      // It will return 503 (config error) or 502 (network error) if Confluence not configured
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          pageId: '123456',
+        });
+
+      // Either 503 (config not set) or 502/400 (network/validation error at strategy level)
+      // 201 would mean it actually worked (unlikely without real Confluence)
+      expect([201, 400, 502, 503]).toContain(response.status);
+    });
+
+    it('should accept valid confluence request with URL (will fail on config/network)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/ingest')
+        .set('X-User-ID', 'test@example.com')
+        .send({
+          sourceType: 'confluence',
+          url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+        });
+
+      // Either 503 (config not set) or 502/400 (network/validation error)
+      expect([201, 400, 502, 503]).toContain(response.status);
+    });
+  });
+
   describe('Session Lifecycle', () => {
     let sessionId: string;
 

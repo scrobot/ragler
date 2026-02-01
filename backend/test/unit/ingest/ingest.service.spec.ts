@@ -127,13 +127,13 @@ describe('IngestService', () => {
     });
 
     describe('confluence source type', () => {
-      it('should create session with confluence content', async () => {
+      it('should create session with confluence URL', async () => {
         mockStrategy.ingest.mockResolvedValue({
           content: 'Confluence content',
           sourceUrl: 'https://company.atlassian.net/wiki/page',
         });
 
-        const result = await service.ingest(
+        await service.ingest(
           { sourceType: 'confluence', url: 'https://company.atlassian.net/wiki/page' },
           'user-1',
         );
@@ -152,13 +152,60 @@ describe('IngestService', () => {
         );
       });
 
-      it('should throw BadRequestException when URL is missing for confluence type', async () => {
+      it('should create session with confluence pageId', async () => {
+        mockStrategy.ingest.mockResolvedValue({
+          content: 'Confluence content from page',
+          sourceUrl: 'https://company.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+        });
+
+        const result = await service.ingest(
+          { sourceType: 'confluence', pageId: '123456' },
+          'user-1',
+        );
+
+        expect(mockStrategyResolver.resolve).toHaveBeenCalledWith('confluence');
+        expect(mockStrategy.ingest).toHaveBeenCalledWith('123456');
+
+        expect(mockRedisService.setJson).toHaveBeenCalledWith(
+          'session:session_test-uuid-1234',
+          expect.objectContaining({
+            sourceType: 'confluence',
+            content: 'Confluence content from page',
+          }),
+          86400,
+        );
+
+        expect(result).toEqual({
+          sessionId: 'session_test-uuid-1234',
+          sourceType: 'confluence',
+          sourceUrl: 'https://company.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
+          status: 'DRAFT',
+          createdAt: expect.any(String),
+        });
+      });
+
+      it('should prefer pageId over url when both provided for confluence', async () => {
+        mockStrategy.ingest.mockResolvedValue({
+          content: 'Content from pageId',
+          sourceUrl: 'confluence://page/789',
+        });
+
+        await service.ingest(
+          { sourceType: 'confluence', pageId: '789', url: 'https://company.atlassian.net/wiki/page' },
+          'user-1',
+        );
+
+        // Should use pageId, not URL
+        expect(mockStrategy.ingest).toHaveBeenCalledWith('789');
+      });
+
+      it('should throw BadRequestException when both URL and pageId are missing for confluence', async () => {
         await expect(
           service.ingest({ sourceType: 'confluence' }, 'user-1'),
         ).rejects.toThrow(BadRequestException);
         await expect(
           service.ingest({ sourceType: 'confluence' }, 'user-1'),
-        ).rejects.toThrow('URL is required for confluence source type');
+        ).rejects.toThrow('URL or pageId is required for confluence source type');
       });
     });
 
@@ -169,7 +216,7 @@ describe('IngestService', () => {
           sourceUrl: 'https://example.com/docs',
         });
 
-        const result = await service.ingest(
+        await service.ingest(
           { sourceType: 'web', url: 'https://example.com/docs' },
           'user-1',
         );

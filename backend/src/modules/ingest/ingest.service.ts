@@ -35,13 +35,25 @@ export class IngestService {
     const sessionId = `session_${uuidv4()}`;
 
     const strategy = this.strategyResolver.resolve(dto.sourceType);
-    const input = dto.sourceType === 'manual' ? dto.content : dto.url;
+
+    // Determine input based on source type
+    let input: string | undefined;
+    if (dto.sourceType === 'manual') {
+      input = dto.content;
+    } else if (dto.sourceType === 'confluence') {
+      // Confluence supports both pageId and url; prefer pageId
+      input = dto.pageId ?? dto.url;
+    } else {
+      input = dto.url;
+    }
 
     if (!input) {
       throw new BadRequestException(
         dto.sourceType === 'manual'
           ? 'Content is required for manual source type'
-          : `URL is required for ${dto.sourceType} source type`,
+          : dto.sourceType === 'confluence'
+            ? 'URL or pageId is required for confluence source type'
+            : `URL is required for ${dto.sourceType} source type`,
       );
     }
 
