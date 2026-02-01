@@ -26,6 +26,12 @@ export const envSchema = z.object({
   WEB_FETCH_TIMEOUT: z.coerce.number().int().positive().default(30000),
   WEB_FETCH_USER_AGENT: z.string().default('KMS-RAG Bot/1.0'),
   WEB_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(10485760),
+
+  // Confluence ingestion (optional - only required for Confluence sources)
+  CONFLUENCE_BASE_URL: z.string().url().optional(),
+  CONFLUENCE_USER_EMAIL: z.string().email().optional(),
+  CONFLUENCE_API_TOKEN: z.string().min(1).optional(),
+  CONFLUENCE_FETCH_TIMEOUT: z.coerce.number().int().positive().default(30000),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
