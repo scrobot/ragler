@@ -29,6 +29,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.12",
@@ -39,6 +40,7 @@
     "@qdrant/js-client-rest": "^1.16.2",
     "helmet": "^8.1.0",
     "ioredis": "^5.9.2",
+    "jsdom": "^27.4.0",
     "nestjs-zod": "^5.1.1",
     "openai": "^6.17.0",
     "reflect-metadata": "^0.2.2",
@@ -53,6 +55,7 @@
     "@nestjs/testing": "^11.1.12",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^25.1.0",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^9.0.0",
@@ -76,6 +79,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@exodus/bytes|html-encoding-sniffer|whatwg-encoding)/)"
+    ],
     "collectCoverageFrom": [
       "src/**/*.(t|j)s"
     ],

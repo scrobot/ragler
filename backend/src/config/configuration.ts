@@ -23,5 +23,10 @@ export default () => {
     session: {
       ttl: env.SESSION_TTL,
     },
+    web: {
+      fetchTimeout: env.WEB_FETCH_TIMEOUT,
+      userAgent: env.WEB_FETCH_USER_AGENT,
+      maxContentLength: env.WEB_MAX_CONTENT_LENGTH,
+    },
   };
 };

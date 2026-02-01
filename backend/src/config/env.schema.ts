@@ -21,6 +21,11 @@ export const envSchema = z.object({
 
   // Session
   SESSION_TTL: z.coerce.number().int().positive().default(86400),
+
+  // Web ingestion
+  WEB_FETCH_TIMEOUT: z.coerce.number().int().positive().default(30000),
+  WEB_FETCH_USER_AGENT: z.string().default('KMS-RAG Bot/1.0'),
+  WEB_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(10485760),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

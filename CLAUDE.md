@@ -1,6 +1,77 @@
-# Claude Code — Project Operating Context
+# CLAUDE.md
 
-## Source of truth (MANDATORY)
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
+## Development Commands
+
+All commands run from `backend/` directory:
+
+```bash
+# Development
+pnpm install              # Install dependencies
+pnpm start:dev            # Start with hot reload (port 3000)
+
+# Testing (TDD is mandatory)
+pnpm test                 # Run unit tests
+pnpm test:watch           # Watch mode
+pnpm test:cov             # Coverage report
+pnpm test:e2e             # E2E tests (requires infrastructure)
+
+# Code Quality
+pnpm lint                 # ESLint with auto-fix
+pnpm typecheck            # TypeScript type checking
+pnpm format               # Prettier formatting
+
+# Build
+pnpm build                # Compile to dist/
+
+# Infrastructure
+docker compose up -d redis qdrant   # Start Redis + Qdrant
+```
+
+**Run a single test file:**
+```bash
+pnpm test -- test/unit/session/session.service.spec.ts
+```
+
+**Environment:** Copy `.env.example` to `.env` and set `OPENAI_API_KEY`.
+
+---
+
+## Architecture Overview
+
+**KMS-RAG** is a knowledge management system for RAG with Human-in-the-Loop validation.
+
+**Storage model:**
+- **Redis** — Draft sessions (temporary editing sandbox)
+- **Qdrant** — Published chunks + collection registry (`sys_registry`)
+
+**Key modules** (`backend/src/modules/`):
+| Module | Purpose |
+|--------|---------|
+| `collection` | CRUD for knowledge collections |
+| `ingest` | Data ingestion (Confluence, web, manual) via strategy pattern |
+| `session` | Draft lifecycle in Redis |
+| `llm` | OpenAI integration (chunking, enrichment) |
+| `vector` | Qdrant operations |
+| `health` | Health check endpoints |
+
+**Path aliases** (use these for imports):
+```typescript
+import { ... } from '@common/...';      // src/common/
+import { ... } from '@modules/...';     // src/modules/
+import { ... } from '@config/...';      // src/config/
+import { ... } from '@infrastructure/...'; // src/infrastructure/
+import { ... } from '@collection/...';  // src/modules/collection/
+import { ... } from '@session/...';     // src/modules/session/
+// etc. for each module
+```
+
+---
+
+## Source of Truth (MANDATORY)
 
 This project is defined by two canonical documents:
 
@@ -27,7 +98,7 @@ Never invent requirements outside these documents.
 
 ## Your role in this project
 
-You are a **coding assistant operating strictly in HITL mode**.
+You are a **senior software engineer operating in HITL mode**.
 
 You:
 - propose changes
@@ -52,6 +123,7 @@ You do NOT:
 - Collection must be selected **before** publish
 - Simple vs Advanced mode is enforced in UI **and** API
 - Strong explicit typing is better than dynamic implicit. Use Zod for validation.
+- Use Context7 MCP plugin to look up documentation for libraries and frameworks.
 
 ---
 
