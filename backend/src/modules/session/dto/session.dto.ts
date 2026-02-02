@@ -71,3 +71,22 @@ export const PublishResponseSchema = z.object({
 });
 
 export class PublishResponseDto extends createZodDto(PublishResponseSchema) {}
+
+export const SessionListItemSchema = z.object({
+  sessionId: z.string(),
+  sourceUrl: z.string(),
+  sourceType: z.enum(['manual', 'confluence', 'web']),
+  status: z.string(),
+  chunkCount: z.number().int().nonnegative(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export class SessionListItemDto extends createZodDto(SessionListItemSchema) {}
+
+export const SessionListResponseSchema = z.object({
+  sessions: z.array(SessionListItemSchema),
+  total: z.number().int().nonnegative(),
+});
+
+export class SessionListResponseDto extends createZodDto(SessionListResponseSchema) {}

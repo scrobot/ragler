@@ -39,6 +39,21 @@ export interface Session {
   updatedAt: string;
 }
 
+export interface SessionListItem {
+  sessionId: string;
+  sourceUrl: string;
+  sourceType: SourceType;
+  status: string;
+  chunkCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionListResponse {
+  sessions: SessionListItem[];
+  total: number;
+}
+
 export interface PreviewResponse {
   sessionId: string;
   status: string;

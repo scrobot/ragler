@@ -5,11 +5,14 @@ import {
   PublishRequest,
   PublishResponse,
   Session,
+  SessionListResponse,
   SplitChunkRequest,
   UpdateChunkRequest,
 } from '@/types/api';
 
 export const sessionsApi = {
+  list: () => apiClient.get<SessionListResponse>('/session'),
+
   get: (id: string) => apiClient.get<Session>(`/session/${id}`),
 
   updateChunk: (sessionId: string, chunkId: string, data: UpdateChunkRequest) =>

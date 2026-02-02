@@ -48,7 +48,23 @@ export function IngestWizard() {
     });
 
     const mutation = useMutation({
-        mutationFn: ingestApi.create,
+        mutationFn: (data: IngestRequest) => {
+            switch (data.sourceType) {
+                case "confluence":
+                    return ingestApi.ingestConfluence({
+                        url: data.url || undefined,
+                        pageId: data.pageId || undefined,
+                    });
+                case "web":
+                    if (!data.url) throw new Error("URL is required");
+                    return ingestApi.ingestWeb({ url: data.url });
+                case "manual":
+                    if (!data.content) throw new Error("Content is required");
+                    return ingestApi.ingestManual({ content: data.content });
+                default:
+                    throw new Error("Invalid source type");
+            }
+        },
         onSuccess: (data) => {
             toast.success("Ingestion started successfully");
             router.push(`/session/${data.sessionId}`);

@@ -2,21 +2,21 @@ version: '3.8'
 
 services:
   # Backend Service
-  api:
-    build: ./backend
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - QDRANT_URL=http://qdrant:6333
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    depends_on:
-      - redis
-      - qdrant
-    networks:
-      - kms-network
+  # api:
+  #   build: ./backend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - PORT=3000
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - QDRANT_URL=http://qdrant:6333
+  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
+  #   depends_on:
+  #     - redis
+  #     - qdrant
+  #   networks:
+  #     - kms-network
 
   # Vector Database (Self-Hosted)
   qdrant:
@@ -37,6 +37,16 @@ services:
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
+    networks:
+      - kms-network
+
+  # redis insight
+  redisinsight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
     networks:
       - kms-network
 

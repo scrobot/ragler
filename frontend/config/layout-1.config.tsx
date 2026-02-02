@@ -1,4 +1,4 @@
-import { FileText, FolderOpen, LayoutDashboard } from 'lucide-react';
+import { FileText, FolderOpen, LayoutDashboard, ScrollText } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
 export const MENU_SIDEBAR: MenuConfig = [
@@ -12,6 +12,11 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Ingestion',
     icon: FileText,
     path: '/ingest',
+  },
+  {
+    title: 'Sessions',
+    icon: ScrollText,
+    path: '/sessions',
   },
   {
     title: 'Collections',
