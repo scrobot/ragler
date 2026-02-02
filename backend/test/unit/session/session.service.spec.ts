@@ -11,7 +11,7 @@ describe('SessionService', () => {
   let service: SessionService;
   let mockIngestService: jest.Mocked<Pick<IngestService, 'getSession' | 'updateSession' | 'deleteSession'>>;
   let mockQdrantClient: jest.Mocked<Pick<QdrantClientService, 'collectionExists' | 'deletePointsByFilter' | 'upsertPoints'>>;
-  let mockLlmService: jest.Mocked<Pick<LlmService, 'generateEmbeddings'>>;
+  let mockLlmService: jest.Mocked<Pick<LlmService, 'generateEmbeddings' | 'chunkContent'>>;
 
   const validCollectionId = '550e8400-e29b-41d4-a716-446655440000';
   const mockEmbedding = new Array(1536).fill(0.01);
@@ -51,6 +51,10 @@ describe('SessionService', () => {
         // Return an array of mock embeddings matching the input length
         return Promise.resolve(texts.map(() => [...mockEmbedding]));
       }),
+      chunkContent: jest.fn().mockResolvedValue([
+        { id: 'temp_1', text: 'First chunk', isDirty: false },
+        { id: 'temp_2', text: 'Second chunk', isDirty: false },
+      ]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -594,6 +598,88 @@ describe('SessionService', () => {
 
         expect(mockLlmService.generateEmbeddings).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('generateChunks', () => {
+    it('should generate chunks from session content using LLM', async () => {
+      const generatedChunks = [
+        { id: 'temp_1', text: 'This is test content', isDirty: false },
+        { id: 'temp_2', text: 'for chunking.', isDirty: false },
+      ];
+      const mockSession = createMockSession({
+        content: 'This is test content for chunking.',
+        chunks: [],
+      });
+      const updatedSession = createMockSession({
+        content: 'This is test content for chunking.',
+        chunks: generatedChunks,
+      });
+      // First call returns original session, second call (after update) returns updated session
+      mockIngestService.getSession
+        .mockResolvedValueOnce(mockSession)
+        .mockResolvedValueOnce(updatedSession);
+      mockLlmService.chunkContent.mockResolvedValue(generatedChunks);
+
+      const result = await service.generateChunks('session_test-123', 'user-1');
+
+      expect(mockLlmService.chunkContent).toHaveBeenCalledWith(
+        'This is test content for chunking.',
+        'session_test-123',
+      );
+      expect(mockIngestService.updateSession).toHaveBeenCalledWith(
+        'session_test-123',
+        expect.objectContaining({
+          chunks: generatedChunks,
+        }),
+      );
+      expect(result.chunks).toHaveLength(2);
+      expect(result.chunks).toEqual(generatedChunks);
+    });
+
+    it('should throw NotFoundException when session does not exist', async () => {
+      mockIngestService.getSession.mockResolvedValue(null);
+
+      await expect(
+        service.generateChunks('nonexistent', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.generateChunks('nonexistent', 'user-1'),
+      ).rejects.toThrow('Session nonexistent not found');
+    });
+
+    it('should throw BadRequestException when session is not in DRAFT status', async () => {
+      const mockSession = createMockSession({ status: 'PREVIEW' });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+
+      await expect(
+        service.generateChunks('session_test-123', 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.generateChunks('session_test-123', 'user-1'),
+      ).rejects.toThrow('Cannot generate chunks in non-DRAFT status');
+    });
+
+    it('should throw BadRequestException when session has no content', async () => {
+      const mockSession = createMockSession({ content: '' });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+
+      await expect(
+        service.generateChunks('session_test-123', 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.generateChunks('session_test-123', 'user-1'),
+      ).rejects.toThrow('Session has no content to chunk');
+    });
+
+    it('should propagate LLM service errors', async () => {
+      const mockSession = createMockSession({ chunks: [] });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+      mockLlmService.chunkContent.mockRejectedValue(new Error('LLM API error'));
+
+      await expect(
+        service.generateChunks('session_test-123', 'user-1'),
+      ).rejects.toThrow('LLM API error');
     });
   });
 });

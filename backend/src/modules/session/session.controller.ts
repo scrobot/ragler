@@ -17,6 +17,7 @@ import {
 import { SessionService } from './session.service';
 import {
   SessionResponseDto,
+  SessionListResponseDto,
   MergeChunksDto,
   SplitChunkDto,
   UpdateChunkDto,
@@ -36,12 +37,31 @@ import { ErrorResponseDto } from '@common/dto';
 export class SessionController {
   constructor(private readonly sessionService: SessionService) { }
 
+  @Get()
+  @ApiOperation({ summary: 'List all sessions' })
+  @ApiResponse({ status: 200, description: 'List of sessions', type: SessionListResponseDto })
+  async listSessions(): Promise<SessionListResponseDto> {
+    return this.sessionService.listSessions();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get session details' })
   @ApiResponse({ status: 200, description: 'Session details', type: SessionResponseDto })
   @ApiResponse({ status: 404, description: 'Session not found', type: ErrorResponseDto })
   async getSession(@Param('id') id: string): Promise<SessionResponseDto> {
     return this.sessionService.getSession(id);
+  }
+
+  @Post(':id/chunks')
+  @ApiOperation({ summary: 'Generate chunks from session content using LLM' })
+  @ApiResponse({ status: 200, description: 'Chunks generated', type: SessionResponseDto })
+  @ApiResponse({ status: 400, description: 'Session not in DRAFT status or no content', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Session not found', type: ErrorResponseDto })
+  async generateChunks(
+    @Param('id') id: string,
+    @User() user: RequestUser,
+  ): Promise<SessionResponseDto> {
+    return this.sessionService.generateChunks(id, user.id);
   }
 
   @Post(':id/chunks/merge')

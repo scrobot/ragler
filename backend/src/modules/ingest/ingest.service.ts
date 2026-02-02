@@ -2,7 +2,14 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '@infrastructure/redis';
-import { IngestRequestDto, IngestResponseDto, SourceType } from './dto';
+import { LlmService } from '@llm/llm.service';
+import {
+  IngestConfluenceDto,
+  IngestWebDto,
+  IngestManualDto,
+  IngestResponseDto,
+  SourceType,
+} from './dto';
 import { IngestStrategyResolver } from './strategies/ingest-strategy.resolver';
 
 export interface SessionData {
@@ -29,44 +36,68 @@ export class IngestService {
     private readonly redisService: RedisService,
     private readonly strategyResolver: IngestStrategyResolver,
     private readonly configService: ConfigService,
+    private readonly llmService: LlmService,
   ) { }
 
-  async ingest(dto: IngestRequestDto, userId: string): Promise<IngestResponseDto> {
+  async ingestConfluence(dto: IngestConfluenceDto, userId: string): Promise<IngestResponseDto> {
+    const input = dto.pageId ?? dto.url;
+    // We already validated that one exists in the DTO
+    return this.createSession(input!, 'confluence', userId);
+  }
+
+  async ingestWeb(dto: IngestWebDto, userId: string): Promise<IngestResponseDto> {
+    return this.createSession(dto.url, 'web', userId);
+  }
+
+  async ingestManual(dto: IngestManualDto, userId: string): Promise<IngestResponseDto> {
+    return this.createSession(dto.content, 'manual', userId);
+  }
+
+  private async createSession(
+    input: string,
+    sourceType: SourceType,
+    userId: string,
+  ): Promise<IngestResponseDto> {
     const sessionId = `session_${uuidv4()}`;
-
-    const strategy = this.strategyResolver.resolve(dto.sourceType);
-
-    // Determine input based on source type
-    let input: string | undefined;
-    if (dto.sourceType === 'manual') {
-      input = dto.content;
-    } else if (dto.sourceType === 'confluence') {
-      // Confluence supports both pageId and url; prefer pageId
-      input = dto.pageId ?? dto.url;
-    } else {
-      input = dto.url;
-    }
-
-    if (!input) {
-      throw new BadRequestException(
-        dto.sourceType === 'manual'
-          ? 'Content is required for manual source type'
-          : dto.sourceType === 'confluence'
-            ? 'URL or pageId is required for confluence source type'
-            : `URL is required for ${dto.sourceType} source type`,
-      );
-    }
+    const strategy = this.strategyResolver.resolve(sourceType);
 
     const { content, sourceUrl } = await strategy.ingest(input);
+
+    // Generate chunks using LLM
+    this.logger.log({ event: 'chunking_start', sessionId, userId, sourceType });
+    const startTime = Date.now();
+
+    let chunks: Array<{ id: string; text: string; isDirty: boolean }> = [];
+    try {
+      chunks = await this.llmService.chunkContent(content, sessionId);
+      const duration = Date.now() - startTime;
+      this.logger.log({
+        event: 'chunking_success',
+        sessionId,
+        userId,
+        chunkCount: chunks.length,
+        durationMs: duration,
+      });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error({
+        event: 'chunking_failure',
+        sessionId,
+        userId,
+        durationMs: duration,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
 
     const sessionData: SessionData = {
       sessionId,
       sourceUrl,
-      sourceType: dto.sourceType,
+      sourceType,
       userId,
       status: 'DRAFT',
       content,
-      chunks: [],
+      chunks,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -81,7 +112,7 @@ export class IngestService {
 
     return {
       sessionId,
-      sourceType: dto.sourceType,
+      sourceType,
       sourceUrl,
       status: sessionData.status,
       createdAt: sessionData.createdAt,
@@ -113,5 +144,25 @@ export class IngestService {
 
   async deleteSession(sessionId: string): Promise<void> {
     await this.redisService.del(`session:${sessionId}`);
+  }
+
+  async listSessions(): Promise<SessionData[]> {
+    const keys = await this.redisService.scanKeys('session:session_*');
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const sessions: SessionData[] = [];
+    for (const key of keys) {
+      const session = await this.redisService.getJson<SessionData>(key);
+      if (session) {
+        sessions.push(session);
+      }
+    }
+
+    // Sort by createdAt descending (newest first)
+    return sessions.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 }

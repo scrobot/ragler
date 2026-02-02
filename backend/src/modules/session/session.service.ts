@@ -6,6 +6,7 @@ import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
 import {
   SessionResponseDto,
+  SessionListResponseDto,
   MergeChunksDto,
   SplitChunkDto,
   UpdateChunkDto,
@@ -25,6 +26,23 @@ export class SessionService {
     private readonly llmService: LlmService,
   ) { }
 
+  async listSessions(): Promise<SessionListResponseDto> {
+    const sessions = await this.ingestService.listSessions();
+
+    return {
+      sessions: sessions.map((session) => ({
+        sessionId: session.sessionId,
+        sourceUrl: session.sourceUrl,
+        sourceType: session.sourceType,
+        status: session.status,
+        chunkCount: session.chunks.length,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      })),
+      total: sessions.length,
+    };
+  }
+
   async getSession(sessionId: string): Promise<SessionResponseDto> {
     const session = await this.ingestService.getSession(sessionId);
     if (!session) {
@@ -39,6 +57,51 @@ export class SessionService {
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
     };
+  }
+
+  async generateChunks(sessionId: string, userId: string): Promise<SessionResponseDto> {
+    const startTime = Date.now();
+    this.logger.log({ event: 'chunking_start', sessionId, userId });
+
+    const session = await this.ingestService.getSession(sessionId);
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.status !== 'DRAFT') {
+      throw new BadRequestException('Cannot generate chunks in non-DRAFT status');
+    }
+
+    if (!session.content || !session.content.trim()) {
+      throw new BadRequestException('Session has no content to chunk');
+    }
+
+    try {
+      const chunks = await this.llmService.chunkContent(session.content, sessionId);
+
+      await this.ingestService.updateSession(sessionId, { chunks });
+
+      const duration = Date.now() - startTime;
+      this.logger.log({
+        event: 'chunking_success',
+        sessionId,
+        userId,
+        chunkCount: chunks.length,
+        durationMs: duration,
+      });
+
+      return this.getSession(sessionId);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error({
+        event: 'chunking_failure',
+        sessionId,
+        userId,
+        durationMs: duration,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
   }
 
   async mergeChunks(sessionId: string, dto: MergeChunksDto): Promise<SessionResponseDto> {
