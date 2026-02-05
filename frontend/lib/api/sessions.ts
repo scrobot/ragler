@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import {
+  DeleteSessionResponse,
   MergeChunksRequest,
   PreviewResponse,
   PublishRequest,
@@ -32,4 +33,7 @@ export const sessionsApi = {
 
   publish: (sessionId: string, data: PublishRequest) =>
     apiClient.post<PublishResponse>(`/session/${sessionId}/publish`, data),
+
+  delete: (sessionId: string) =>
+    apiClient.delete<DeleteSessionResponse>(`/session/${sessionId}`),
 };

@@ -6,6 +6,7 @@ import {
   SessionResponseDto,
   PreviewResponseDto,
   PublishResponseDto,
+  DeleteSessionResponseDto,
 } from '../../../src/modules/session/dto';
 
 describe('SessionController', () => {
@@ -38,6 +39,11 @@ describe('SessionController', () => {
     collectionId: '550e8400-e29b-41d4-a716-446655440000',
   };
 
+  const mockDeleteResponse: DeleteSessionResponseDto = {
+    sessionId: 'session_test-123',
+    deleted: true,
+  };
+
   beforeEach(async () => {
     mockSessionService = {
       getSession: jest.fn(),
@@ -46,6 +52,7 @@ describe('SessionController', () => {
       updateChunk: jest.fn(),
       preview: jest.fn(),
       publish: jest.fn(),
+      deleteSession: jest.fn(),
     } as unknown as jest.Mocked<SessionService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -174,6 +181,33 @@ describe('SessionController', () => {
       expect(mockSessionService.publish).toHaveBeenCalledWith(
         'session_test-123',
         publishDto,
+        'different-user',
+      );
+    });
+  });
+
+  describe('deleteSession', () => {
+    it('should call service.deleteSession with correct parameters', async () => {
+      const user: RequestUser = { id: 'user-1', role: UserRole.DEV };
+      mockSessionService.deleteSession.mockResolvedValue(mockDeleteResponse);
+
+      const result = await controller.deleteSession('session_test-123', user);
+
+      expect(mockSessionService.deleteSession).toHaveBeenCalledWith(
+        'session_test-123',
+        'user-1',
+      );
+      expect(result).toEqual(mockDeleteResponse);
+    });
+
+    it('should extract user id from RequestUser object', async () => {
+      const user: RequestUser = { id: 'different-user', role: UserRole.ML };
+      mockSessionService.deleteSession.mockResolvedValue(mockDeleteResponse);
+
+      await controller.deleteSession('session_test-123', user);
+
+      expect(mockSessionService.deleteSession).toHaveBeenCalledWith(
+        'session_test-123',
         'different-user',
       );
     });

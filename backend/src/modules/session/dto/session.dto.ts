@@ -90,3 +90,10 @@ export const SessionListResponseSchema = z.object({
 });
 
 export class SessionListResponseDto extends createZodDto(SessionListResponseSchema) {}
+
+export const DeleteSessionResponseSchema = z.object({
+  sessionId: z.string(),
+  deleted: z.boolean(),
+});
+
+export class DeleteSessionResponseDto extends createZodDto(DeleteSessionResponseSchema) {}

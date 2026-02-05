@@ -601,6 +601,70 @@ describe('SessionService', () => {
     });
   });
 
+  describe('deleteSession', () => {
+    it('should delete DRAFT session and return success response', async () => {
+      const mockSession = createMockSession({ status: 'DRAFT' });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+      mockIngestService.deleteSession.mockResolvedValue(undefined);
+
+      const result = await service.deleteSession('session_test-123', 'user-1');
+
+      expect(mockIngestService.getSession).toHaveBeenCalledWith('session_test-123');
+      expect(mockIngestService.deleteSession).toHaveBeenCalledWith('session_test-123');
+      expect(result).toEqual({
+        sessionId: 'session_test-123',
+        deleted: true,
+      });
+    });
+
+    it('should delete PREVIEW session and return success response', async () => {
+      const mockSession = createMockSession({ status: 'PREVIEW' });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+      mockIngestService.deleteSession.mockResolvedValue(undefined);
+
+      const result = await service.deleteSession('session_test-123', 'user-1');
+
+      expect(mockIngestService.deleteSession).toHaveBeenCalledWith('session_test-123');
+      expect(result).toEqual({
+        sessionId: 'session_test-123',
+        deleted: true,
+      });
+    });
+
+    it('should throw NotFoundException when session does not exist', async () => {
+      mockIngestService.getSession.mockResolvedValue(null);
+
+      await expect(
+        service.deleteSession('nonexistent', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.deleteSession('nonexistent', 'user-1'),
+      ).rejects.toThrow('Session nonexistent not found');
+    });
+
+    it('should throw BadRequestException when session is PUBLISHED', async () => {
+      const mockSession = createMockSession({ status: 'PUBLISHED' });
+      mockIngestService.getSession.mockResolvedValue(mockSession);
+
+      await expect(
+        service.deleteSession('session_test-123', 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.deleteSession('session_test-123', 'user-1'),
+      ).rejects.toThrow('Cannot delete a published session');
+    });
+
+    it('should not call deleteSession when session not found', async () => {
+      mockIngestService.getSession.mockResolvedValue(null);
+
+      await expect(
+        service.deleteSession('nonexistent', 'user-1'),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockIngestService.deleteSession).not.toHaveBeenCalled();
+    });
+  });
+
   describe('generateChunks', () => {
     it('should generate chunks from session content using LLM', async () => {
       const generatedChunks = [

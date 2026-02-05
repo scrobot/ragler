@@ -13,6 +13,7 @@ import {
   PublishDto,
   PreviewResponseDto,
   PublishResponseDto,
+  DeleteSessionResponseDto,
 } from './dto';
 import { UserRole } from '@common/decorators';
 
@@ -72,6 +73,48 @@ export class SessionService {
       chunks: session.chunks,
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
+    };
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<DeleteSessionResponseDto> {
+    this.logger.log({
+      event: 'session_delete_start',
+      sessionId,
+      userId,
+    });
+
+    const session = await this.ingestService.getSession(sessionId);
+    if (!session) {
+      this.logger.warn({
+        event: 'session_delete_not_found',
+        sessionId,
+        userId,
+      });
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.status === 'PUBLISHED') {
+      this.logger.warn({
+        event: 'session_delete_invalid_status',
+        sessionId,
+        userId,
+        status: session.status,
+      });
+      throw new BadRequestException('Cannot delete a published session');
+    }
+
+    await this.ingestService.deleteSession(sessionId);
+
+    this.logger.log({
+      event: 'session_delete_success',
+      sessionId,
+      userId,
+      previousStatus: session.status,
+    });
+
+    return {
+      sessionId,
+      deleted: true,
     };
   }
 

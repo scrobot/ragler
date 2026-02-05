@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { sessionsApi } from "@/lib/api/sessions";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Loader2, Plus, FileText, Globe, BookOpen } from "lucide-react";
+import { Loader2, Plus, FileText, Globe, BookOpen, Trash2 } from "lucide-react";
 import { SourceType } from "@/types/api";
+import { ConfirmationDialog } from "@/components/app/confirmation-dialog";
+import { toast } from "sonner";
 
 const sourceTypeConfig: Record<SourceType, { label: string; icon: React.ReactNode }> = {
     manual: { label: "Manual", icon: <FileText className="h-4 w-4" /> },
@@ -38,14 +40,30 @@ const statusConfig: Record<string, { variant: "primary" | "secondary" | "destruc
 
 export function SessionList() {
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const { data, isLoading, error } = useQuery({
         queryKey: ["sessions"],
         queryFn: sessionsApi.list,
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: sessionsApi.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["sessions"] });
+            toast.success("Session deleted successfully");
+        },
+        onError: () => {
+            toast.error("Failed to delete session");
+        },
+    });
+
     const handleRowClick = (sessionId: string) => {
         router.push(`/session/${sessionId}`);
+    };
+
+    const handleDelete = (sessionId: string) => {
+        deleteMutation.mutate(sessionId);
     };
 
     if (isLoading) {
@@ -95,13 +113,14 @@ export function SessionList() {
                                 <TableHead className="text-right">Chunks</TableHead>
                                 <TableHead>Created</TableHead>
                                 <TableHead>Updated</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {data?.sessions.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={6}
+                                        colSpan={7}
                                         className="text-center h-24 text-muted-foreground"
                                     >
                                         No sessions found. Create one via Ingestion.
@@ -136,6 +155,25 @@ export function SessionList() {
                                         </TableCell>
                                         <TableCell>
                                             {format(new Date(session.updatedAt), "PPp")}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <ConfirmationDialog
+                                                trigger={
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        disabled={deleteMutation.isPending}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                }
+                                                title="Delete Session"
+                                                description={`Are you sure you want to delete this session? This will permanently remove ${session.chunkCount} chunk(s) and cannot be undone.`}
+                                                confirmLabel="Delete"
+                                                onConfirm={() => handleDelete(session.sessionId)}
+                                                variant="destructive"
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))

@@ -72,6 +72,11 @@ export interface PublishResponse {
   collectionId: string;
 }
 
+export interface DeleteSessionResponse {
+  sessionId: string;
+  deleted: boolean;
+}
+
 // Ingest
 export type SourceType = 'manual' | 'confluence' | 'web';
 

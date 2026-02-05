@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -24,6 +25,7 @@ import {
   PublishDto,
   PreviewResponseDto,
   PublishResponseDto,
+  DeleteSessionResponseDto,
 } from './dto';
 import { User, RequestUser, UserRole } from '@common/decorators';
 import { Roles } from '@common/decorators';
@@ -116,5 +118,17 @@ export class SessionController {
     @User() user: RequestUser,
   ): Promise<PublishResponseDto> {
     return this.sessionService.publish(id, dto, user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a session' })
+  @ApiResponse({ status: 200, description: 'Session deleted', type: DeleteSessionResponseDto })
+  @ApiResponse({ status: 400, description: 'Cannot delete published session', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Session not found', type: ErrorResponseDto })
+  async deleteSession(
+    @Param('id') id: string,
+    @User() user: RequestUser,
+  ): Promise<DeleteSessionResponseDto> {
+    return this.sessionService.deleteSession(id, user.id);
   }
 }
