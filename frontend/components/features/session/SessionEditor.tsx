@@ -1,46 +1,46 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { sessionsApi } from "@/lib/api/sessions";
 import { ChunkList } from "./ChunkList";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { SourcePreview } from "./SourcePreview";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BookOpen, Send, LayoutTemplate, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, BookOpen, Send, LayoutTemplate, Eye, EyeOff, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { UserRole } from "@/types/api";
 import { PublishModal } from "./PublishModal";
 import { PreviewModal } from "./PreviewModal";
+import { ConfirmationDialog } from "@/components/app/confirmation-dialog";
+import { toast } from "sonner";
 
 interface SessionEditorProps {
     sessionId: string;
 }
 
 export function SessionEditor({ sessionId }: SessionEditorProps) {
-    // Local state for role (lifting it up from Switcher or using Context would be better, 
-    // but for "Mock Dev Mode" we can rely on the Switcher setting the global API client 
-    // and just syncing visual state here if needed, or better yet, using a small hook/store.
-    // For now, I'll pass a default and let Switcher handle API, but UI needs re-render or context.
-    // I will make RoleSwitcher trigger a re-render or use a shared state.
-    // Actually, for simplicity in "Dev Mode", let's just make RoleSwitcher update internal state here too 
-    // or I'll just rely on the API client headers being set. 
-    // BUT the UI (e.g. Split button visibility) depends on the role state.
-    // So I'll modify RoleSwitcher to accept a callback or I'll control it here.
-
-    // Let's control it here for simplicity.
-    // Wait, I already wrote RoleSwitcher as self-contained. I should modify it to accept `onRoleChange`.
-    // Or I can just write it inline here or import a controlled one.
-    // I'll assume I can edit RoleSwitcher or just create a local state here and pass it down.
-    // But RoleSwitcher uses `apiClient.setUser`.
-    // I will rewrite RoleSwitcher quickly or just copy the logic here.
-    // Let's just user a local state and update both.
+    const router = useRouter();
+    const queryClient = useQueryClient();
 
     const [role, setRole] = useState<UserRole>("L2");
     const [isPublishOpen, setIsPublishOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [showSourcePreview, setShowSourcePreview] = useState(true);
+
+    const deleteMutation = useMutation({
+        mutationFn: () => sessionsApi.delete(sessionId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["sessions"] });
+            toast.success("Session deleted successfully");
+            router.push("/sessions");
+        },
+        onError: () => {
+            toast.error("Failed to delete session");
+        },
+    });
 
     const { data: session, isLoading, error } = useQuery({
         queryKey: ["session", sessionId],
@@ -68,8 +68,8 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
             <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
                 <h2 className="text-xl font-semibold text-destructive">Failed to load session</h2>
                 <Button variant="outline" asChild>
-                    <Link href="/ingest">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Ingest
+                    <Link href="/sessions">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sessions
                     </Link>
                 </Button>
             </div>
@@ -82,7 +82,7 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
             <div className="sticky top-0 z-40 bg-background/95 backdrop-blur pb-6 border-b mb-6">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                        <Link href="/ingest" className="hover:text-foreground transition-colors">
+                        <Link href="/sessions" className="hover:text-foreground transition-colors">
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
                         <span>/</span>
@@ -115,6 +115,23 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
                                 {showSourcePreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                         )}
+                        <ConfirmationDialog
+                            trigger={
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={deleteMutation.isPending}
+                                    title="Delete session"
+                                >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            }
+                            title="Delete Session"
+                            description="Are you sure you want to delete this session? This will permanently remove all chunks and cannot be undone."
+                            confirmLabel="Delete"
+                            onConfirm={() => deleteMutation.mutate()}
+                            variant="destructive"
+                        />
                         <Button variant="outline" onClick={() => setIsPreviewOpen(true)}>
                             <LayoutTemplate className="mr-2 h-4 w-4" />
                             Preview
