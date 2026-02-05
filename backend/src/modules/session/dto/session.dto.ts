@@ -12,8 +12,16 @@ export type ChunkDto = z.infer<typeof ChunkSchema>;
 export const SessionResponseSchema = z.object({
   sessionId: z.string(),
   sourceUrl: z.string(),
+  sourceType: z.enum(['manual', 'confluence', 'web']),
   status: z.string(),
   chunks: z.array(ChunkSchema),
+  /**
+   * Raw HTML/XML content for source preview.
+   * Present for web (HTML) and confluence (storage format XML) sources.
+   * null for manual text sources.
+   * WARNING: Must be sanitized (e.g., DOMPurify) before rendering in browser.
+   */
+  rawContent: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

@@ -33,8 +33,15 @@ export interface Chunk {
 export interface Session {
   sessionId: string;
   sourceUrl: string;
+  sourceType: SourceType;
   status: string;
   chunks: Chunk[];
+  /**
+   * Raw HTML/XML content for source preview.
+   * Present for web (HTML) and confluence (storage format XML) sources.
+   * null for manual text sources.
+   */
+  rawContent: string | null;
   createdAt: string;
   updatedAt: string;
 }

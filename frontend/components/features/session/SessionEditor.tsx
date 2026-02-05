@@ -4,9 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { sessionsApi } from "@/lib/api/sessions";
 import { ChunkList } from "./ChunkList";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { SourcePreview } from "./SourcePreview";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BookOpen, Send, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, BookOpen, Send, LayoutTemplate, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { UserRole } from "@/types/api";
@@ -39,6 +40,7 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
     const [role, setRole] = useState<UserRole>("L2");
     const [isPublishOpen, setIsPublishOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [showSourcePreview, setShowSourcePreview] = useState(true);
 
     const { data: session, isLoading, error } = useQuery({
         queryKey: ["session", sessionId],
@@ -103,6 +105,16 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
                     </div>
 
                     <div className="flex gap-2">
+                        {session?.sourceType !== "manual" && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowSourcePreview(!showSourcePreview)}
+                                title={showSourcePreview ? "Hide source preview" : "Show source preview"}
+                            >
+                                {showSourcePreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => setIsPreviewOpen(true)}>
                             <LayoutTemplate className="mr-2 h-4 w-4" />
                             Preview
@@ -114,6 +126,17 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Source Preview */}
+            {showSourcePreview && session?.sourceType !== "manual" && (
+                <div className="mb-6">
+                    <SourcePreview
+                        rawContent={session?.rawContent ?? null}
+                        sourceType={session?.sourceType ?? "manual"}
+                        sourceUrl={session?.sourceUrl ?? ""}
+                    />
+                </div>
+            )}
 
             {/* Main Content */}
             <ChunkList

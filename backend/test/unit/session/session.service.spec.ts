@@ -28,6 +28,7 @@ describe('SessionService', () => {
       { id: 'chunk_2', text: 'Second chunk', isDirty: false },
       { id: 'chunk_3', text: 'Third chunk', isDirty: false },
     ],
+    rawContent: '<html><body>Test content</body></html>',
     createdAt: '2025-01-01T00:00:00.000Z',
     updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides,
@@ -84,8 +85,10 @@ describe('SessionService', () => {
       expect(result).toEqual({
         sessionId: mockSession.sessionId,
         sourceUrl: mockSession.sourceUrl,
+        sourceType: mockSession.sourceType,
         status: mockSession.status,
         chunks: mockSession.chunks,
+        rawContent: mockSession.rawContent,
         createdAt: mockSession.createdAt,
         updatedAt: mockSession.updatedAt,
       });

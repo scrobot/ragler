@@ -16,11 +16,13 @@ describe('SessionController', () => {
   const mockSessionResponse: SessionResponseDto = {
     sessionId: 'session_test-123',
     sourceUrl: 'https://example.com/test',
+    sourceType: 'web',
     status: 'DRAFT',
     chunks: [
       { id: 'chunk_1', text: 'First chunk', isDirty: false },
       { id: 'chunk_2', text: 'Second chunk', isDirty: false },
     ],
+    rawContent: '<html><body>Test content</body></html>',
     createdAt: '2025-01-01T00:00:00.000Z',
     updatedAt: '2025-01-01T00:00:00.000Z',
   };

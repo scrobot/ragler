@@ -421,6 +421,38 @@ describe('WebStrategy', () => {
     });
   });
 
+  describe('Raw Content Capture', () => {
+    const validHtml = '<html><head><title>Test</title></head><body><article><p>Content</p></article></body></html>';
+
+    it('should include rawContent in IngestResult', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'text/html' }),
+        text: () => Promise.resolve(validHtml),
+      });
+
+      const result = await strategy.ingest('https://example.com/article');
+
+      expect(result).toHaveProperty('rawContent');
+      expect(result.rawContent).toBe(validHtml);
+    });
+
+    it('should preserve full rawContent as-is', async () => {
+      const largeHtml = '<html><body>' + 'x'.repeat(2000000) + '</body></html>'; // 2MB+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'text/html' }),
+        text: () => Promise.resolve(largeHtml),
+      });
+
+      const result = await strategy.ingest('https://example.com/large');
+
+      expect(result.rawContent).toBe(largeHtml);
+    });
+  });
+
   describe('IngestResult', () => {
     const validHtml = '<html><head><title>Test</title></head><body><p>Content</p></body></html>';
 

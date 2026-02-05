@@ -69,8 +69,10 @@ export class SessionService {
     return {
       sessionId: session.sessionId,
       sourceUrl: session.sourceUrl,
+      sourceType: session.sourceType,
       status: session.status,
       chunks: session.chunks,
+      rawContent: session.rawContent ?? null,
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
     };

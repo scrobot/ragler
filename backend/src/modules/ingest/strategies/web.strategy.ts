@@ -55,9 +55,13 @@ export class WebStrategy implements IngestStrategy {
         sourceType: this.sourceType,
         durationMs: duration,
         contentLength: extracted.content.length,
+        rawContentLength: html.length,
       });
 
-      return extracted;
+      return {
+        ...extracted,
+        rawContent: html,
+      };
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -177,4 +181,5 @@ export class WebStrategy implements IngestStrategy {
       );
     }
   }
+
 }

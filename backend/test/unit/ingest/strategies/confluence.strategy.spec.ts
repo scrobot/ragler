@@ -488,6 +488,79 @@ describe('ConfluenceStrategy', () => {
     });
   });
 
+  describe('Raw Content Capture', () => {
+    it('should include storage format XML in rawContent', async () => {
+      const storageXml = '<p>This is the page content.</p><p>Second paragraph.</p>';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...mockPageResponse,
+            body: {
+              storage: {
+                value: storageXml,
+                representation: 'storage',
+              },
+            },
+          }),
+      });
+
+      const result = await strategy.ingest('123456');
+
+      expect(result).toHaveProperty('rawContent');
+      expect(result.rawContent).toBe(storageXml);
+    });
+
+    it('should preserve full rawContent as-is', async () => {
+      const largeXml = '<p>' + 'x'.repeat(2000000) + '</p>'; // 2MB+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...mockPageResponse,
+            body: {
+              storage: {
+                value: largeXml,
+                representation: 'storage',
+              },
+            },
+          }),
+      });
+
+      const result = await strategy.ingest('123456');
+
+      expect(result.rawContent).toBe(largeXml);
+    });
+
+    it('should preserve Confluence macros in rawContent', async () => {
+      const storageWithMacros = '<p>Content</p><ac:structured-macro ac:name="toc"><ac:parameter ac:name="maxLevel">2</ac:parameter></ac:structured-macro><p>More content</p>';
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ...mockPageResponse,
+            body: {
+              storage: {
+                value: storageWithMacros,
+                representation: 'storage',
+              },
+            },
+          }),
+      });
+
+      const result = await strategy.ingest('123456');
+
+      // rawContent should preserve the macros (unlike the extracted content)
+      expect(result.rawContent).toContain('ac:structured-macro');
+      expect(result.rawContent).toContain('ac:name="toc"');
+      // But extracted content should NOT have macros
+      expect(result.content).not.toContain('ac:');
+    });
+  });
+
   describe('IngestResult', () => {
     it('should return correct IngestResult structure', async () => {
       mockFetch.mockResolvedValueOnce({

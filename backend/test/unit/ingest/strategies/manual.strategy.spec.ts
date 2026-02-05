@@ -216,6 +216,13 @@ describe('ManualStrategy', () => {
       expect(typeof result.metadata).toBe('object');
     });
 
+    it('should not include rawContent (manual sources do not need preview)', async () => {
+      const result = await strategy.ingest('Test content for manual input');
+
+      // rawContent should be undefined for manual sources
+      expect(result.rawContent).toBeUndefined();
+    });
+
     it('should include contentHash in metadata', async () => {
       const result = await strategy.ingest('Test content');
       expect(result.metadata).toHaveProperty('contentHash');

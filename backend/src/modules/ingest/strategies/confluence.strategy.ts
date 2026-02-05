@@ -84,8 +84,11 @@ export class ConfluenceStrategy implements IngestStrategy {
       // Fetch page from Confluence API v2
       const page = await this.fetchPage(pageId, baseUrlToUse);
 
+      // Preserve raw storage format for preview
+      const rawContent = page.body.storage.value;
+
       // Extract text content from storage format
-      const content = this.extractContent(page.body.storage.value);
+      const content = this.extractContent(rawContent);
 
       // Build the web UI URL
       const webUrl = this.buildWebUrl(page);
@@ -98,6 +101,7 @@ export class ConfluenceStrategy implements IngestStrategy {
         sourceType: this.sourceType,
         durationMs: duration,
         contentLength: content.length,
+        rawContentLength: rawContent.length,
         pageTitle: page.title,
       });
 
@@ -111,6 +115,7 @@ export class ConfluenceStrategy implements IngestStrategy {
           status: page.status,
           confluenceBaseUrl: this.baseUrl,
         },
+        rawContent,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -124,7 +129,7 @@ export class ConfluenceStrategy implements IngestStrategy {
         errorType: error instanceof Error ? error.constructor.name : 'Unknown',
         isRetryable:
           error instanceof ConfluenceFetchError ||
-          error instanceof ConfluenceRateLimitError
+            error instanceof ConfluenceRateLimitError
             ? (error as ConfluenceFetchError).isRetryable
             : false,
       });
