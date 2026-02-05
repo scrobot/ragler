@@ -65,7 +65,7 @@ export class ConfluenceStrategy implements IngestStrategy {
     const startTime = Date.now();
 
     // Parse input to determine page ID and source URL
-    const { pageId, sourceUrl } = this.parseInput(input);
+    const { pageId, sourceUrl, effectiveBaseUrl } = this.parseInput(input);
 
     this.logger.log({
       event: 'confluence_ingest_start',
@@ -78,8 +78,11 @@ export class ConfluenceStrategy implements IngestStrategy {
       // Validate configuration
       this.validateConfiguration();
 
+      // Use effective base URL from input URL, or fall back to configured base URL
+      const baseUrlToUse = effectiveBaseUrl ?? this.baseUrl!;
+
       // Fetch page from Confluence API v2
-      const page = await this.fetchPage(pageId);
+      const page = await this.fetchPage(pageId, baseUrlToUse);
 
       // Extract text content from storage format
       const content = this.extractContent(page.body.storage.value);
@@ -130,22 +133,31 @@ export class ConfluenceStrategy implements IngestStrategy {
   }
 
   /**
-   * Parses the input to extract page ID and source URL.
+   * Parses the input to extract page ID, source URL, and effective base URL.
    * Input can be either a numeric page ID or a Confluence URL.
    */
-  private parseInput(input: string): { pageId: string; sourceUrl: string } {
+  private parseInput(input: string): {
+    pageId: string;
+    sourceUrl: string;
+    effectiveBaseUrl: string | undefined;
+  } {
     // Check if input is a numeric page ID
     if (isValidPageId(input)) {
       return {
         pageId: input,
         sourceUrl: `confluence://page/${input}`,
+        effectiveBaseUrl: undefined,
       };
     }
 
     // Otherwise, treat as URL and extract page ID
     const url = validateConfluenceUrl(input, this.baseUrl);
     const pageId = extractPageIdFromUrl(url);
-    return { pageId, sourceUrl: input };
+    return {
+      pageId,
+      sourceUrl: input,
+      effectiveBaseUrl: url.origin,
+    };
   }
 
   /**
@@ -166,9 +178,15 @@ export class ConfluenceStrategy implements IngestStrategy {
 
   /**
    * Fetches page content from Confluence REST API v2.
+   *
+   * @param pageId - The Confluence page ID
+   * @param effectiveBaseUrl - Base URL to use (from URL input or configured)
    */
-  private async fetchPage(pageId: string): Promise<ConfluencePageResponse> {
-    const url = `${this.baseUrl}/wiki/api/v2/pages/${pageId}?body-format=storage`;
+  private async fetchPage(
+    pageId: string,
+    effectiveBaseUrl: string,
+  ): Promise<ConfluencePageResponse> {
+    const url = `${effectiveBaseUrl}/wiki/api/v2/pages/${pageId}?body-format=storage`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 

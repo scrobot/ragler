@@ -29,6 +29,11 @@ export class SessionService {
   async listSessions(): Promise<SessionListResponseDto> {
     const sessions = await this.ingestService.listSessions();
 
+    this.logger.log({
+      event: 'sessions_listed',
+      count: sessions.length,
+    });
+
     return {
       sessions: sessions.map((session) => ({
         sessionId: session.sessionId,
@@ -46,8 +51,19 @@ export class SessionService {
   async getSession(sessionId: string): Promise<SessionResponseDto> {
     const session = await this.ingestService.getSession(sessionId);
     if (!session) {
+      this.logger.warn({
+        event: 'session_not_found',
+        sessionId,
+      });
       throw new NotFoundException(`Session ${sessionId} not found`);
     }
+
+    this.logger.log({
+      event: 'session_retrieved',
+      sessionId,
+      status: session.status,
+      chunkCount: session.chunks.length,
+    });
 
     return {
       sessionId: session.sessionId,
@@ -127,7 +143,12 @@ export class SessionService {
 
     await this.ingestService.updateSession(sessionId, { chunks: updatedChunks });
 
-    this.logger.log(`Merged ${dto.chunkIds.length} chunks in session ${sessionId}`);
+    this.logger.log({
+      event: 'chunks_merged',
+      sessionId,
+      mergedCount: dto.chunkIds.length,
+      newChunkId,
+    });
 
     return this.getSession(sessionId);
   }
@@ -191,7 +212,12 @@ export class SessionService {
 
     await this.ingestService.updateSession(sessionId, { chunks: updatedChunks });
 
-    this.logger.log(`Split chunk ${chunkId} into ${newChunks.length} chunks in session ${sessionId}`);
+    this.logger.log({
+      event: 'chunk_split',
+      sessionId,
+      originalChunkId: chunkId,
+      newChunkCount: newChunks.length,
+    });
 
     return this.getSession(sessionId);
   }
@@ -223,6 +249,12 @@ export class SessionService {
 
     await this.ingestService.updateSession(sessionId, { chunks: session.chunks });
 
+    this.logger.log({
+      event: 'chunk_updated',
+      sessionId,
+      chunkId,
+    });
+
     return this.getSession(sessionId);
   }
 
@@ -243,9 +275,23 @@ export class SessionService {
       warnings.push(`${emptyChunks.length} empty chunks found`);
     }
 
+    if (warnings.length > 0) {
+      this.logger.warn({
+        event: 'preview_validation_failed',
+        sessionId,
+        warnings,
+        warningCount: warnings.length,
+      });
+    }
+
     await this.ingestService.updateSession(sessionId, { status: 'PREVIEW' });
 
-    this.logger.log(`Session ${sessionId} locked for preview`);
+    this.logger.log({
+      event: 'preview_lock',
+      sessionId,
+      isValid: warnings.length === 0,
+      chunkCount: session.chunks.length,
+    });
 
     return {
       sessionId,
@@ -257,69 +303,124 @@ export class SessionService {
   }
 
   async publish(sessionId: string, dto: PublishDto, userId: string): Promise<PublishResponseDto> {
-    const session = await this.ingestService.getSession(sessionId);
-    if (!session) {
-      throw new NotFoundException(`Session ${sessionId} not found`);
-    }
+    const startTime = Date.now();
+    const collectionId = dto.targetCollectionId;
 
-    const collectionName = `kb_${dto.targetCollectionId}`;
-    const collectionExists = await this.qdrantClient.collectionExists(collectionName);
-    if (!collectionExists) {
-      throw new NotFoundException(`Collection ${dto.targetCollectionId} not found`);
-    }
-
-    // Filter valid chunks FIRST (before any operations)
-    const validChunks = session.chunks.filter((c) => c.text.trim());
-
-    // If no valid chunks, skip embedding generation and Qdrant operations
-    if (validChunks.length === 0) {
-      await this.ingestService.deleteSession(sessionId);
-      this.logger.log(`Published 0 chunks from session ${sessionId} (all chunks empty)`);
-      return {
-        sessionId,
-        publishedChunks: 0,
-        collectionId: dto.targetCollectionId,
-      };
-    }
-
-    // Generate embeddings BEFORE any Qdrant delete (atomic safety)
-    // If embedding fails, we don't lose existing data
-    const texts = validChunks.map((c) => c.text);
-    const embeddings = await this.llmService.generateEmbeddings(texts, sessionId);
-
-    const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
-    const now = new Date().toISOString();
-
-    // Build points with real embeddings
-    const points = validChunks.map((chunk, index) => ({
-      id: uuidv4(),
-      vector: embeddings[index],
-      payload: {
-        content: chunk.text,
-        source_id: sourceId,
-        source_url: session.sourceUrl,
-        source_type: session.sourceType,
-        last_modified_by: userId,
-        last_modified_at: now,
-        revision: 1,
-      },
-    }));
-
-    // Atomic replacement: delete old, then upsert new
-    await this.qdrantClient.deletePointsByFilter(collectionName, {
-      must: [{ key: 'source_id', match: { value: sourceId } }],
+    this.logger.log({
+      event: 'publish_start',
+      sessionId,
+      userId,
+      collectionId,
     });
 
-    await this.qdrantClient.upsertPoints(collectionName, points);
+    try {
+      const session = await this.ingestService.getSession(sessionId);
+      if (!session) {
+        throw new NotFoundException(`Session ${sessionId} not found`);
+      }
 
-    await this.ingestService.deleteSession(sessionId);
+      const collectionName = `kb_${collectionId}`;
+      const collectionExists = await this.qdrantClient.collectionExists(collectionName);
+      if (!collectionExists) {
+        throw new NotFoundException(`Collection ${collectionId} not found`);
+      }
 
-    this.logger.log(`Published ${points.length} chunks from session ${sessionId} to collection ${dto.targetCollectionId}`);
+      // Filter valid chunks FIRST (before any operations)
+      const validChunks = session.chunks.filter((c) => c.text.trim());
 
-    return {
-      sessionId,
-      publishedChunks: points.length,
-      collectionId: dto.targetCollectionId,
-    };
+      // If no valid chunks, skip embedding generation and Qdrant operations
+      if (validChunks.length === 0) {
+        await this.ingestService.deleteSession(sessionId);
+        const durationMs = Date.now() - startTime;
+        this.logger.log({
+          event: 'publish_success',
+          sessionId,
+          userId,
+          collectionId,
+          publishedChunks: 0,
+          durationMs,
+        });
+        return {
+          sessionId,
+          publishedChunks: 0,
+          collectionId,
+        };
+      }
+
+      // Generate embeddings BEFORE any Qdrant delete (atomic safety)
+      // If embedding fails, we don't lose existing data
+      const texts = validChunks.map((c) => c.text);
+      const embeddings = await this.llmService.generateEmbeddings(texts, sessionId);
+
+      const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
+      const now = new Date().toISOString();
+
+      // Build points with real embeddings
+      const points = validChunks.map((chunk, index) => ({
+        id: uuidv4(),
+        vector: embeddings[index],
+        payload: {
+          content: chunk.text,
+          source_id: sourceId,
+          source_url: session.sourceUrl,
+          source_type: session.sourceType,
+          last_modified_by: userId,
+          last_modified_at: now,
+          revision: 1,
+        },
+      }));
+
+      // Atomic replacement: delete old, then upsert new
+      await this.qdrantClient.deletePointsByFilter(collectionName, {
+        must: [{ key: 'source_id', match: { value: sourceId } }],
+      });
+
+      this.logger.log({
+        event: 'publish_delete_done',
+        sessionId,
+        sourceId,
+        collectionId,
+      });
+
+      await this.qdrantClient.upsertPoints(collectionName, points);
+
+      this.logger.log({
+        event: 'publish_upsert_done',
+        sessionId,
+        collectionId,
+        pointCount: points.length,
+      });
+
+      await this.ingestService.deleteSession(sessionId);
+
+      const durationMs = Date.now() - startTime;
+      this.logger.log({
+        event: 'publish_success',
+        sessionId,
+        userId,
+        collectionId,
+        sourceId,
+        publishedChunks: points.length,
+        durationMs,
+      });
+
+      return {
+        sessionId,
+        publishedChunks: points.length,
+        collectionId,
+      };
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      this.logger.error({
+        event: 'publish_failure',
+        sessionId,
+        userId,
+        collectionId,
+        durationMs,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+      });
+      throw error;
+    }
   }
 }

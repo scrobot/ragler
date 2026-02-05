@@ -21,7 +21,10 @@ export class CollectionService {
     const exists = await this.qdrantClient.collectionExists(SYS_REGISTRY_COLLECTION);
     if (!exists) {
       await this.qdrantClient.createCollection(SYS_REGISTRY_COLLECTION, 1);
-      this.logger.log('Created sys_registry collection');
+      this.logger.log({
+        event: 'registry_created',
+        collection: SYS_REGISTRY_COLLECTION,
+      });
     }
   }
 
@@ -38,6 +41,11 @@ export class CollectionService {
       createdAt: point.payload.created_at,
     }));
 
+    this.logger.log({
+      event: 'collections_listed',
+      count: collections.length,
+    });
+
     return {
       collections,
       total: collections.length,
@@ -50,10 +58,21 @@ export class CollectionService {
     const points = await this.qdrantClient.getPoints(SYS_REGISTRY_COLLECTION, [id]);
 
     if (!points || points.length === 0) {
+      this.logger.warn({
+        event: 'collection_not_found',
+        collectionId: id,
+      });
       throw new NotFoundException(`Collection with id ${id} not found`);
     }
 
     const point = points[0] as any;
+
+    this.logger.log({
+      event: 'collection_found',
+      collectionId: id,
+      name: point.payload.name,
+    });
+
     return {
       id: String(point.id),
       name: point.payload.name,
@@ -91,7 +110,12 @@ export class CollectionService {
       },
     ]);
 
-    this.logger.log(`Created collection ${dto.name} with id ${id}`);
+    this.logger.log({
+      event: 'collection_created',
+      collectionId: id,
+      name: dto.name,
+      userId,
+    });
 
     return {
       id,
@@ -117,6 +141,10 @@ export class CollectionService {
       must: [{ key: 'id', match: { value: id } }],
     });
 
-    this.logger.log(`Deleted collection ${collection.name} with id ${id}`);
+    this.logger.log({
+      event: 'collection_deleted',
+      collectionId: id,
+      name: collection.name,
+    });
   }
 }

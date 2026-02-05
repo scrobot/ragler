@@ -13,10 +13,15 @@ export class VectorService {
   ) { }
 
   async search(dto: SearchRequestDto): Promise<SearchResponseDto> {
+    const startTime = Date.now();
     const collectionName = `kb_${dto.collectionId}`;
 
     const exists = await this.qdrantClient.collectionExists(collectionName);
     if (!exists) {
+      this.logger.warn({
+        event: 'search_collection_not_found',
+        collectionId: dto.collectionId,
+      });
       throw new NotFoundException(`Collection ${dto.collectionId} not found`);
     }
 
@@ -36,7 +41,14 @@ export class VectorService {
       sourceType: result.payload?.source_type || '',
     }));
 
-    this.logger.log(`Search in collection ${dto.collectionId}: found ${results.length} results`);
+    const durationMs = Date.now() - startTime;
+    this.logger.log({
+      event: 'search_complete',
+      collectionId: dto.collectionId,
+      resultCount: results.length,
+      limit: dto.limit || 10,
+      durationMs,
+    });
 
     return {
       results,

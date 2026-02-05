@@ -108,7 +108,14 @@ export class IngestService {
       this.configService.get<number>('session.ttl'),
     );
 
-    this.logger.log(`Created session ${sessionId} for user ${userId}`);
+    this.logger.log({
+      event: 'session_created',
+      sessionId,
+      userId,
+      sourceType,
+      sourceUrl,
+      chunkCount: chunks.length,
+    });
 
     return {
       sessionId,
@@ -140,15 +147,29 @@ export class IngestService {
       updated,
       this.configService.get<number>('session.ttl'),
     );
+
+    this.logger.log({
+      event: 'session_updated',
+      sessionId,
+      updatedFields: Object.keys(data),
+    });
   }
 
   async deleteSession(sessionId: string): Promise<void> {
     await this.redisService.del(`session:${sessionId}`);
+    this.logger.log({
+      event: 'session_deleted',
+      sessionId,
+    });
   }
 
   async listSessions(): Promise<SessionData[]> {
     const keys = await this.redisService.scanKeys('session:session_*');
     if (keys.length === 0) {
+      this.logger.log({
+        event: 'sessions_scanned',
+        count: 0,
+      });
       return [];
     }
 
@@ -159,6 +180,12 @@ export class IngestService {
         sessions.push(session);
       }
     }
+
+    this.logger.log({
+      event: 'sessions_scanned',
+      keysFound: keys.length,
+      validSessions: sessions.length,
+    });
 
     // Sort by createdAt descending (newest first)
     return sessions.sort(
