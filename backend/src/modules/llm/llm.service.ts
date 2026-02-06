@@ -21,6 +21,7 @@ import {
   LlmEmbeddingApiError,
 } from './errors/llm-embedding.errors';
 import { ConfluenceDocumentParser } from './parsers/document-parser';
+import { MarkdownParser } from './parsers/markdown-parser';
 import { StructuredChunker } from './chunkers/structured-chunker';
 import { LLMTagExtractor } from './extractors/tag-extractor';
 import {
@@ -89,6 +90,7 @@ export class LlmService {
 
   // Phase 2: Structured chunking components
   private readonly documentParser: ConfluenceDocumentParser;
+  private readonly markdownParser: MarkdownParser;
   private readonly structuredChunker: StructuredChunker;
   private readonly tagExtractor: LLMTagExtractor;
 
@@ -124,6 +126,7 @@ Rules:
 
     // Initialize Phase 2 components
     this.documentParser = new ConfluenceDocumentParser();
+    this.markdownParser = new MarkdownParser();
     this.structuredChunker = new StructuredChunker({
       targetTokens: 300,
       maxTokens: 700,
@@ -400,8 +403,11 @@ Rules:
       if (docMetadata.source_type === 'confluence') {
         // Parse Confluence storage XML for heading hierarchy
         structure = this.documentParser.parse(trimmedContent);
+      } else if (docMetadata.source_type === 'manual') {
+        // Parse Markdown for manual content
+        structure = this.markdownParser.parse(trimmedContent);
       } else {
-        // For web/manual sources, create simple structure
+        // For web sources, create simple structure
         structure = {
           title: docMetadata.title || 'Untitled',
           sections: [

@@ -95,6 +95,13 @@ export class CollectionService {
 
     await this.qdrantClient.createCollection(dataCollectionName);
 
+    // Create payload indexes for v2 schema filtering
+    await this.qdrantClient.createPayloadIndex(dataCollectionName, 'doc.source_type', 'keyword');
+    await this.qdrantClient.createPayloadIndex(dataCollectionName, 'doc.source_id', 'keyword');
+    await this.qdrantClient.createPayloadIndex(dataCollectionName, 'chunk.type', 'keyword');
+    await this.qdrantClient.createPayloadIndex(dataCollectionName, 'chunk.lang', 'keyword');
+    await this.qdrantClient.createPayloadIndex(dataCollectionName, 'tags', 'keyword');
+
     const payload: CollectionPayload = {
       name: dto.name,
       description: dto.description || '',
@@ -137,9 +144,7 @@ export class CollectionService {
       await this.qdrantClient.deleteCollection(dataCollectionName);
     }
 
-    await this.qdrantClient.deletePointsByFilter(SYS_REGISTRY_COLLECTION, {
-      must: [{ key: 'id', match: { value: id } }],
-    });
+    await this.qdrantClient.deletePoints(SYS_REGISTRY_COLLECTION, [id]);
 
     this.logger.log({
       event: 'collection_deleted',

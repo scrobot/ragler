@@ -105,14 +105,16 @@ export class VectorService {
     const conditions: any[] = [];
 
     // Default: exclude navigation chunks unless query has navigation intent
+    const must_not_conditions: any[] = [];
+
     if (filters?.exclude_navigation !== false) {
       const hasNavigationIntent = await this.detectNavigationIntent(query);
 
       if (!hasNavigationIntent) {
-        conditions.push({
+        must_not_conditions.push({
           key: 'chunk.type',
           match: {
-            except: ['navigation'],
+            value: 'navigation',
           },
         });
       }
@@ -169,7 +171,19 @@ export class VectorService {
     }
 
     // Return filter object if there are conditions
-    return conditions.length > 0 ? { must: conditions } : undefined;
+    if (conditions.length === 0 && must_not_conditions.length === 0) {
+      return undefined;
+    }
+
+    const filter: any = {};
+    if (conditions.length > 0) {
+      filter.must = conditions;
+    }
+    if (must_not_conditions.length > 0) {
+      filter.must_not = must_not_conditions;
+    }
+
+    return filter;
   }
 
   /**

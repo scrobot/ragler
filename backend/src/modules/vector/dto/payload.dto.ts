@@ -145,10 +145,20 @@ export function formatSection(headingPath: string[]): string | null {
 // ============================================================================
 
 export function generateChunkId(sourceId: string, contentHash: string): string {
-  // Remove 'sha256:' prefix from hash for cleaner ID
+  // Qdrant requires UUIDs or unsigned integers as point IDs
+  // Generate a deterministic UUID v5 from sourceId + contentHash
+  const crypto = require('crypto');
+
+  // Remove 'sha256:' prefix from hash
   const hash = contentHash.startsWith('sha256:')
     ? contentHash.substring(7)
     : contentHash;
 
-  return `${sourceId}:${hash}`;
+  // Create a deterministic string and hash it to get UUID format
+  // Use the first 32 hex chars and format as UUID
+  const combined = `${sourceId}:${hash}`;
+  const md5Hash = crypto.createHash('md5').update(combined).digest('hex');
+
+  // Format as UUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  return `${md5Hash.substring(0, 8)}-${md5Hash.substring(8, 12)}-${md5Hash.substring(12, 16)}-${md5Hash.substring(16, 20)}-${md5Hash.substring(20, 32)}`;
 }

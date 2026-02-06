@@ -90,10 +90,6 @@ export class NavigationIntentClassifier {
                     maximum: 1,
                     description: 'Confidence score 0-1',
                   },
-                  reasoning: {
-                    type: 'string',
-                    description: 'Brief explanation of classification',
-                  },
                 },
                 required: ['intent', 'confidence'],
                 additionalProperties: false,
