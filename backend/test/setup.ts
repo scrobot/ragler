@@ -35,10 +35,21 @@ jest.mock('@modules/llm/parsers/document-parser', () => {
     return path;
   };
 
+  // Mock ConfluenceDocumentParser class
+  class ConfluenceDocumentParser {
+    parse() {
+      return {
+        title: 'Mock Document',
+        sections: [],
+        tables: [],
+        codeBlocks: [],
+      };
+    }
+  }
+
   return {
     buildHeadingPath,
     flattenSections,
-    // Export type interfaces as empty objects since they're only used for types
-    DocumentParser: class {},
+    ConfluenceDocumentParser,
   };
 });
