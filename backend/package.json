@@ -16,6 +16,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migrate:v1-to-v2": "tsx src/scripts/migrate-v1-to-v2.ts",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish"
@@ -47,6 +48,7 @@
     "rxjs": "^7.8.2",
     "tiktoken": "^1.0.22",
     "uuid": "^9.0.0",
+    "yargs": "^18.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -61,6 +63,7 @@
     "@types/node": "^25.1.0",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^9.0.0",
+    "@types/yargs": "^17.0.35",
     "jest": "^30.2.0",
     "supertest": "^7.2.2",
     "testcontainers": "^11.11.0",
