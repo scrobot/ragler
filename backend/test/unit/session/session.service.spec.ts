@@ -11,7 +11,7 @@ describe('SessionService', () => {
   let service: SessionService;
   let mockIngestService: jest.Mocked<Pick<IngestService, 'getSession' | 'updateSession' | 'deleteSession'>>;
   let mockQdrantClient: jest.Mocked<Pick<QdrantClientService, 'collectionExists' | 'deletePointsByFilter' | 'upsertPoints'>>;
-  let mockLlmService: jest.Mocked<Pick<LlmService, 'generateEmbeddings' | 'chunkContent'>>;
+  let mockLlmService: jest.Mocked<Pick<LlmService, 'generateEmbeddings' | 'chunkContent' | 'chunkContentV2'>>;
 
   const validCollectionId = '550e8400-e29b-41d4-a716-446655440000';
   const mockEmbedding = new Array(1536).fill(0.01);
@@ -55,6 +55,64 @@ describe('SessionService', () => {
       chunkContent: jest.fn().mockResolvedValue([
         { id: 'temp_1', text: 'First chunk', isDirty: false },
         { id: 'temp_2', text: 'Second chunk', isDirty: false },
+      ]),
+      chunkContentV2: jest.fn().mockResolvedValue([
+        {
+          chunk: {
+            id: 'test-source-id:sha256:abc123',
+            index: 0,
+            type: 'knowledge',
+            heading_path: ['Introduction'],
+            section: 'Introduction',
+            text: 'First chunk',
+            content_hash: 'sha256:abc123',
+            lang: 'en',
+          },
+          doc: {
+            source_type: 'web',
+            source_id: 'test-source-id',
+            url: 'https://example.com/test',
+            space_key: null,
+            title: 'Test Document',
+            revision: 1,
+            last_modified_at: '2025-01-01T00:00:00.000Z',
+            last_modified_by: 'user-1',
+          },
+          tags: ['test', 'knowledge'],
+          acl: {
+            visibility: 'internal',
+            allowed_groups: [],
+            allowed_users: [],
+          },
+        },
+        {
+          chunk: {
+            id: 'test-source-id:sha256:def456',
+            index: 1,
+            type: 'knowledge',
+            heading_path: ['Introduction'],
+            section: 'Introduction',
+            text: 'Second chunk',
+            content_hash: 'sha256:def456',
+            lang: 'en',
+          },
+          doc: {
+            source_type: 'web',
+            source_id: 'test-source-id',
+            url: 'https://example.com/test',
+            space_key: null,
+            title: 'Test Document',
+            revision: 1,
+            last_modified_at: '2025-01-01T00:00:00.000Z',
+            last_modified_by: 'user-1',
+          },
+          tags: ['test', 'knowledge'],
+          acl: {
+            visibility: 'internal',
+            allowed_groups: [],
+            allowed_users: [],
+          },
+        },
       ]),
     };
 
@@ -396,7 +454,7 @@ describe('SessionService', () => {
         `kb_${validCollectionId}`,
         expect.objectContaining({
           must: expect.arrayContaining([
-            expect.objectContaining({ key: 'source_id' }),
+            expect.objectContaining({ key: 'doc.source_id' }),
           ]),
         }),
       );
@@ -404,7 +462,7 @@ describe('SessionService', () => {
       expect(mockIngestService.deleteSession).toHaveBeenCalledWith('session_test-123');
       expect(result).toEqual({
         sessionId: 'session_test-123',
-        publishedChunks: 3,
+        publishedChunks: 2, // chunkContentV2 mock returns 2 chunks
         collectionId: validCollectionId,
       });
     });
@@ -441,6 +499,38 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
       mockQdrantClient.collectionExists.mockResolvedValue(true);
 
+      // Mock chunkContentV2 to return only 1 chunk (simulating empty chunk filtering)
+      mockLlmService.chunkContentV2.mockResolvedValueOnce([
+        {
+          chunk: {
+            id: 'test-source-id:sha256:abc123',
+            index: 0,
+            type: 'knowledge',
+            heading_path: [],
+            section: null,
+            text: 'Valid text',
+            content_hash: 'sha256:abc123',
+            lang: 'en',
+          },
+          doc: {
+            source_type: 'web',
+            source_id: 'test-source-id',
+            url: 'https://example.com/test',
+            space_key: null,
+            title: null,
+            revision: 1,
+            last_modified_at: new Date().toISOString(),
+            last_modified_by: 'user-1',
+          },
+          tags: [],
+          acl: {
+            visibility: 'internal',
+            allowed_groups: [],
+            allowed_users: [],
+          },
+        },
+      ]);
+
       const result = await service.publish(
         'session_test-123',
         { targetCollectionId: validCollectionId },
@@ -460,6 +550,9 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
       mockQdrantClient.collectionExists.mockResolvedValue(true);
 
+      // Mock chunkContentV2 to return empty array (simulating all chunks empty)
+      mockLlmService.chunkContentV2.mockResolvedValueOnce([]);
+
       const result = await service.publish(
         'session_test-123',
         { targetCollectionId: validCollectionId },
@@ -477,6 +570,38 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
       mockQdrantClient.collectionExists.mockResolvedValue(true);
 
+      // Mock chunkContentV2 to return 1 chunk with v2 payload
+      mockLlmService.chunkContentV2.mockResolvedValueOnce([
+        {
+          chunk: {
+            id: 'test-source-id:sha256:abc123',
+            index: 0,
+            type: 'knowledge',
+            heading_path: [],
+            section: null,
+            text: 'Test content',
+            content_hash: 'sha256:abc123',
+            lang: 'en',
+          },
+          doc: {
+            source_type: mockSession.sourceType,
+            source_id: 'test-source-id',
+            url: mockSession.sourceUrl,
+            space_key: null,
+            title: null,
+            revision: 1,
+            last_modified_at: '2025-01-01T00:00:00.000Z',
+            last_modified_by: 'user-1',
+          },
+          tags: ['test'],
+          acl: {
+            visibility: 'internal',
+            allowed_groups: [],
+            allowed_users: [],
+          },
+        },
+      ]);
+
       await service.publish(
         'session_test-123',
         { targetCollectionId: validCollectionId },
@@ -487,15 +612,28 @@ describe('SessionService', () => {
       const points = upsertCall[1];
 
       expect(points).toHaveLength(1);
-      expect(points[0].payload).toMatchObject({
-        content: 'Test content',
-        source_url: mockSession.sourceUrl,
-        source_type: mockSession.sourceType,
-        last_modified_by: 'user-1',
-        revision: 1,
+
+      const payload = points[0].payload as any;
+
+      // Check v2 payload structure
+      expect(payload).toMatchObject({
+        doc: {
+          source_type: mockSession.sourceType,
+          url: mockSession.sourceUrl,
+          last_modified_by: 'user-1',
+          revision: 1,
+        },
+        chunk: {
+          text: 'Test content',
+          type: 'knowledge',
+          lang: 'en',
+        },
+        tags: expect.any(Array),
+        acl: expect.any(Object),
       });
-      expect(points[0].payload.source_id).toBeDefined();
-      expect(points[0].payload.last_modified_at).toBeDefined();
+      expect(payload.doc.source_id).toBeDefined();
+      expect(payload.doc.last_modified_at).toBeDefined();
+      expect(payload.chunk.content_hash).toBeDefined();
     });
 
     describe('embedding generation', () => {
@@ -592,6 +730,9 @@ describe('SessionService', () => {
         });
         mockIngestService.getSession.mockResolvedValue(mockSession);
         mockQdrantClient.collectionExists.mockResolvedValue(true);
+
+        // Mock chunkContentV2 to return empty array (simulating all chunks empty)
+        mockLlmService.chunkContentV2.mockResolvedValueOnce([]);
 
         await service.publish(
           'session_test-123',

@@ -82,11 +82,14 @@
       "<rootDir>/test/unit"
     ],
     "testRegex": ".*\\.spec\\.ts$",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!(@exodus/bytes|html-encoding-sniffer|whatwg-encoding)/)"
+      "node_modules/(?!(jsdom|@exodus|html-encoding-sniffer|whatwg-encoding|whatwg-url|saxes|w3c-xmlserializer|xml-name-validator|data-urls|domexception)/)"
     ],
     "collectCoverageFrom": [
       "src/**/*.(t|j)s"
