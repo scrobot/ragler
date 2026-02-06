@@ -1,18 +1,41 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../config.js';
 
+export interface SearchFilters {
+  source_types?: ('confluence' | 'web' | 'manual')[];
+  chunk_types?: ('knowledge' | 'navigation' | 'table_row' | 'glossary' | 'faq' | 'code')[];
+  exclude_navigation?: boolean;
+  tags?: string[];
+  date_range?: {
+    from?: string;
+    to?: string;
+  };
+}
+
 export interface SearchRequest {
   query: string;
   collectionId: string;
   limit?: number;
+  filters?: SearchFilters;
 }
 
 export interface SearchResult {
   id: string;
   score: number;
   content: string;
-  sourceUrl: string;
-  sourceType: string;
+  doc: {
+    url: string;
+    title: string | null;
+    source_type: string;
+    revision: number | string;
+  };
+  chunk: {
+    type: string;
+    heading_path: string[];
+    section: string | null;
+    lang: string;
+  };
+  tags: string[];
 }
 
 export interface SearchResponse {
