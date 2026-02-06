@@ -1,9 +1,9 @@
 # Solution Architecture Document: KMS for RAG
 
-**Project Name:** Knowledge Management System (KMS-RAG)  
-**Version:** 2.0 (Final Approved)  
-**Date:** 2026-01-31  
-**Status:** Ready for Development  
+**Project Name:** Knowledge Management System (KMS-RAG)
+**Version:** 2.1
+**Date:** 2026-02-06
+**Status:** Ready for Development
 **Author:** Senior Solution Architect
 
 ---
@@ -314,3 +314,213 @@ services:
 | **Dangling Chunks** | Network failure during Publish: old deleted, new not written. | Implement retry-policy on backend. Qdrant operations are atomic in batches. |
 | **Audit Spoofing** | Attacker forges X-User-ID header. | System for internal use only. Configure trust-list IP addresses at Ingress level. |
 | **Vector "Drift"** | User changes text so it no longer matches collection topic. | (Future) Add LLM validator at Preview stage: "Is this text really about Architecture?". |
+
+---
+
+## 11. MCP Server Integration
+
+### 11.1 Purpose & Rationale
+
+MCP (Model Context Protocol) server provides AI agents with structured access to KMS-RAG's knowledge base without direct vector database coupling.
+
+**Key benefits:**
+
+- **Abstraction**: AI agents query KMS-RAG, not Qdrant directly
+- **Future-proof**: DB adapter pattern enables swapping Qdrant for other vector DBs
+- **Enhanced search**: Hybrid search combining semantic + filtering/metadata
+- **Standardization**: MCP is industry-standard protocol for AI tool integration
+
+### 11.2 Architecture Position
+
+```
+graph TD
+    Agent["AI Agent (Claude Code, etc.)"] --> MCP["MCP Server"]
+    MCP --> API["KMS Backend API"]
+    API --> Vector["VectorService"]
+    Vector --> Qdrant["Qdrant"]
+
+    Note: Future: API --> Adapter --> [Qdrant | Pinecone | Weaviate]
+```
+
+The MCP server acts as a protocol adapter between AI agents and KMS-RAG's search API.
+
+### 11.3 MCP Server Requirements
+
+#### 11.3.1 Core Operations (Tools)
+
+The MCP server MUST expose the following tools:
+
+**1. `search_knowledge`**
+
+- **Description**: Search across knowledge collections with semantic + hybrid filtering
+- **Parameters**:
+  - `query` (required): Natural language search query
+  - `collection_id` (optional): UUID of target collection (searches all if omitted)
+  - `limit` (optional): Max results (1-100, default 10)
+  - `filters` (optional): Metadata filters (source_type, date range, etc.)
+- **Returns**: Array of search results with content, source URL, score, metadata
+
+**2. `list_collections`**
+
+- **Description**: List all available knowledge collections
+- **Parameters**: None
+- **Returns**: Array of collections with id, name, description, created_by
+
+**3. `get_collection_info`**
+
+- **Description**: Get detailed information about a specific collection
+- **Parameters**:
+  - `collection_id` (required): UUID
+- **Returns**: Collection metadata + statistics (chunk count, last updated, etc.)
+
+#### 11.3.2 Search Strategy: Hybrid Approach
+
+The MCP server's search implementation MUST support:
+
+1. **Semantic search** (default): Vector similarity via embeddings
+2. **Metadata filtering**: By source_type, date range, collection
+3. **Hybrid ranking** (future): Combine semantic similarity with:
+   - Recency score (newer content ranked higher)
+   - Source reputation (Confluence vs web)
+   - User feedback signals
+
+**Search algorithm evolution path**:
+
+```
+MVP: Pure semantic (VectorService)
+  ↓
+Phase 2: Add metadata filters
+  ↓
+Phase 3: Hybrid scoring with adjustable weights
+  ↓
+Phase 4: User feedback integration
+```
+
+#### 11.3.3 MCP Server Implementation
+
+**Technology**: Node.js/TypeScript (aligned with backend stack)
+
+**Integration pattern**:
+
+```
+mcp-server/
+├── src/
+│   ├── server.ts           # MCP protocol handler
+│   ├── tools/
+│   │   ├── search.ts       # search_knowledge implementation
+│   │   ├── collections.ts  # collection tools
+│   ├── client/
+│   │   └── kms-api.ts     # HTTP client to KMS Backend API
+│   └── config/
+│       └── settings.ts     # MCP server config (API URL, auth)
+└── package.json
+```
+
+**Communication**: MCP server calls KMS Backend API via HTTP (not direct Qdrant access)
+
+#### 11.3.4 Configuration
+
+MCP server configuration (`.mcp.json` or environment):
+
+```json
+{
+  "name": "kms-rag",
+  "version": "1.0.0",
+  "server": {
+    "command": "node",
+    "args": ["dist/server.js"],
+    "env": {
+      "KMS_API_URL": "http://localhost:3000",
+      "KMS_API_KEY": "${KMS_API_KEY}"
+    }
+  }
+}
+```
+
+### 11.4 Vector Database Abstraction (Future)
+
+The architecture anticipates replacing Qdrant with other vector databases.
+
+**DB Adapter Pattern** (planned for post-MVP):
+
+```typescript
+interface IVectorAdapter {
+  search(query: Vector, options: SearchOptions): Promise<SearchResult[]>
+  upsert(points: VectorPoint[]): Promise<void>
+  deleteByFilter(filter: Filter): Promise<void>
+  createCollection(name: string, config: CollectionConfig): Promise<void>
+}
+
+// Implementations:
+class QdrantAdapter implements IVectorAdapter { ... }
+class PineconeAdapter implements IVectorAdapter { ... }
+class WeaviateAdapter implements IVectorAdapter { ... }
+```
+
+**Benefits**:
+
+- MCP server interface remains stable
+- Swap vector DB without changing AI agent integrations
+- Support multi-DB deployments (different collections in different DBs)
+
+### 11.5 Security & Access Control
+
+**Authentication**: MCP server authenticates to KMS Backend API using:
+
+- API key (passed via environment variable)
+- OR: Service account token (future IAM integration)
+
+**Authorization**: Backend enforces role-based access:
+
+- MCP server queries run with "service" role
+- Access all published collections (no draft access)
+- Respects collection-level permissions (future)
+
+**Rate limiting**: Backend applies rate limits to prevent abuse
+
+### 11.6 Observability
+
+MCP server logging MUST include:
+
+- Request correlation IDs (passthrough from AI agent)
+- Search query text (sanitized, no PII)
+- Collection IDs accessed
+- Response times + result counts
+- Error rates by operation
+
+**Metrics** (Prometheus-style):
+
+```
+mcp_requests_total{tool,status}
+mcp_request_duration_seconds{tool}
+mcp_search_results_count{collection_id}
+```
+
+### 11.7 Development & Testing
+
+**Local development**:
+
+```bash
+# Terminal 1: Start backend
+cd backend && pnpm start:dev
+
+# Terminal 2: Start MCP server
+cd mcp-server && pnpm start:dev
+
+# Terminal 3: Test MCP tools
+mcp test search_knowledge --query "authentication"
+```
+
+**Integration tests**: Validate MCP tools against running backend API
+
+### 11.8 Deployment Considerations
+
+**MVP**: MCP server runs as separate process alongside backend
+
+**Production options**:
+
+1. **Sidecar**: Deploy MCP server container alongside backend pods
+2. **Standalone**: Separate deployment with API gateway routing
+3. **Embedded**: Integrate MCP protocol handler into backend (future)
+
+**Scaling**: MCP server is stateless - scale horizontally as needed
