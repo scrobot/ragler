@@ -7,7 +7,7 @@ import {
   flattenSections,
 } from '../parsers/document-parser';
 import { countTokens, splitOnBoundaries } from '../utils/token-counter';
-import { ChunkType } from '@modules/vector/dto/payload-v2.dto';
+import { ChunkType } from '@modules/vector/dto/payload.dto';
 
 /**
  * Structured chunker - creates semantically meaningful chunks from parsed documents

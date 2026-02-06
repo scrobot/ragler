@@ -28,12 +28,12 @@ import {
   detectLanguage,
 } from './utils/text-normalizer';
 import {
-  QdrantPayloadV2,
+  QdrantPayload,
   DocMetadata,
   generateChunkId,
   formatSection,
   createDefaultAcl,
-} from '@modules/vector/dto/payload-v2.dto';
+} from '@modules/vector/dto/payload.dto';
 
 // JSON Schema for the chunking response (matches LlmChunkResponseSchema)
 const CHUNK_RESPONSE_SCHEMA = {
@@ -372,7 +372,7 @@ Rules:
     content: string,
     docMetadata: DocMetadata,
     correlationId?: string,
-  ): Promise<QdrantPayloadV2[]> {
+  ): Promise<QdrantPayload[]> {
     const startTime = Date.now();
     const logContext = {
       correlationId,
@@ -441,7 +441,7 @@ Rules:
       const tagsResults = await Promise.all(tagPromises);
 
       // Step 4: Build full ChunkV2 payloads
-      const chunksV2: QdrantPayloadV2[] = chunkInputs.map((chunk, index) => {
+      const chunksV2: QdrantPayload[] = chunkInputs.map((chunk, index) => {
         const contentHash = computeContentHash(chunk.text);
         const lang = detectLanguage(chunk.text);
         const chunkId = generateChunkId(
@@ -494,7 +494,7 @@ Rules:
   /**
    * Get chunk type distribution for observability
    */
-  private getTypeDistribution(chunks: QdrantPayloadV2[]): Record<string, number> {
+  private getTypeDistribution(chunks: QdrantPayload[]): Record<string, number> {
     const distribution: Record<string, number> = {};
     for (const chunk of chunks) {
       const type = chunk.chunk.type;

@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import { IngestService } from '@ingest/ingest.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
-import type { DocMetadata, QdrantPayloadV2 } from '@modules/vector/dto/payload-v2.dto';
+import type { DocMetadata, QdrantPayload } from '@modules/vector/dto/payload.dto';
 import {
   SessionResponseDto,
   SessionListResponseDto,
@@ -485,7 +485,7 @@ export class SessionService {
   /**
    * Get chunk type distribution for observability
    */
-  private getTypeDistribution(chunks: QdrantPayloadV2[]): Record<string, number> {
+  private getTypeDistribution(chunks: QdrantPayload[]): Record<string, number> {
     const distribution: Record<string, number> = {};
     for (const chunk of chunks) {
       const type = chunk.chunk.type;

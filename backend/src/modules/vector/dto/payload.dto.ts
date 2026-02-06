@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
 /**
- * Chunk Schema v2 - Enhanced payload structure for Qdrant points
+ * Chunk Schema - Enhanced payload structure for Qdrant points
  *
- * Key improvements over v1:
+ * Features:
  * - Document metadata (doc.*)
  * - Rich chunk metadata (chunk.* with type, heading_path, content_hash)
  * - Tags extracted by LLM
@@ -70,8 +70,8 @@ export const AclMetadataSchema = z.object({
   allowed_users: z.array(z.string()).default([]),
 });
 
-// Complete payload v2 schema
-export const QdrantPayloadV2Schema = z.object({
+// Complete payload schema
+export const QdrantPayloadSchema = z.object({
   doc: DocMetadataSchema,
   chunk: ChunkMetadataSchema,
   tags: z.array(z.string().min(1).max(50)).max(12).default([]).describe('LLM-extracted topic tags'),
@@ -85,7 +85,7 @@ export const QdrantPayloadV2Schema = z.object({
 export type DocMetadata = z.infer<typeof DocMetadataSchema>;
 export type ChunkMetadata = z.infer<typeof ChunkMetadataSchema>;
 export type AclMetadata = z.infer<typeof AclMetadataSchema>;
-export type QdrantPayloadV2 = z.infer<typeof QdrantPayloadV2Schema>;
+export type QdrantPayload = z.infer<typeof QdrantPayloadSchema>;
 
 // ============================================================================
 // NestJS DTOs (for API validation)
@@ -94,13 +94,13 @@ export type QdrantPayloadV2 = z.infer<typeof QdrantPayloadV2Schema>;
 export class DocMetadataDto extends createZodDto(DocMetadataSchema) {}
 export class ChunkMetadataDto extends createZodDto(ChunkMetadataSchema) {}
 export class AclMetadataDto extends createZodDto(AclMetadataSchema) {}
-export class QdrantPayloadV2Dto extends createZodDto(QdrantPayloadV2Schema) {}
+export class QdrantPayloadDto extends createZodDto(QdrantPayloadSchema) {}
 
 // ============================================================================
-// Chunk v2 with full structure (used during chunking)
+// Chunk with full structure (used during chunking pipeline)
 // ============================================================================
 
-export interface ChunkV2 {
+export interface Chunk {
   doc: DocMetadata;
   chunk: ChunkMetadata;
   tags: string[];
@@ -111,10 +111,10 @@ export interface ChunkV2 {
 // Qdrant Point structure
 // ============================================================================
 
-export interface QdrantPointV2 {
+export interface QdrantPoint {
   id: string; // Stable ID: {source_id}:{content_hash}
   vector: number[]; // 1536-dimensional embedding
-  payload: QdrantPayloadV2;
+  payload: QdrantPayload;
 }
 
 // ============================================================================

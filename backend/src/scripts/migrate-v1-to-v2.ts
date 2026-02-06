@@ -23,13 +23,13 @@ import { Logger } from '@nestjs/common';
 import * as yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import {
-  QdrantPayloadV2,
+  QdrantPayload,
   DocMetadata,
   ChunkType,
   generateChunkId,
   formatSection,
   createDefaultAcl,
-} from '@modules/vector/dto/payload-v2.dto';
+} from '@modules/vector/dto/payload.dto';
 import {
   computeContentHash,
   detectLanguage,
@@ -172,7 +172,7 @@ function mapV1ToV2(
   v1: QdrantPayloadV1,
   index: number,
   sourceChunkCounts: Map<string, number>
-): QdrantPayloadV2 {
+): QdrantPayload {
   const contentHash = computeContentHash(v1.content);
   const lang = detectLanguage(v1.content);
   const chunkType = classifyChunkType(v1.content);
@@ -220,8 +220,8 @@ function mapV1ToV2(
  * Deduplicate points by content_hash within each {source_id:revision} group
  */
 function deduplicatePoints(
-  points: Array<{ id: string; vector: number[]; payload: QdrantPayloadV2 }>
-): Array<{ id: string; vector: number[]; payload: QdrantPayloadV2 }> {
+  points: Array<{ id: string; vector: number[]; payload: QdrantPayload }>
+): Array<{ id: string; vector: number[]; payload: QdrantPayload }> {
   // Group by source_id:revision
   const groups = new Map<string, typeof points>();
 
@@ -376,7 +376,7 @@ async function migrateCollection(
     const allPoints: Array<{
       id: string;
       vector: number[];
-      payload: QdrantPayloadV2;
+      payload: QdrantPayload;
     }> = [];
     const sourceChunkCounts = new Map<string, number>();
 
