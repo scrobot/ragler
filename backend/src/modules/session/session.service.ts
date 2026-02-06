@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { IngestService } from '@ingest/ingest.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
+import type { DocMetadata, QdrantPayloadV2 } from '@modules/vector/dto/payload-v2.dto';
 import {
   SessionResponseDto,
   SessionListResponseDto,
@@ -370,11 +371,33 @@ export class SessionService {
         throw new NotFoundException(`Collection ${collectionId} not found`);
       }
 
-      // Filter valid chunks FIRST (before any operations)
-      const validChunks = session.chunks.filter((c) => c.text.trim());
+      const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
+      const now = new Date().toISOString();
 
-      // If no valid chunks, skip embedding generation and Qdrant operations
-      if (validChunks.length === 0) {
+      // Build doc metadata for v2 chunking
+      const docMetadata: DocMetadata = {
+        source_type: session.sourceType,
+        source_id: sourceId,
+        url: session.sourceUrl,
+        space_key: null, // TODO: Extract from Confluence metadata when available
+        title: null, // TODO: Extract from document when available
+        revision: 1, // TODO: Implement revision tracking
+        last_modified_at: now,
+        last_modified_by: userId,
+      };
+
+      // Use rawContent for Confluence (storage XML with structure) or content for others
+      const contentForChunking = session.rawContent || session.content;
+
+      // Chunk content with v2 schema (structured chunking + tags + metadata)
+      const chunksV2 = await this.llmService.chunkContentV2(
+        contentForChunking,
+        docMetadata,
+        sessionId
+      );
+
+      // If no chunks produced, cleanup and return
+      if (chunksV2.length === 0) {
         await this.ingestService.deleteSession(sessionId);
         const durationMs = Date.now() - startTime;
         this.logger.log({
@@ -394,30 +417,19 @@ export class SessionService {
 
       // Generate embeddings BEFORE any Qdrant delete (atomic safety)
       // If embedding fails, we don't lose existing data
-      const texts = validChunks.map((c) => c.text);
+      const texts = chunksV2.map((c) => c.chunk.text);
       const embeddings = await this.llmService.generateEmbeddings(texts, sessionId);
 
-      const sourceId = crypto.createHash('md5').update(session.sourceUrl).digest('hex');
-      const now = new Date().toISOString();
-
-      // Build points with real embeddings
-      const points = validChunks.map((chunk, index) => ({
-        id: uuidv4(),
+      // Build points with v2 payload structure
+      const points = chunksV2.map((chunkPayload, index) => ({
+        id: chunkPayload.chunk.id, // Use stable v2 chunk ID
         vector: embeddings[index],
-        payload: {
-          content: chunk.text,
-          source_id: sourceId,
-          source_url: session.sourceUrl,
-          source_type: session.sourceType,
-          last_modified_by: userId,
-          last_modified_at: now,
-          revision: 1,
-        },
+        payload: chunkPayload as Record<string, unknown>,
       }));
 
       // Atomic replacement: delete old, then upsert new
       await this.qdrantClient.deletePointsByFilter(collectionName, {
-        must: [{ key: 'source_id', match: { value: sourceId } }],
+        must: [{ key: 'doc.source_id', match: { value: sourceId } }],
       });
 
       this.logger.log({
@@ -434,6 +446,7 @@ export class SessionService {
         sessionId,
         collectionId,
         pointCount: points.length,
+        typeDistribution: this.getTypeDistribution(chunksV2),
       });
 
       await this.ingestService.deleteSession(sessionId);
@@ -467,5 +480,17 @@ export class SessionService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Get chunk type distribution for observability
+   */
+  private getTypeDistribution(chunks: QdrantPayloadV2[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    for (const chunk of chunks) {
+      const type = chunk.chunk.type;
+      distribution[type] = (distribution[type] || 0) + 1;
+    }
+    return distribution;
   }
 }
