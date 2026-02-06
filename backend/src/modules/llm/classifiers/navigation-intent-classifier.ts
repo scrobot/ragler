@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { zodResponseFormat } from 'openai/helpers/zod';
 
 /**
  * Navigation intent classifier using GPT-4o-mini
@@ -72,10 +71,35 @@ export class NavigationIntentClassifier {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          response_format: zodResponseFormat(
-            IntentClassificationSchema,
-            'intent_classification'
-          ),
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'intent_classification',
+              strict: true,
+              schema: {
+                type: 'object',
+                properties: {
+                  intent: {
+                    type: 'string',
+                    enum: ['navigation', 'knowledge'],
+                    description: 'Primary intent of the query',
+                  },
+                  confidence: {
+                    type: 'number',
+                    minimum: 0,
+                    maximum: 1,
+                    description: 'Confidence score 0-1',
+                  },
+                  reasoning: {
+                    type: 'string',
+                    description: 'Brief explanation of classification',
+                  },
+                },
+                required: ['intent', 'confidence'],
+                additionalProperties: false,
+              },
+            },
+          },
           temperature: 0.1, // Very low temperature for consistent classification
           max_tokens: 100,
         },

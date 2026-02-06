@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { zodResponseFormat } from 'openai/helpers/zod';
 import { normalizeTag } from '../utils/text-normalizer';
 
 /**
@@ -67,10 +66,27 @@ export class LLMTagExtractor {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          response_format: zodResponseFormat(
-            TagExtractionSchema,
-            'tag_extraction'
-          ),
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'tag_extraction',
+              strict: true,
+              schema: {
+                type: 'object',
+                properties: {
+                  tags: {
+                    type: 'array',
+                    items: { type: 'string', minLength: 1, maxLength: 50 },
+                    minItems: 3,
+                    maxItems: 12,
+                    description: 'Array of 3-12 relevant topic tags',
+                  },
+                },
+                required: ['tags'],
+                additionalProperties: false,
+              },
+            },
+          },
           temperature: 0.3, // Low temperature for consistent tagging
           max_tokens: 150, // Tags are short
         },

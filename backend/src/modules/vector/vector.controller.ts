@@ -29,7 +29,7 @@ export class VectorController {
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Search knowledge collections' })
-  @ApiResponse({ status: 200, description: 'Search results', type: SearchResponseDto })
+  @ApiResponse({ status: 200, description: 'Search results' })
   @ApiResponse({ status: 400, description: 'Invalid request', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Collection not found', type: ErrorResponseDto })
   async search(
