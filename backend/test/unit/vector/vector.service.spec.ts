@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { VectorService } from '@vector/vector.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
@@ -12,6 +13,26 @@ describe('VectorService', () => {
 
   const mockEmbedding = new Array(1536).fill(0.01);
   const validCollectionId = '550e8400-e29b-41d4-a716-446655440000';
+
+  // Helper to create v2 payload structure
+  const createV2Payload = (overrides: any = {}) => ({
+    doc: {
+      url: 'https://example.com/test',
+      title: 'Test Document',
+      source_type: 'web',
+      revision: 1,
+      ...overrides.doc,
+    },
+    chunk: {
+      text: 'Test content',
+      type: 'knowledge',
+      heading_path: ['Introduction'],
+      section: 'Introduction',
+      lang: 'en',
+      ...overrides.chunk,
+    },
+    tags: overrides.tags || ['test'],
+  });
 
   beforeEach(async () => {
     mockQdrantClient = {
@@ -28,6 +49,15 @@ describe('VectorService', () => {
         VectorService,
         { provide: QdrantClientService, useValue: mockQdrantClient },
         { provide: LlmService, useValue: mockLlmService },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'openai.apiKey') return 'test-api-key';
+              return null;
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -50,20 +80,18 @@ describe('VectorService', () => {
         {
           id: 'point-1',
           score: 0.95,
-          payload: {
-            content: 'Test content 1',
-            source_url: 'https://example.com/1',
-            source_type: 'web',
-          },
+          payload: createV2Payload({
+            doc: { url: 'https://example.com/1', source_type: 'web' },
+            chunk: { text: 'Test content 1' },
+          }),
         },
         {
           id: 'point-2',
           score: 0.85,
-          payload: {
-            content: 'Test content 2',
-            source_url: 'https://example.com/2',
-            source_type: 'confluence',
-          },
+          payload: createV2Payload({
+            doc: { url: 'https://example.com/2', source_type: 'confluence' },
+            chunk: { text: 'Test content 2' },
+          }),
         },
       ];
 
@@ -79,6 +107,7 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         10,
+        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
       );
 
       expect(result).toEqual({
@@ -87,15 +116,37 @@ describe('VectorService', () => {
             id: 'point-1',
             score: 0.95,
             content: 'Test content 1',
-            sourceUrl: 'https://example.com/1',
-            sourceType: 'web',
+            doc: {
+              url: 'https://example.com/1',
+              title: 'Test Document',
+              source_type: 'web',
+              revision: 1,
+            },
+            chunk: {
+              type: 'knowledge',
+              heading_path: ['Introduction'],
+              section: 'Introduction',
+              lang: 'en',
+            },
+            tags: ['test'],
           },
           {
             id: 'point-2',
             score: 0.85,
             content: 'Test content 2',
-            sourceUrl: 'https://example.com/2',
-            sourceType: 'confluence',
+            doc: {
+              url: 'https://example.com/2',
+              title: 'Test Document',
+              source_type: 'confluence',
+              revision: 1,
+            },
+            chunk: {
+              type: 'knowledge',
+              heading_path: ['Introduction'],
+              section: 'Introduction',
+              lang: 'en',
+            },
+            tags: ['test'],
           },
         ],
         total: 2,
@@ -156,6 +207,7 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         5,
+        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
       );
     });
 
@@ -175,10 +227,11 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         10,
+        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
       );
     });
 
-    it('should handle missing payload fields with empty string fallbacks', async () => {
+    it('should handle results with minimal payload fields', async () => {
       const dto: SearchRequestDto = {
         query: 'test query',
         collectionId: validCollectionId,
@@ -189,16 +242,10 @@ describe('VectorService', () => {
         {
           id: 'point-1',
           score: 0.95,
-          payload: {},
-        },
-        {
-          id: 'point-2',
-          score: 0.85,
-          payload: null,
-        },
-        {
-          id: 'point-3',
-          score: 0.75,
+          payload: createV2Payload({
+            doc: { title: null, url: 'https://example.com/minimal' },
+            chunk: { text: 'Minimal content', heading_path: [], section: null },
+          }),
         },
       ];
 
@@ -212,23 +259,20 @@ describe('VectorService', () => {
         {
           id: 'point-1',
           score: 0.95,
-          content: '',
-          sourceUrl: '',
-          sourceType: '',
-        },
-        {
-          id: 'point-2',
-          score: 0.85,
-          content: '',
-          sourceUrl: '',
-          sourceType: '',
-        },
-        {
-          id: 'point-3',
-          score: 0.75,
-          content: '',
-          sourceUrl: '',
-          sourceType: '',
+          content: 'Minimal content',
+          doc: {
+            url: 'https://example.com/minimal',
+            title: null,
+            source_type: 'web',
+            revision: 1,
+          },
+          chunk: {
+            type: 'knowledge',
+            heading_path: [],
+            section: null,
+            lang: 'en',
+          },
+          tags: ['test'],
         },
       ]);
     });
@@ -244,7 +288,7 @@ describe('VectorService', () => {
         {
           id: 12345,
           score: 0.95,
-          payload: { content: 'test' },
+          payload: createV2Payload({ chunk: { text: 'test' } }),
         },
       ];
 

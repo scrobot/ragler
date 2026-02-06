@@ -46,6 +46,18 @@ export class QdrantClientService implements OnModuleInit {
     this.logger.log(`Created collection: ${collectionName}`);
   }
 
+  async createPayloadIndex(
+    collectionName: string,
+    fieldName: string,
+    fieldSchema: 'keyword' | 'integer' | 'float' | 'geo' | 'text',
+  ): Promise<void> {
+    await this.client.createPayloadIndex(collectionName, {
+      field_name: fieldName,
+      field_schema: fieldSchema,
+    });
+    this.logger.log(`Created payload index on ${collectionName}.${fieldName}`);
+  }
+
   async deleteCollection(collectionName: string): Promise<void> {
     await this.client.deleteCollection(collectionName);
     this.logger.log(`Deleted collection: ${collectionName}`);
@@ -55,10 +67,22 @@ export class QdrantClientService implements OnModuleInit {
     collectionName: string,
     points: Array<{ id: string; vector: number[]; payload: Record<string, unknown> }>,
   ): Promise<void> {
-    await this.client.upsert(collectionName, {
-      wait: true,
-      points,
-    });
+    try {
+      await this.client.upsert(collectionName, {
+        wait: true,
+        points,
+      });
+    } catch (error: any) {
+      // Log more details about the error
+      console.error('Qdrant upsert error:', {
+        message: error.message,
+        status: error.status,
+        data: error.data,
+        body: error.body,
+        response: error.response?.data,
+      });
+      throw error;
+    }
   }
 
   async deletePointsByFilter(
@@ -68,6 +92,16 @@ export class QdrantClientService implements OnModuleInit {
     await this.client.delete(collectionName, {
       wait: true,
       filter: filter as any,
+    });
+  }
+
+  async deletePoints(
+    collectionName: string,
+    ids: string[],
+  ): Promise<void> {
+    await this.client.delete(collectionName, {
+      wait: true,
+      points: ids,
     });
   }
 

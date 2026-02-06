@@ -20,6 +20,21 @@ import {
   LlmEmbeddingTimeoutError,
   LlmEmbeddingApiError,
 } from './errors/llm-embedding.errors';
+import { ConfluenceDocumentParser } from './parsers/document-parser';
+import { MarkdownParser } from './parsers/markdown-parser';
+import { StructuredChunker } from './chunkers/structured-chunker';
+import { LLMTagExtractor } from './extractors/tag-extractor';
+import {
+  computeContentHash,
+  detectLanguage,
+} from './utils/text-normalizer';
+import {
+  QdrantPayload,
+  DocMetadata,
+  generateChunkId,
+  formatSection,
+  createDefaultAcl,
+} from '@modules/vector/dto/payload.dto';
 
 // JSON Schema for the chunking response (matches LlmChunkResponseSchema)
 const CHUNK_RESPONSE_SCHEMA = {
@@ -73,6 +88,12 @@ export class LlmService {
   private readonly embeddingMaxRetries: number;
   private readonly embeddingBatchSize: number;
 
+  // Phase 2: Structured chunking components
+  private readonly documentParser: ConfluenceDocumentParser;
+  private readonly markdownParser: MarkdownParser;
+  private readonly structuredChunker: StructuredChunker;
+  private readonly tagExtractor: LLMTagExtractor;
+
   private readonly CHUNKING_SYSTEM_PROMPT = `You are a document chunking specialist. Your task is to split the provided content into semantically meaningful chunks for a knowledge retrieval system.
 
 Guidelines:
@@ -102,6 +123,20 @@ Rules:
       this.configService.get<number>('llm.embedding.maxRetries') ?? 2;
     this.embeddingBatchSize =
       this.configService.get<number>('llm.embedding.batchSize') ?? 100;
+
+    // Initialize Phase 2 components
+    this.documentParser = new ConfluenceDocumentParser();
+    this.markdownParser = new MarkdownParser();
+    this.structuredChunker = new StructuredChunker({
+      targetTokens: 300,
+      maxTokens: 700,
+      minTokens: 50,
+    });
+    this.tagExtractor = new LLMTagExtractor(this.openai, {
+      model: 'gpt-4o-mini',
+      timeout: 10000,
+      maxRetries: 2,
+    });
   }
 
   async chunkContent(
@@ -326,6 +361,152 @@ Rules:
       return (error as { isRetryable: boolean }).isRetryable;
     }
     return false;
+  }
+
+  /**
+   * Chunk content with v2 schema (structured chunking + metadata enrichment)
+   *
+   * @param content - Raw document content
+   * @param docMetadata - Document metadata for v2 payload
+   * @param correlationId - Optional correlation ID for logging
+   * @returns Array of fully structured ChunkV2 payloads
+   */
+  async chunkContentV2(
+    content: string,
+    docMetadata: DocMetadata,
+    correlationId?: string,
+  ): Promise<QdrantPayload[]> {
+    const startTime = Date.now();
+    const logContext = {
+      correlationId,
+      sourceId: docMetadata.source_id,
+      sourceType: docMetadata.source_type,
+      contentLength: content.length,
+    };
+
+    // Validation
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      throw new LlmChunkingValidationError(
+        'Content cannot be empty or whitespace-only',
+      );
+    }
+
+    this.logger.log({
+      event: 'chunking_v2_start',
+      ...logContext,
+    });
+
+    try {
+      // Step 1: Parse document structure
+      let structure;
+      if (docMetadata.source_type === 'confluence') {
+        // Parse Confluence storage XML for heading hierarchy
+        structure = this.documentParser.parse(trimmedContent);
+      } else if (docMetadata.source_type === 'manual') {
+        // Parse Markdown for manual content
+        structure = this.markdownParser.parse(trimmedContent);
+      } else {
+        // For web sources, create simple structure
+        structure = {
+          title: docMetadata.title || 'Untitled',
+          sections: [
+            {
+              level: 1,
+              heading: docMetadata.title || 'Content',
+              content: trimmedContent,
+              children: [],
+              startIndex: 0,
+              endIndex: trimmedContent.length,
+            },
+          ],
+          tables: [],
+          codeBlocks: [],
+        };
+      }
+
+      // Step 2: Run structured chunker
+      const chunkInputs = this.structuredChunker.chunk(structure);
+
+      if (chunkInputs.length === 0) {
+        this.logger.warn({
+          event: 'chunking_v2_empty',
+          ...logContext,
+        });
+        return [];
+      }
+
+      // Step 3: Extract tags for all chunks in parallel
+      const tagPromises = chunkInputs.map((chunk) =>
+        this.tagExtractor.extractTags(chunk.text, {
+          title: docMetadata.title || undefined,
+          headingPath: chunk.headingPath,
+        }),
+      );
+
+      const tagsResults = await Promise.all(tagPromises);
+
+      // Step 4: Build full ChunkV2 payloads
+      const chunksV2: QdrantPayload[] = chunkInputs.map((chunk, index) => {
+        const contentHash = computeContentHash(chunk.text);
+        const lang = detectLanguage(chunk.text);
+        const chunkId = generateChunkId(
+          docMetadata.source_id,
+          contentHash,
+        );
+        const section = formatSection(chunk.headingPath);
+
+        return {
+          doc: docMetadata,
+          chunk: {
+            id: chunkId,
+            index,
+            type: chunk.type,
+            heading_path: chunk.headingPath,
+            section,
+            text: chunk.text,
+            content_hash: contentHash,
+            lang,
+          },
+          tags: tagsResults[index] || [],
+          acl: createDefaultAcl(),
+        };
+      });
+
+      const duration = Date.now() - startTime;
+      this.logger.log({
+        event: 'chunking_v2_success',
+        ...logContext,
+        chunkCount: chunksV2.length,
+        typeDistribution: this.getTypeDistribution(chunksV2),
+        durationMs: duration,
+      });
+
+      return chunksV2;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error({
+        event: 'chunking_v2_failure',
+        ...logContext,
+        durationMs: duration,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        isRetryable: this.isRetryableError(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get chunk type distribution for observability
+   */
+  private getTypeDistribution(chunks: QdrantPayload[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    for (const chunk of chunks) {
+      const type = chunk.chunk.type;
+      distribution[type] = (distribution[type] || 0) + 1;
+    }
+    return distribution;
   }
 
   async refineText(
