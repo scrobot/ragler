@@ -73,18 +73,19 @@ import { ... } from '@session/...';     // src/modules/session/
 
 ## Source of Truth (MANDATORY)
 
-This project is defined by the documentation website:
+This project is defined by comprehensive documentation:
 
-- **Product Manual** → `website/docs/product/`
-- **Architecture** → `website/docs/architecture/`
-- **AI Context** → `website/docs/ai-context/` (Read this first for strict definitions)
+- **Product Manual** → `docs/product/`
+- **Architecture** → `docs/architecture/`
+- **AI Context** → `docs/ai-context/` (Read this first for strict definitions)
 
 When in doubt:
-- Check `website/docs/ai-context/` for engineering constraints.
-- Check `website/docs/product/` for user requirements.
+- Check `docs/ai-context/` for engineering constraints.
+- Check `docs/product/` for user requirements.
+- Original specifications: `specs/brd.md`, `specs/sad.md` (deprecated, use docs/ instead)
 
 Never invent requirements outside these documents.
-If you add a feature, you **MUST** update the documentation in `website/docs/`.
+If you add a feature, you **MUST** update the documentation in `docs/`.
 
 ---
 

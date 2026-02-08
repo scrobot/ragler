@@ -90,7 +90,7 @@ Implementation:
 - **Clear audit trail**: `last_modified_by` and `revision` fields track who published
 
 ### Negative
-- **Temporary unavailability**: Brief window where document chunks are deleted but not yet re-inserted (mitigated: publish is fast, <1 second)
+- **Temporary unavailability**: Brief window where document chunks are deleted but not yet re-inserted (mitigated: publish is fast, about 1 second)
 - **Full re-indexing**: All chunks re-embedded even if only one changed (mitigated: cost is acceptable for MVP, optimize later if needed)
 - **No partial rollback**: If upsert fails after delete, document is temporarily missing (mitigated: retry logic, transaction-like behavior)
 
@@ -143,7 +143,7 @@ Implementation:
 - **Complex diff algorithm**: Must match old chunks to new chunks (by content similarity?)
 - **Edge cases**: Split/merge creates ambiguous mappings
 - **Error-prone**: Diff logic bugs leave inconsistent state
-- **No benefit for MVP**: Chunk count is small (<100 per document), full replacement is fast enough
+- **No benefit for MVP**: Chunk count is small (100 per document), full replacement is fast enough
 
 **Rejected because:** Complexity outweighs benefits for MVP scale.
 

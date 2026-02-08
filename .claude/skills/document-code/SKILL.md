@@ -26,14 +26,14 @@ Where `[target]` can be:
 
 ### Architecture Documentation
 - `adr <topic>` — generate Architecture Decision Record
-- `module-arch <name>` — generate module architecture doc (website/docs/architecture/modules/)
-- `sync brd` — sync BRD to website/docs/product/
-- `sync sad` — sync SAD to website/docs/architecture/
+- `module-arch <name>` — generate module architecture doc (docs/architecture/modules/)
+- `sync brd` — sync BRD to docs/product/
+- `sync sad` — sync SAD to docs/architecture/
 
 ### Validation
 - `check coverage` — scan for undocumented code
 - `check drift` — detect stale documentation (code changed, docs didn't)
-- `check links` — validate markdown links in website/docs/
+- `check links` — validate markdown links in docs/
 
 ### Interactive
 - No argument — prompt for what to document
@@ -44,7 +44,7 @@ Where `[target]` can be:
 
 ADRs capture important architectural decisions with context and rationale.
 
-**Location:** `website/docs/architecture/adr/XXX-topic-name.md`
+**Location:** `docs/architecture/adr/XXX-topic-name.md`
 
 **Template:**
 ```markdown
@@ -103,7 +103,7 @@ What else did we evaluate and why was it rejected?
 
 Module docs explain design decisions for backend modules.
 
-**Location:** `website/docs/architecture/modules/<module-name>.md`
+**Location:** `docs/architecture/modules/<module-name>.md`
 
 **Template:**
 ```markdown
@@ -270,9 +270,9 @@ Use OpenAPI/Swagger decorators:
 ### For Architecture Decision Records (ADRs)
 1. **Identify** the decision to document (from plan, SAD, or discussion)
 2. **Extract** context, rationale, alternatives from source material
-3. **Assign** sequential number (check existing ADRs in website/docs/architecture/adr/)
+3. **Assign** sequential number (check existing ADRs in docs/architecture/adr/)
 4. **Generate** ADR using template with appropriate slug
-5. **Update** `website/docs/architecture/adr/index.md` with summary
+5. **Update** `docs/architecture/adr/index.md` with summary
 6. **Cross-reference** from relevant product/architecture docs
 7. **Present** draft for review before writing
 
@@ -289,8 +289,8 @@ Use OpenAPI/Swagger decorators:
 ### For Documentation Sync (BRD/SAD → Website)
 1. **Read** source document (docs/brd.md or docs/sad.md)
 2. **Map** sections to target website docs:
-   - BRD → website/docs/product/
-   - SAD → website/docs/architecture/
+   - BRD → docs/product/
+   - SAD → docs/architecture/
 3. **Compare** existing website docs with source
 4. **Identify** changes, additions, or gaps
 5. **Generate** updates maintaining user-friendly language
@@ -334,7 +334,7 @@ Use OpenAPI/Swagger decorators:
 6. **Suggest** which docs need review
 
 **Link Validation:**
-1. **Crawl** website/docs/ for markdown files using Glob
+1. **Crawl** docs/ for markdown files using Glob
 2. **Extract** all internal links using Grep (relative paths, /docs/ paths)
 3. **Verify** link targets exist using Read
 4. **Check** external links (HTTP HEAD requests using Bash with curl)
@@ -426,20 +426,20 @@ First adds inline docs, then generates README referencing the documented APIs.
 ```
 /document-code adr atomic-replacement
 ```
-Creates website/docs/architecture/adr/002-atomic-replacement.md using the ADR template.
+Creates docs/architecture/adr/002-atomic-replacement.md using the ADR template.
 
 ### Document module architecture
 ```
 /document-code module-arch session
 ```
-Generates website/docs/architecture/modules/session.md documenting the session module's design.
+Generates docs/architecture/modules/session.md documenting the session module's design.
 
 ### Sync specifications to website
 ```
 /document-code sync brd
 /document-code sync sad
 ```
-Updates website/docs/product/ and website/docs/architecture/ from canonical specs.
+Updates docs/product/ and docs/architecture/ from canonical specs.
 
 ### Validate documentation
 ```
