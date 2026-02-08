@@ -73,26 +73,18 @@ import { ... } from '@session/...';     // src/modules/session/
 
 ## Source of Truth (MANDATORY)
 
-This project is defined by two canonical documents:
+This project is defined by the documentation website:
 
-- **Business Requirements** → `docs/brd.md`
-  - product scope, MVP boundaries
-  - user roles and modes
-  - primary user flows
-  - what must / must not be implemented
-
-- **Solution Architecture** → `docs/sad.md`
-  - system architecture
-  - storage model (Redis, Qdrant)
-  - API contracts
-  - lifecycle of drafts and publishing
-  - non-negotiable architectural decisions
+- **Product Manual** → `website/docs/product/`
+- **Architecture** → `website/docs/architecture/`
+- **AI Context** → `website/docs/ai-context/` (Read this first for strict definitions)
 
 When in doubt:
-- product or UX question → BRD
-- technical or architectural question → SAD
+- Check `website/docs/ai-context/` for engineering constraints.
+- Check `website/docs/product/` for user requirements.
 
 Never invent requirements outside these documents.
+If you add a feature, you **MUST** update the documentation in `website/docs/`.
 
 ---
 
