@@ -15,15 +15,151 @@ Generate clear, maintainable documentation for code — both inline docs and REA
 ```
 
 Where `[target]` can be:
+
+### Code Documentation
 - A file path (e.g., `src/services/session.service.ts`)
 - A directory (e.g., `src/services/`)
 - `api` — document API endpoints
 - `module <name>` — document a specific module
 - `readme` — generate or update README.md for the project
 - `readme <path>` — generate README.md for a specific package/directory
+
+### Architecture Documentation
+- `adr <topic>` — generate Architecture Decision Record
+- `module-arch <name>` — generate module architecture doc (website/docs/architecture/modules/)
+- `sync brd` — sync BRD to website/docs/product/
+- `sync sad` — sync SAD to website/docs/architecture/
+
+### Validation
+- `check coverage` — scan for undocumented code
+- `check drift` — detect stale documentation (code changed, docs didn't)
+- `check links` — validate markdown links in website/docs/
+
+### Interactive
 - No argument — prompt for what to document
 
 ## Documentation Standards
+
+### For Architecture Decision Records (ADRs)
+
+ADRs capture important architectural decisions with context and rationale.
+
+**Location:** `website/docs/architecture/adr/XXX-topic-name.md`
+
+**Template:**
+```markdown
+---
+title: ADR-XXX Topic Name
+slug: /architecture/adr/XXX-topic-name
+---
+
+# ADR-XXX: Topic Name
+
+**Status:** Accepted | Superseded | Deprecated
+**Date:** YYYY-MM-DD
+**Deciders:** Team | Role
+
+## Context
+
+What problem are we solving? What constraints exist?
+
+## Decision
+
+What did we decide to do?
+
+## Rationale
+
+Why this approach over alternatives?
+
+## Consequences
+
+### Positive
+- What we gain from this decision
+
+### Negative
+- What we lose or trade off
+
+### Neutral
+- Other impacts to consider
+
+## Alternatives Considered
+
+What else did we evaluate and why was it rejected?
+
+## References
+
+- Links to relevant docs, specs, or discussions
+- Related ADRs
+```
+
+**ADR Guidelines:**
+- Keep ADRs immutable — supersede instead of editing
+- Number ADRs sequentially (001, 002, 003...)
+- Use descriptive slugs for clean URLs
+- Link from product/architecture docs to relevant ADRs
+- Update adr/index.md with summary
+
+### For Module Architecture Docs
+
+Module docs explain design decisions for backend modules.
+
+**Location:** `website/docs/architecture/modules/<module-name>.md`
+
+**Template:**
+```markdown
+---
+title: Module Name
+---
+
+# Module: [Name]
+
+## Purpose
+
+What does this module do? What problem does it solve?
+
+## Architecture
+
+### Components
+- List key classes, services, controllers
+
+### Dependencies
+- Internal: Other modules this depends on
+- External: Third-party services (Redis, Qdrant, OpenAI)
+
+### Integration Points
+- How other modules use this module
+- Exposed interfaces and APIs
+
+## Key Concepts
+
+### [Concept 1]
+Explanation with code examples
+
+### [Concept 2]
+Explanation with code examples
+
+## Data Model
+
+Schemas, DTOs, interfaces, types used by this module
+
+## Error Handling
+
+Common errors, retry strategies, error propagation
+
+## Configuration
+
+Environment variables and their purpose
+
+## Testing Strategy
+
+How to test this module (unit, integration, e2e)
+
+## Related Documentation
+
+- Product docs that describe user-facing features
+- ADRs that explain design decisions
+- API docs for exposed endpoints
+```
 
 ### For README.md Files
 
@@ -131,6 +267,80 @@ Use OpenAPI/Swagger decorators:
 
 ## Workflow
 
+### For Architecture Decision Records (ADRs)
+1. **Identify** the decision to document (from plan, SAD, or discussion)
+2. **Extract** context, rationale, alternatives from source material
+3. **Assign** sequential number (check existing ADRs in website/docs/architecture/adr/)
+4. **Generate** ADR using template with appropriate slug
+5. **Update** `website/docs/architecture/adr/index.md` with summary
+6. **Cross-reference** from relevant product/architecture docs
+7. **Present** draft for review before writing
+
+### For Module Architecture Docs
+1. **Analyze** the module code structure (backend/src/modules/<name>/)
+2. **Read** existing README.md in module directory
+3. **Extract** key concepts, patterns, dependencies from code
+4. **Identify** design decisions (check for related ADRs)
+5. **Document** data models, error handling, config
+6. **Generate** architecture doc using template
+7. **Cross-reference** from architecture/overview.md and related docs
+8. **Present** draft for review before writing
+
+### For Documentation Sync (BRD/SAD → Website)
+1. **Read** source document (docs/brd.md or docs/sad.md)
+2. **Map** sections to target website docs:
+   - BRD → website/docs/product/
+   - SAD → website/docs/architecture/
+3. **Compare** existing website docs with source
+4. **Identify** changes, additions, or gaps
+5. **Generate** updates maintaining user-friendly language
+6. **Add** examples, diagrams, code snippets (not in BRD/SAD)
+7. **Preserve** bidirectional links between docs
+8. **Present** sync plan before applying changes
+
+**BRD → Product Docs Mapping:**
+- Product Goals & Scope → product/intro.md
+- User Roles → product/roles.md
+- Modes of Operation → product/flows/*.md
+- Collections → product/collections.md
+- Data Sources → product/ingestion.md
+- Functional Requirements → product/sessions.md, product/publishing.md
+- User Flows → product/flows/*.md (with Mermaid diagrams)
+
+**SAD → Architecture Docs Mapping:**
+- Executive Summary → architecture/overview.md
+- ADRs → architecture/adr/XXX-*.md (individual files)
+- Functional Architecture → architecture/modules/*.md
+- Data Architecture → architecture/data-model.md
+- Technology Stack → architecture/system-design.md
+- MCP Integration → architecture/mcp-server.md (comprehensive doc)
+
+### For Documentation Validation
+
+**Coverage Check:**
+1. **Scan** backend/src/modules/ for exported functions/classes using Glob
+2. **Check** for JSDoc comments on public APIs using Grep
+3. **Verify** each module has README.md
+4. **Check** API endpoints have OpenAPI decorators
+5. **Report** undocumented items with file:line references
+6. **Suggest** priority order (controllers > services > utilities)
+
+**Drift Detection:**
+1. **Compare** git history of code vs docs using Bash (git log)
+2. **Identify** files modified without doc updates
+3. **Check** if module code changed but architecture doc unchanged
+4. **Check** if API changed but OpenAPI unchanged
+5. **Report** files with potential drift
+6. **Suggest** which docs need review
+
+**Link Validation:**
+1. **Crawl** website/docs/ for markdown files using Glob
+2. **Extract** all internal links using Grep (relative paths, /docs/ paths)
+3. **Verify** link targets exist using Read
+4. **Check** external links (HTTP HEAD requests using Bash with curl)
+5. **Report** broken links with source file:line
+6. **Distinguish** between internal (fixable) and external (informational)
+
 ### For Code Documentation
 1. **Analyze** the target code structure
 2. **Identify** public interfaces, exported functions, classes
@@ -211,3 +421,30 @@ Generates README.md for a specific package.
 /document-code readme
 ```
 First adds inline docs, then generates README referencing the documented APIs.
+
+### Generate Architecture Decision Record
+```
+/document-code adr atomic-replacement
+```
+Creates website/docs/architecture/adr/002-atomic-replacement.md using the ADR template.
+
+### Document module architecture
+```
+/document-code module-arch session
+```
+Generates website/docs/architecture/modules/session.md documenting the session module's design.
+
+### Sync specifications to website
+```
+/document-code sync brd
+/document-code sync sad
+```
+Updates website/docs/product/ and website/docs/architecture/ from canonical specs.
+
+### Validate documentation
+```
+/document-code check coverage
+/document-code check drift
+/document-code check links
+```
+Scans for undocumented code, stale docs, and broken links.
