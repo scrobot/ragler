@@ -315,6 +315,7 @@ https://domain.atlassian.net/wiki/pages/123456
 
 - **Single page only:** Does not crawl child pages or spaces
 - **No real-time sync:** Content is fetched once (snapshot)
+- **No bulk scanning:** System intentionally does not perform mass space scanning (out of MVP scope)
 - **Requires credentials:** Must configure API token
 - **Timeouts:** Large pages (>30k chars) may need increased timeout
 
