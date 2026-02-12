@@ -6,14 +6,12 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiHeader,
-  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 import { SessionService } from './session.service';
 import {
@@ -27,14 +25,11 @@ import {
   PublishResponseDto,
   DeleteSessionResponseDto,
 } from './dto';
-import { User, RequestUser, UserRole } from '@common/decorators';
-import { Roles } from '@common/decorators';
-import { RoleGuard } from '@common/guards';
+import { User, RequestUser } from '@common/decorators';
 import { ErrorResponseDto } from '@common/dto';
 
 @ApiTags('Session')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
-@ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
 @Controller('session')
 export class SessionController {
   constructor(private readonly sessionService: SessionService) { }
@@ -77,18 +72,14 @@ export class SessionController {
   }
 
   @Post(':id/chunks/:chunkId/split')
-  @UseGuards(RoleGuard)
-  @Roles(UserRole.DEV, UserRole.ML)
-  @ApiOperation({ summary: 'Split chunk (Advanced Mode only)' })
+  @ApiOperation({ summary: 'Split chunk into multiple chunks' })
   @ApiResponse({ status: 200, description: 'Chunk split', type: SessionResponseDto })
-  @ApiForbiddenResponse({ description: 'Not available in Simple Mode', type: ErrorResponseDto })
   async splitChunk(
     @Param('id') id: string,
     @Param('chunkId') chunkId: string,
     @Body() dto: SplitChunkDto,
-    @User('role') role: UserRole,
   ): Promise<SessionResponseDto> {
-    return this.sessionService.splitChunk(id, chunkId, dto, role);
+    return this.sessionService.splitChunk(id, chunkId, dto);
   }
 
   @Patch(':id/chunks/:chunkId')

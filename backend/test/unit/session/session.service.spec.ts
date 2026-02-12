@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SessionService } from '@session/session.service';
 import { IngestService, SessionData } from '@ingest/ingest.service';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
-import { UserRole } from '@common/decorators';
 import { LlmEmbeddingApiError } from '@llm/errors/llm-embedding.errors';
 
 describe('SessionService', () => {
@@ -223,7 +222,6 @@ describe('SessionService', () => {
         'session_test-123',
         'chunk_1',
         { newTextBlocks: ['Part A', 'Part B', 'Part C'] },
-        UserRole.DEV,
       );
 
       expect(mockIngestService.updateSession).toHaveBeenCalledWith(
@@ -250,7 +248,6 @@ describe('SessionService', () => {
         'session_test-123',
         'chunk_1',
         { splitPoints: [3, 7] },
-        UserRole.ML,
       );
 
       expect(mockIngestService.updateSession).toHaveBeenCalledWith(
@@ -265,20 +262,11 @@ describe('SessionService', () => {
       );
     });
 
-    it('should throw ForbiddenException for L2 users', async () => {
-      await expect(
-        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }, UserRole.L2),
-      ).rejects.toThrow(ForbiddenException);
-      await expect(
-        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }, UserRole.L2),
-      ).rejects.toThrow('Split operation is not available in Simple Mode');
-    });
-
     it('should throw NotFoundException when session does not exist', async () => {
       mockIngestService.getSession.mockResolvedValue(null);
 
       await expect(
-        service.splitChunk('nonexistent', 'chunk_1', { newTextBlocks: ['A', 'B'] }, UserRole.DEV),
+        service.splitChunk('nonexistent', 'chunk_1', { newTextBlocks: ['A', 'B'] }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -287,10 +275,10 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
 
       await expect(
-        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }, UserRole.DEV),
+        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }, UserRole.DEV),
+        service.splitChunk('session_test-123', 'chunk_1', { newTextBlocks: ['A', 'B'] }),
       ).rejects.toThrow('Cannot modify chunks in non-DRAFT status');
     });
 
@@ -299,10 +287,10 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
 
       await expect(
-        service.splitChunk('session_test-123', 'nonexistent', { newTextBlocks: ['A', 'B'] }, UserRole.DEV),
+        service.splitChunk('session_test-123', 'nonexistent', { newTextBlocks: ['A', 'B'] }),
       ).rejects.toThrow(NotFoundException);
       await expect(
-        service.splitChunk('session_test-123', 'nonexistent', { newTextBlocks: ['A', 'B'] }, UserRole.DEV),
+        service.splitChunk('session_test-123', 'nonexistent', { newTextBlocks: ['A', 'B'] }),
       ).rejects.toThrow('Chunk nonexistent not found in session');
     });
 
@@ -311,10 +299,10 @@ describe('SessionService', () => {
       mockIngestService.getSession.mockResolvedValue(mockSession);
 
       await expect(
-        service.splitChunk('session_test-123', 'chunk_1', {}, UserRole.DEV),
+        service.splitChunk('session_test-123', 'chunk_1', {}),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.splitChunk('session_test-123', 'chunk_1', {}, UserRole.DEV),
+        service.splitChunk('session_test-123', 'chunk_1', {}),
       ).rejects.toThrow('Either splitPoints or newTextBlocks must be provided');
     });
 
@@ -328,7 +316,6 @@ describe('SessionService', () => {
         'session_test-123',
         'chunk_1',
         { splitPoints: [2, 4] },
-        UserRole.DEV,
       );
 
       const updateCall = mockIngestService.updateSession.mock.calls[0][1] as { chunks: Array<{ text: string }> };

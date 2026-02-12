@@ -1,9 +1,3 @@
-// User Roles
-export type UserRole = 'ML' | 'DEV' | 'L2';
-
-// Mode derived from role
-export type UserMode = 'simple' | 'advanced';
-
 // Collections
 export interface Collection {
   id: string;

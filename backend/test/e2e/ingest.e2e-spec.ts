@@ -734,7 +734,7 @@ describe('Ingest E2E', () => {
       expect(response.body.chunks.length).toBe(chunks.length - 1);
     });
 
-    it('should split chunk (DEV role)', async () => {
+    it('should split chunk', async () => {
       const sessionResponse = await request(app.getHttpServer())
         .get(`/api/session/${sessionId}`)
         .set('X-User-ID', 'test@example.com');
@@ -750,7 +750,6 @@ describe('Ingest E2E', () => {
       const response = await request(app.getHttpServer())
         .post(`/api/session/${sessionId}/chunks/${chunk.id}/split`)
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .send({ splitPoints: [splitPoint] })
         .expect(200);
 
@@ -758,22 +757,6 @@ describe('Ingest E2E', () => {
       expect(response.body.chunks.length).toBe(
         sessionResponse.body.chunks.length + 1,
       );
-    });
-
-    it('should deny split chunk for L2 role', async () => {
-      const sessionResponse = await request(app.getHttpServer())
-        .get(`/api/session/${sessionId}`)
-        .set('X-User-ID', 'test@example.com');
-
-      const chunk = sessionResponse.body.chunks[0];
-      if (!chunk) return;
-
-      await request(app.getHttpServer())
-        .post(`/api/session/${sessionId}/chunks/${chunk.id}/split`)
-        .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'L2')
-        .send({ splitPoints: [10] })
-        .expect(403);
     });
 
     it('should generate preview', async () => {
@@ -798,7 +781,6 @@ describe('Ingest E2E', () => {
       const collectionResponse = await request(app.getHttpServer())
         .post('/api/collections')
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .send({
           name: 'E2E Test Collection',
           description: 'Collection for E2E testing',
@@ -812,8 +794,7 @@ describe('Ingest E2E', () => {
       if (collectionId) {
         await request(app.getHttpServer())
           .delete(`/api/collections/${collectionId}`)
-          .set('X-User-ID', 'test@example.com')
-          .set('X-User-Role', 'DEV');
+          .set('X-User-ID', 'test@example.com');
       }
     });
 
@@ -893,11 +874,10 @@ describe('Collections E2E', () => {
       expect(Array.isArray(response.body.collections)).toBe(true);
     });
 
-    it('should create collection (DEV role)', async () => {
+    it('should create collection', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/collections')
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .send({
           name: 'Test Collection',
           description: 'A test collection for E2E',
@@ -907,18 +887,6 @@ describe('Collections E2E', () => {
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe('Test Collection');
       testCollectionId = response.body.id;
-    });
-
-    it('should deny collection creation for L2 role', async () => {
-      await request(app.getHttpServer())
-        .post('/api/collections')
-        .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'L2')
-        .send({
-          name: 'Should Fail',
-          description: 'This should not be created',
-        })
-        .expect(403);
     });
 
     it('should get collection by ID', async () => {
@@ -933,13 +901,12 @@ describe('Collections E2E', () => {
       expect(response.body.name).toBe('Test Collection');
     });
 
-    it('should delete collection (DEV role)', async () => {
+    it('should delete collection', async () => {
       if (!testCollectionId) return;
 
       await request(app.getHttpServer())
         .delete(`/api/collections/${testCollectionId}`)
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .expect(204);
 
       // Allow time for deletion to propagate

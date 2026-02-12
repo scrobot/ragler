@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import { IngestService } from '@ingest/ingest.service';
@@ -16,7 +16,6 @@ import {
   PublishResponseDto,
   DeleteSessionResponseDto,
 } from './dto';
-import { UserRole } from '@common/decorators';
 
 @Injectable()
 export class SessionService {
@@ -203,12 +202,7 @@ export class SessionService {
     sessionId: string,
     chunkId: string,
     dto: SplitChunkDto,
-    userRole: UserRole,
   ): Promise<SessionResponseDto> {
-    if (userRole === UserRole.L2) {
-      throw new ForbiddenException('Split operation is not available in Simple Mode');
-    }
-
     const session = await this.ingestService.getSession(sessionId);
     if (!session) {
       throw new NotFoundException(`Session ${sessionId} not found`);

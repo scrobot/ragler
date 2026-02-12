@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-export const UserRoleSchema = z.enum(['ML', 'DEV', 'L2']);
-export type UserRole = z.infer<typeof UserRoleSchema>;
-
 // Collections
 export const CollectionSchema = z.object({
     id: z.string().uuid(),

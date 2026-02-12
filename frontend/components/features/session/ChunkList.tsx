@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Chunk, UserRole } from "@/types/api";
+import { Chunk } from "@/types/api";
 import { ChunkItem } from "./ChunkItem";
 import { Button } from "@/components/ui/button";
 import { Merge } from "lucide-react";
@@ -12,10 +12,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 interface ChunkListProps {
     sessionId: string;
     chunks: Chunk[];
-    role: UserRole;
 }
 
-export function ChunkList({ sessionId, chunks, role }: ChunkListProps) {
+export function ChunkList({ sessionId, chunks }: ChunkListProps) {
     const queryClient = useQueryClient();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -114,7 +113,6 @@ export function ChunkList({ sessionId, chunks, role }: ChunkListProps) {
                 <div key={chunk.id} className="group">
                     <ChunkItem
                         chunk={chunk}
-                        role={role}
                         isSelected={selectedIds.has(chunk.id)}
                         onToggleSelect={toggleSelect}
                         onUpdate={handleUpdate}

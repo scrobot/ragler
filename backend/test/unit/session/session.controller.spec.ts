@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SessionController } from '@session/session.controller';
 import { SessionService } from '@session/session.service';
-import { UserRole, RequestUser } from '@common/decorators';
+import { RequestUser } from '@common/decorators';
 import {
   SessionResponseDto,
   PreviewResponseDto,
@@ -103,29 +103,26 @@ describe('SessionController', () => {
         'session_test-123',
         'chunk_1',
         splitDto,
-        UserRole.DEV,
       );
 
       expect(mockSessionService.splitChunk).toHaveBeenCalledWith(
         'session_test-123',
         'chunk_1',
         splitDto,
-        UserRole.DEV,
       );
       expect(result).toEqual(mockSessionResponse);
     });
 
-    it('should pass ML role to service', async () => {
+    it('should call service with splitPoints', async () => {
       const splitDto = { splitPoints: [5, 10] };
       mockSessionService.splitChunk.mockResolvedValue(mockSessionResponse);
 
-      await controller.splitChunk('session_test-123', 'chunk_1', splitDto, UserRole.ML);
+      await controller.splitChunk('session_test-123', 'chunk_1', splitDto);
 
       expect(mockSessionService.splitChunk).toHaveBeenCalledWith(
         'session_test-123',
         'chunk_1',
         splitDto,
-        UserRole.ML,
       );
     });
   });
@@ -160,7 +157,7 @@ describe('SessionController', () => {
   describe('publish', () => {
     it('should call service.publish with correct parameters', async () => {
       const publishDto = { targetCollectionId: '550e8400-e29b-41d4-a716-446655440000' };
-      const user: RequestUser = { id: 'user-1', role: UserRole.DEV };
+      const user: RequestUser = { id: 'user-1' };
       mockSessionService.publish.mockResolvedValue(mockPublishResponse);
 
       const result = await controller.publish('session_test-123', publishDto, user);
@@ -175,7 +172,7 @@ describe('SessionController', () => {
 
     it('should extract user id from RequestUser object', async () => {
       const publishDto = { targetCollectionId: '550e8400-e29b-41d4-a716-446655440000' };
-      const user: RequestUser = { id: 'different-user', role: UserRole.ML };
+      const user: RequestUser = { id: 'different-user' };
       mockSessionService.publish.mockResolvedValue(mockPublishResponse);
 
       await controller.publish('session_test-123', publishDto, user);
@@ -190,7 +187,7 @@ describe('SessionController', () => {
 
   describe('deleteSession', () => {
     it('should call service.deleteSession with correct parameters', async () => {
-      const user: RequestUser = { id: 'user-1', role: UserRole.DEV };
+      const user: RequestUser = { id: 'user-1' };
       mockSessionService.deleteSession.mockResolvedValue(mockDeleteResponse);
 
       const result = await controller.deleteSession('session_test-123', user);
@@ -203,7 +200,7 @@ describe('SessionController', () => {
     });
 
     it('should extract user id from RequestUser object', async () => {
-      const user: RequestUser = { id: 'different-user', role: UserRole.ML };
+      const user: RequestUser = { id: 'different-user' };
       mockSessionService.deleteSession.mockResolvedValue(mockDeleteResponse);
 
       await controller.deleteSession('session_test-123', user);

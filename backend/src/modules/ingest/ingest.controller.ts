@@ -11,7 +11,6 @@ import { User, RequestUser } from '@common/decorators';
 
 @ApiTags('Ingest')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
-@ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
 @Controller('ingest')
 export class IngestController {
   constructor(private readonly ingestService: IngestService) { }

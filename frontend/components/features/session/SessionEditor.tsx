@@ -4,14 +4,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { sessionsApi } from "@/lib/api/sessions";
 import { ChunkList } from "./ChunkList";
-import { RoleSwitcher } from "./RoleSwitcher";
 import { SourcePreview } from "./SourcePreview";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, BookOpen, Send, LayoutTemplate, Eye, EyeOff, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { UserRole } from "@/types/api";
 import { PublishModal } from "./PublishModal";
 import { PreviewModal } from "./PreviewModal";
 import { ConfirmationDialog } from "@/components/app/confirmation-dialog";
@@ -25,7 +23,6 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const [role, setRole] = useState<UserRole>("L2");
     const [isPublishOpen, setIsPublishOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [showSourcePreview, setShowSourcePreview] = useState(true);
@@ -90,9 +87,6 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
                         <span>/</span>
                         <span className="font-mono text-xs">{sessionId.substring(0, 8)}...</span>
                     </div>
-
-                    {/* Dev Tools */}
-                    <RoleSwitcher onChange={setRole} currentRole={role} />
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -159,7 +153,6 @@ export function SessionEditor({ sessionId }: SessionEditorProps) {
             <ChunkList
                 sessionId={sessionId}
                 chunks={session?.chunks || []}
-                role={role}
             />
 
             <PreviewModal

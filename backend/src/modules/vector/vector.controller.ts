@@ -19,7 +19,6 @@ import { Logger } from '@nestjs/common';
 
 @ApiTags('Search')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
-@ApiHeader({ name: 'X-User-Role', required: false, description: 'User role (ML, DEV, L2)' })
 @Controller('search')
 export class VectorController {
   private readonly logger = new Logger(VectorController.name);

@@ -34,7 +34,6 @@ async function bootstrap() {
     .setDescription('Knowledge Management System for RAG - API Documentation')
     .setVersion('1.0')
     .addApiKey({ type: 'apiKey', name: 'X-User-ID', in: 'header' }, 'X-User-ID')
-    .addApiKey({ type: 'apiKey', name: 'X-User-Role', in: 'header' }, 'X-User-Role')
     .addTag('Collections', 'Knowledge collection management')
     .addTag('Ingest', 'Data ingestion')
     .addTag('Session', 'Draft session operations')

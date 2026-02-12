@@ -36,7 +36,6 @@ describe('V2 Publish & Search E2E', () => {
       const response = await request(app.getHttpServer())
         .post('/api/collections')
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .send({
           name: 'V2 Test Collection',
           description: 'Testing v2 schema with structured chunking',
@@ -287,7 +286,6 @@ For questions about RAG implementation:
       await request(app.getHttpServer())
         .delete(`/api/collections/${collectionId}`)
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .expect(204);
 
       // Verify collection is deleted
@@ -307,7 +305,6 @@ For questions about RAG implementation:
       const colResponse = await request(app.getHttpServer())
         .post('/api/collections')
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .send({
           name: 'V2 Validation Collection',
           description: 'Testing v2 schema validation',
@@ -322,7 +319,6 @@ For questions about RAG implementation:
       await request(app.getHttpServer())
         .delete(`/api/collections/${validationCollectionId}`)
         .set('X-User-ID', 'test@example.com')
-        .set('X-User-Role', 'DEV')
         .expect(204);
     });
 

@@ -1,10 +1,10 @@
-# Business Requirements Document (BRD v2)
+# Business Requirements Document (BRD v3)
 
 ## 1. General Information
 
 ### 1.1 Document Purpose
 
-This document describes business and functional requirements for a knowledge management product for RAG (Retrieval-Augmented Generation). The document reflects the evolution of the initial BRD version considering product research, user roles, and the need for a user-friendly interface for different team categories.
+This document describes business and functional requirements for a knowledge management product for RAG (Retrieval-Augmented Generation). The document reflects the evolution from initial versions, focusing on a streamlined user experience for knowledge management.
 
 The document describes **what the system should do**, without describing architecture, technology stack, or non-functional requirements.
 
@@ -13,9 +13,9 @@ The document describes **what the system should do**, without describing archite
 ### 1.2 Product Goals
 
 - Ensure managed population and development of RAG context
-- Make working with RAG data accessible not only to ML specialists, but also to developers and L2 support
-- Reduce team dependency on ML experts when tuning knowledge
+- Make working with RAG data accessible to all team members
 - Ensure a transparent and reproducible process for improving LLM answer quality
+- Provide intuitive tools for knowledge enrichment without specialized ML expertise
 
 ---
 
@@ -26,7 +26,6 @@ Within the product:
 - Data upload and preparation for RAG
 - Management of chunks and collections
 - Knowledge enrichment with LLM and user participation
-- Different modes of operation depending on user role
 - User scenarios for improving RAG responses
 
 Out of scope:
@@ -44,94 +43,13 @@ Out of scope:
 - **Chunk** — atomic unit of knowledge used in RAG
 - **Collection** — logical grouping of chunks describing the context of their use
 - **Enrichment** — adding clarifying or structuring context to a chunk
-- **Mode of Operation** — variant of user interface and available actions depending on role
+- **Session** — temporary workspace for editing chunks before publishing
 
 ---
 
-## 3. Role and Mode Model
+## 3. Collections Concept
 
-### 3.1 User Roles
-
-#### 3.1.1 ML Specialist
-
-Characteristics:
-
-- Deep understanding of RAG principles
-- Responsible for experiments, retrieval quality, and overall knowledge strategy
-
-Key tasks:
-
-- Control of chunk structure
-- Analysis and correction of enrichment
-- Work with collections at the level of meanings and experiments
-
----
-
-#### 3.1.2 Developer (Backend / Platform / Product Engineer)
-
-Characteristics:
-
-- Understands what RAG and chunks are
-- Does not want to dive into ML details
-
-Key tasks:
-
-- Improve RAG answers for specific scenarios
-- Clarify formulations, examples, terminology
-- Make corrections quickly without involving ML specialist
-
----
-
-#### 3.1.3 L2 Support
-
-Characteristics:
-
-- Not required to understand RAG mechanics
-- Works with user questions and incidents
-
-Key tasks:
-
-- Improve knowledge affecting answers to clients
-- Simplify or clarify texts
-- Fix inaccuracies without risk of damaging technical context
-
----
-
-### 3.2 Modes of Operation
-
-#### 3.2.1 Advanced Mode
-
-Available to:
-
-- ML specialists
-- Developers
-
-Features:
-
-- Full access to chunks
-- Work with original and enriched text
-- Extended LLM assistant scenarios
-
----
-
-#### 3.2.2 Simple Mode
-
-Available to:
-
-- L2 support
-- Users without ML expertise
-
-Features:
-
-- Work through scenarios and prompts
-- No need to understand chunk structure
-- Focus on meaning and formulations
-
----
-
-## 4. Collections Concept (Updated)
-
-### 4.1 Purpose of a Collection
+### 3.1 Purpose of a Collection
 
 A collection represents a **context of knowledge use**, not just a set of chunks.
 
@@ -143,7 +61,7 @@ Each collection should describe:
 
 ---
 
-### 4.2 Collection Management
+### 3.2 Collection Management
 
 The system should allow:
 
@@ -154,9 +72,9 @@ The system should allow:
 
 ---
 
-## 5. Data Source Types
+## 4. Data Source Types
 
-### 5.1 General Concept of Sources
+### 4.1 General Concept of Sources
 
 A data source is a primary entity representing logically complete material from which chunks of knowledge are formed.
 
@@ -168,9 +86,9 @@ The system should:
 
 ---
 
-### 5.2 Data Source Types
+### 4.2 Data Source Types
 
-#### 5.2.1 Document Sources
+#### 4.2.1 Document Sources
 
 Description: Document sources are static documents used to form the knowledge base.
 
@@ -195,7 +113,7 @@ Limitations:
 
 ---
 
-#### 5.2.2 URL / Web Pages
+#### 4.2.2 URL / Web Pages
 
 Description: Sources represented by content accessible via URL.
 
@@ -207,7 +125,7 @@ Functional requirements:
 
 ---
 
-#### 5.2.3 Manual Input
+#### 4.2.3 Manual Input
 
 Description: A source created by user directly in the system.
 
@@ -218,9 +136,9 @@ Functional requirements:
 
 ---
 
-## 6. Functional Requirements
+## 5. Functional Requirements
 
-### 6.1 Data Upload and Preparation
+### 5.1 Data Upload and Preparation
 
 - System should allow uploading data from various sources
 - System should split data into chunks
@@ -228,34 +146,7 @@ Functional requirements:
 
 ---
 
-### 6.2 Splitting Sources into Chunks
-
-- System should allow user to supplement chunk with additional context
-- System should provide LLM assistant with predefined enrichment scenarios
-- User must explicitly confirm application of enrichment results
-
----
-
-### 6.3 LLM Assistant (Scenario-based)
-
-LLM assistant should support scenarios:
-
-- Text simplification for selected audience
-- Terminology clarification
-- Adding clarifying examples
-- Identifying ambiguous formulations
-
----
-
-### 6.4 Preview and Saving
-
-- System should provide preview of final version of chunk
-- User should be able to return to editing
-- Confirmed chunks are saved as ready for use
-
----
-
-### 6.5 Splitting Sources into Chunks (Detailed)
+### 5.2 Splitting Sources into Chunks
 
 - System should use LLM to split source into chunks
 - Split result should be presented to user in visual form
@@ -270,139 +161,66 @@ Chunk editing should include:
 
 ---
 
-### 6.6 Chunk Enrichment and LLM Assistant
+### 5.3 Chunk Enrichment and LLM Assistant
 
 - System should allow user to manually add context to chunk
 - System should provide LLM assistant with predefined enrichment scenarios
-- LLM assistant results should be applied to chunk only after explicit user confirmation
+- User must explicitly confirm application of enrichment results
+
+LLM assistant should support scenarios:
+
+- Text simplification for selected audience
+- Terminology clarification
+- Adding clarifying examples
+- Identifying ambiguous formulations
+- Text rewriting for target audience
 
 ---
 
-### 6.7 Chunk Preview and Saving
+### 5.4 Preview and Saving
 
 - User should be able to select collection for chunks
 - System should provide preview of final version of chunks
+- User should be able to return to editing
 - Chunk saving should require user confirmation
+- Confirmed chunks are saved as ready for use
 
 ---
 
-## 7. Capabilities Matrix (Roles × Actions)
-
-This section specifies which actions are available to users depending on their role and mode of operation. The matrix is used as a contract between product, architecture, and development.
-
-### 7.1 Roles
-
-- **ML Specialist** — RAG and retrieval expert
-- **Developer** — Engineer working with product and API, understanding RAG at conceptual level
-- **L2 Support** — User working with client cases and content without knowledge of RAG internal implementation
-
----
-
-### 7.2 Actions and Availability
-
-| Action | ML Specialist | Developer | L2 Support |
-|--------|---------------|-----------|------------|
-| Create source (upload document / URL / manual input) | Yes | Yes | Yes |
-| Import document via Confluence link | Yes | Yes | Yes |
-| View entire original source | Yes | Yes | Yes |
-| Run source re-processing | Yes | Yes | No |
-| View chunk splitting result | Yes | Yes | Yes |
-| Edit chunk boundaries (split / merge) | Yes | Yes | No |
-| Edit chunk text | Yes | Yes | Yes |
-| Add context to chunk manually | Yes | Yes | Yes |
-| Use LLM assistant (scenarios) | Yes | Yes | Yes |
-| Select and change collection for chunk | Yes | Yes | Yes |
-| Create and edit collections | Yes | Yes | No |
-| Change collection purpose and description | Yes | Yes | No |
-| Save chunks as ready for use | Yes | Yes | Yes |
-| Bulk operations with chunks | Yes | No | No |
-
----
-
-### 7.3 Simple Mode Limitations
-
-For users in Simple Mode (L2 Support):
-
-- System should not require understanding of chunk structure
-- Split / merge operations are unavailable
-- Interaction with chunks is through scenarios and simplified editing forms
-- User works only with final text and enriched context
-
----
-
-### 7.4 Advanced Mode Limitations
-
-For users in Advanced Mode (ML Specialist, Developer):
-
-- Full chunk structure is available
-- Structure change operations are available
-- Extended LLM assistant scenarios are available
-
----
-
-## 8. Primary User Flows (Happy Path)
+## 6. Primary User Flows (Happy Path)
 
 This section describes key user flows (Primary Flows) that the system should support. Flows are formulated at functional level and used as basis for UX design, API contracts, and task decomposition.
 
 ---
 
-### 8.1 Primary Flow: Confluence → Chunking → Save (Simple Mode)
+### 6.1 Primary Flow: Ingest Source → Chunk → Enrich → Save
 
-**Target Role:** L2 Support  
-**Mode:** Simple Mode  
-**Goal:** Quickly improve knowledge affecting client answers without understanding internal RAG structure.
+**Goal:** Prepare knowledge for RAG from a source document.
 
 **Flow:**
 
 1. User selects "Add Source" action
-2. System offers source type options
-3. User selects "Confluence Document"
-4. User pastes Confluence document link
-5. System extracts document content and displays it as source
-6. User runs source processing
-7. System splits document into chunks using LLM
-8. System displays split result in simplified form:
-   - Sequential text
-   - Visual chunk boundaries without technical metadata
-9. User edits chunk text (without split / merge operations)
-10. User uses LLM assistant scenarios to simplify or clarify formulations
-11. User selects target collection
-12. System shows preview of final knowledge version
-13. User confirms chunk saving
-14. System saves chunks as ready for use
-
----
-
-### 8.2 Primary Flow: Confluence → Chunking → Save (Advanced Mode)
-
-**Target Role:** Developer  
-**Mode:** Advanced Mode  
-**Goal:** Precisely correct structure and content of knowledge for specific product scenario.
-
-**Flow:**
-
-1. User selects "Add Source" action
-2. Selects "Confluence Document" source type
-3. Pastes document link
-4. System extracts and displays document as source
-5. User runs chunking
-6. System displays chunks with explicit boundaries and structural editing capability
-7. User performs operations:
+2. System offers source type options (Confluence, URL, Manual)
+3. User provides source content or link
+4. System extracts and displays content as data source
+5. User initiates chunking
+6. System splits source into chunks using LLM
+7. System displays chunks with boundaries and editing capability
+8. User edits chunks as needed:
+   - Text editing
    - Merging chunks
    - Splitting chunks
-   - Text editing
-8. User uses LLM assistant for chunk enrichment
-9. User selects or changes collection for chunks
-10. User reviews final result
-11. Confirms saving
-12. System saves chunks
+9. User uses LLM assistant for enrichment (optional)
+10. User selects target collection
+11. System shows preview of final chunks
+12. User confirms saving
+13. System publishes chunks to collection
 
 ---
 
-### 8.3 Primary Flow: Improving Existing Knowledge
+### 6.2 Primary Flow: Improve Existing Knowledge
 
-**Target Role:** Developer / L2 Support  
-**Mode:** Simple or Advanced (depending on role)
+**Goal:** Update or enhance existing chunks in a collection.
 
 **Flow:**
 
@@ -412,43 +230,27 @@ This section describes key user flows (Primary Flows) that the system should sup
 4. Selects specific chunk or chunk group
 5. Makes edits to text or context
 6. Uses LLM assistant if needed
-7. Reviews changes
+7. Reviews changes in preview
 8. Confirms saving
 
 ---
 
-### 8.4 Primary Flow: ML Specialist — Control and Correction
-
-**Target Role:** ML Specialist  
-**Mode:** Advanced Mode
-
-**Flow:**
-
-1. ML Specialist logs into system
-2. Selects collection or source
-3. Analyzes chunk structure
-4. Corrects splitting and enrichment
-5. Confirms changes
-6. Uses updated knowledge for further experiments
-
----
-
-### 8.5 General Rules for Primary Flows
+### 6.3 General Rules for Primary Flows
 
 - No chunk changes should be applied without explicit user confirmation
 - LLM results are always presented as suggestions, not automatically applied changes
 - Collection selection is mandatory step before saving
-- User mode determines available set of actions
+- All editing happens in a draft session; publishing is atomic
 
 ---
 
-## 9. MVP Scope
+## 7. MVP Scope
 
 This section specifies the minimum set of functionality (MVP) required to launch the product and deliver practical value to the team. Everything not included in MVP is considered consciously deferred.
 
 ---
 
-### 9.1 MVP In Scope
+### 7.1 MVP In Scope
 
 #### Data Sources
 
@@ -467,8 +269,8 @@ This section specifies the minimum set of functionality (MVP) required to launch
 - Automatic source splitting into chunks using LLM
 - Visual display of split result
 - Ability to edit chunks:
-  - Text editing (all roles)
-  - Split / merge (Advanced Mode only)
+  - Text editing
+  - Split / merge
 
 ---
 
@@ -492,21 +294,13 @@ This section specifies the minimum set of functionality (MVP) required to launch
 
 ---
 
-#### Roles and Modes
-
-- Support for roles: ML Specialist, Developer, L2 Support
-- Support for modes: Simple Mode and Advanced Mode
-- Functionality restrictions according to Capabilities Matrix
-
----
-
 #### User Scenarios
 
-- Primary Flows described in section 8 must be fully implemented
+- Primary Flows described in section 6 must be fully implemented
 
 ---
 
-### 9.2 Out of Scope (Not Included in MVP)
+### 7.2 Out of Scope (Not Included in MVP)
 
 The following capabilities are **consciously excluded** from MVP:
 
@@ -517,117 +311,93 @@ The following capabilities are **consciously excluded** from MVP:
 - A/B testing RAG answers
 - Automatic knowledge updates on source changes
 - Chunk version management
-- Bulk operations for Simple Mode users
 
 ---
 
-### 9.3 MVP Completion Criteria
+### 7.3 MVP Completion Criteria
 
 MVP is considered complete if:
 
 - All Primary Flows execute end-to-end
-- Users of all roles can independently complete their scenarios
-- Knowledge can be uploaded, edited, enriched, and saved without ML specialist involvement
+- Users can independently complete their knowledge management scenarios
+- Knowledge can be uploaded, edited, enriched, and saved
 
 ---
 
-## 10. Assumptions and Limitations
+## 8. Example User Journey
 
-### 10.1 User Journey: Developer
+### 8.1 Improving RAG Answer Quality
 
-1. Developer notices that RAG poorly answers a question related to product functionality
-2. Logs into system in Advanced Mode
+1. User notices that RAG poorly answers a question related to product functionality
+2. Logs into knowledge management system
 3. Selects relevant collection by purpose
-4. Finds related chunks
+4. Finds related chunks using search or browsing
 5. Uses LLM assistant to clarify formulations
-6. Reviews changes
+6. Reviews changes in preview
 7. Confirms chunk saving
+8. Updated knowledge is now available for RAG
 
 ---
 
-### 10.2 User Journey: L2 Support
-
-1. L2 Support receives user question or incident
-2. Logs into system in Simple Mode
-3. Selects scenario or collection related to client answers
-4. Views knowledge in human-readable form
-5. Uses LLM assistant scenario to simplify or clarify text
-6. Confirms changes without working with technical details
-
----
-
-### 10.3 User Journey: ML Specialist
-
-1. ML Specialist analyzes RAG answer quality
-2. Logs into system in Advanced Mode
-3. Works directly with collections and chunks
-4. Corrects structure and knowledge enrichment
-5. Confirms changes and uses them for further experiments
-
----
-
-### 10.4 General Assumptions and Limitations
+## 9. Assumptions and Limitations
 
 - Initially, there is no formal chunk quality metric
 - User confirmation is considered sufficient for chunk saving
 - Product is oriented towards iterative development
+- All users have equal access to all features (no role-based restrictions)
 
 ---
 
-## 11. Success Criteria
+## 10. Success Criteria
 
-- Developers and L2 Support can independently improve RAG context
-- ML Specialists are not a bottleneck in the process
+- Team members can independently improve RAG context
 - Knowledge enrichment process is transparent and controllable
+- Time from identifying RAG issue to deploying fix is minimized
 
 ---
 
-## 12. Open Questions
+## 11. Open Questions
 
-- Detailed access rights specifications between roles
 - Process for working with outdated knowledge
 - Expansion of LLM assistant scenarios
+- Search and discovery within collections
+
+---
 
 # Appendix A — Business Process Flow (BPMN)
 
-## A.1 Import Confluence Document → Chunking → Enrichment → Save (MVP)
+## A.1 Import Source → Chunking → Enrichment → Save (MVP)
 
 **Scope:** MVP
 
-**Actors:** User (L2 / Developer / ML), System, LLM
+**Actors:** User, System, LLM
 
-**Purpose:** Preparation of knowledge for RAG from a single Confluence document
+**Purpose:** Preparation of knowledge for RAG from a source document
 
 ### BPMN Diagram
 
 ```
 @startuml
-title BPMN — Confluence Document Ingestion & Chunk Preparation (MVP)
+title BPMN — Source Ingestion & Chunk Preparation (MVP)
 
 |User|
 start
-:Provide Confluence document link;
+:Provide source (Confluence link / URL / manual);
 
 |System|
-:Fetch document content;
+:Fetch/receive content;
 :Create Data Source;
 
 |LLM|
-:Split document into chunks;
+:Split source into chunks;
 
 |System|
 :Present chunked content to user;
 
 |User|
-if (Mode?) then (Simple Mode)
-  :Edit chunk text;
-  :Use LLM assistant (guided scenarios);
-else (Advanced Mode)
-  :Edit chunk text;
-  :Split / merge chunks;
-  :Use LLM assistant (extended scenarios);
-endif
-
+:Edit chunk text;
+:Split / merge chunks (optional);
+:Use LLM assistant for enrichment (optional);
 :Select target collection;
 
 |System|
@@ -636,7 +406,7 @@ endif
 |User|
 if (Confirm save?) then (Yes)
   |System|
-  :Persist chunks;
+  :Publish chunks to collection;
   stop
 else (No)
   :Return to editing;
@@ -655,4 +425,4 @@ endif
 
 - **Collection is selected before saving, not retroactively**
 
-- **Simple / Advanced is process branching, not different processes**
+- **All features available to all users** — no artificial restrictions

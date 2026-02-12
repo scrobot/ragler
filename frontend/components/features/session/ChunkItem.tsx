@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Chunk, UserRole } from "@/types/api";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Chunk } from "@/types/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,24 +10,20 @@ import {
     Pencil,
     Split,
     Wand2,
-    Save,
     X,
     Check,
-    MoreVertical
 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 interface ChunkItemProps {
     chunk: Chunk;
-    role: UserRole;
     isSelected: boolean;
     onToggleSelect: (id: string) => void;
     onUpdate: (id: string, text: string) => void;
@@ -37,7 +33,6 @@ interface ChunkItemProps {
 
 export function ChunkItem({
     chunk,
-    role,
     isSelected,
     onToggleSelect,
     onUpdate,
@@ -46,8 +41,6 @@ export function ChunkItem({
 }: ChunkItemProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [text, setText] = useState(chunk.text);
-
-    const isAdvanced = role === "DEV" || role === "ML";
 
     const handleSave = () => {
         onUpdate(chunk.id, text);
@@ -113,11 +106,9 @@ export function ChunkItem({
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
 
-                    {isAdvanced && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onSplit(chunk.id)}>
-                            <Split className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onSplit(chunk.id)}>
+                        <Split className="h-4 w-4 text-muted-foreground" />
+                    </Button>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

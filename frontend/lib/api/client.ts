@@ -1,21 +1,15 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import { ApiError, UserRole } from '@/types/api';
+import { ApiError } from '@/types/api';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export class ApiClient {
   private userId: string;
-  private userRole: UserRole;
   private client: AxiosInstance;
 
-  constructor(userId: string = 'user-1', userRole: UserRole = 'ML') {
+  constructor(userId: string = 'user-1') {
     this.userId = userId;
-    this.userRole = userRole;
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user_role', 'ML');
-    }
 
     this.client = axios.create({
       baseURL: API_BASE_URL,
@@ -28,7 +22,6 @@ export class ApiClient {
     // Request interceptor to add dynamic headers
     this.client.interceptors.request.use((config) => {
       config.headers['X-User-ID'] = this.userId;
-      config.headers['X-User-Role'] = this.userRole;
       return config;
     });
 
@@ -48,9 +41,8 @@ export class ApiClient {
     );
   }
 
-  setUser(userId: string, role: UserRole) {
+  setUser(userId: string) {
     this.userId = userId;
-    this.userRole = role;
   }
 
   async get<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
