@@ -40,13 +40,11 @@ Create a `.env` file (or set environment variables):
 ```env
 KMS_API_URL=http://localhost:3000
 MCP_USER_ID=mcp-server
-MCP_USER_ROLE=DEV
 ```
 
 **Configuration options:**
 - `KMS_API_URL`: Backend API base URL (default: `http://localhost:3000`)
-- `MCP_USER_ID`: User identifier sent to backend (default: `mcp-server`)
-- `MCP_USER_ROLE`: Role for backend authorization (default: `DEV`, options: `ML`, `DEV`, `L2`)
+- `MCP_USER_ID`: User identifier sent to backend for audit trail (default: `mcp-server`)
 
 ## Usage
 
@@ -79,8 +77,7 @@ Add to your Claude Desktop MCP configuration (`claude_desktop_config.json`):
       "args": ["/absolute/path/to/mcp-server/dist/index.js"],
       "env": {
         "KMS_API_URL": "http://localhost:3000",
-        "MCP_USER_ID": "claude-desktop",
-        "MCP_USER_ROLE": "DEV"
+        "MCP_USER_ID": "claude-desktop"
       }
     }
   }

@@ -371,8 +371,7 @@ const raglerClient = axios.create({
   baseURL: process.env.RAGLER_API_URL,
   headers: {
     'Authorization': `Bearer ${process.env.RAGLER_API_KEY}`,
-    'X-User-ID': 'mcp-server',
-    'X-User-Role': 'service'
+    'X-User-ID': 'mcp-server'
   }
 });
 ```
@@ -380,14 +379,14 @@ const raglerClient = axios.create({
 ### Authorization
 
 **Backend Enforcement:**
-- MCP server queries run with **"service" role**
+- MCP server has read-only access to published content
 - Access all published collections (no draft access)
 - Respects collection-level permissions (future)
 - Cannot create or modify collections
 
-**Role Capabilities:**
+**MCP Server Capabilities:**
 ```typescript
-const SERVICE_ROLE_PERMISSIONS = {
+const MCP_SERVER_CAPABILITIES = {
   search: true,              // ✅ Can search published knowledge
   listCollections: true,     // ✅ Can list collections
   getCollection: true,       // ✅ Can get collection details

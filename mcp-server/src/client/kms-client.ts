@@ -66,7 +66,6 @@ export class KMSClient {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': config.userId,
-        'X-User-Role': config.userRole,
       },
       timeout: 30000, // 30 second timeout
     });
