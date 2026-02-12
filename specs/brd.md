@@ -72,6 +72,25 @@ The system should allow:
 
 ---
 
+### 3.3 Collection Editor
+
+The system should provide a dedicated interface for managing published knowledge:
+
+- Viewing all chunks within a collection with search and filtering
+- Direct editing of published chunk content
+- Creating new chunks directly within a collection
+- Deleting chunks from a collection
+- Splitting chunks into multiple parts
+- Merging multiple chunks into one
+- Manual reordering of chunks for retrieval optimization
+- AI-assisted collection quality analysis
+- AI-suggested chunk operations (split, merge, rewrite)
+- Quality scoring per chunk to identify improvement opportunities
+
+All AI suggestions must be presented for user approval before application (HITL model).
+
+---
+
 ## 4. Data Source Types
 
 ### 4.1 General Concept of Sources
@@ -291,6 +310,18 @@ This section specifies the minimum set of functionality (MVP) required to launch
 - Collection creation and editing
 - Mandatory purpose and target audience specification
 - Chunk assignment to collection before saving
+
+---
+
+#### Collection Editor
+
+- View all chunks within a collection with pagination
+- Direct edit, create, delete chunks (no draft session)
+- Split and merge chunk operations
+- Manual chunk reordering (drag-and-drop)
+- AI collection analysis and quality report
+- AI suggestions for chunk operations
+- Quality scoring per chunk (0-100)
 
 ---
 
