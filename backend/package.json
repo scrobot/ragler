@@ -30,9 +30,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@langchain/core": "^1.1.24",
-    "@langchain/langgraph": "^1.1.4",
-    "@langchain/openai": "^1.2.7",
+    "@ai-sdk/openai": "^3.0.30",
     "@mozilla/readability": "^0.6.0",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",
@@ -42,6 +40,7 @@
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.5.0",
     "@qdrant/js-client-rest": "^1.16.2",
+    "ai": "^6.0.94",
     "helmet": "^8.1.0",
     "ioredis": "^5.9.2",
     "jsdom": "^27.4.0",

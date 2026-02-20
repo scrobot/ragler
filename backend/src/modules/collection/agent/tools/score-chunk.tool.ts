@@ -1,6 +1,6 @@
-import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import OpenAI from 'openai';
+import { buildAgentTool, type AgentTool } from './tool.interface';
 
 interface ChunkScoreResult {
   score: number;
@@ -66,20 +66,37 @@ Return JSON:
  * Create the score_chunk tool
  * Scores a chunk for RAG retrieval quality using LLM
  */
-export function createScoreChunkTool(openai: OpenAI): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+const scoreChunkSchema = z.object({
+  chunkId: z.string().describe('Chunk ID being scored'),
+  content: z.string().describe('Chunk text content to evaluate'),
+  collectionPurpose: z
+    .string()
+    .optional()
+    .describe('Collection purpose/audience for context'),
+});
+
+type ScoreChunkInput = z.infer<typeof scoreChunkSchema>;
+
+export function createScoreChunkTool(openai: OpenAI): AgentTool<ScoreChunkInput> {
+  return buildAgentTool({
     name: 'score_chunk',
     description:
       'Score a chunk for RAG retrieval quality (0-100) with breakdown by clarity, completeness, specificity, and standalone readability. Returns issues and improvement suggestions.',
-    schema: z.object({
-      chunkId: z.string().describe('Chunk ID being scored'),
-      content: z.string().describe('Chunk text content to evaluate'),
-      collectionPurpose: z
-        .string()
-        .optional()
-        .describe('Collection purpose/audience for context'),
-    }),
-    func: async ({ chunkId, content, collectionPurpose }): Promise<string> => {
+    schema: scoreChunkSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        chunkId: { type: 'string', description: 'Chunk ID being scored' },
+        content: { type: 'string', description: 'Chunk text content to evaluate' },
+        collectionPurpose: {
+          type: 'string',
+          description: 'Collection purpose/audience for context',
+        },
+      },
+      required: ['chunkId', 'content'],
+      additionalProperties: false,
+    },
+    execute: async ({ chunkId, content, collectionPurpose }): Promise<string> => {
       const prompt = SCORE_PROMPT.replace(
         '{collectionPurpose}',
         collectionPurpose || 'General knowledge retrieval',

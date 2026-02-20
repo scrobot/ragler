@@ -1,6 +1,6 @@
-import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { ChunkService } from '../../chunk.service';
+import { buildAgentTool, type AgentTool } from './tool.interface';
 
 /**
  * Create the execute_operation tool
@@ -13,29 +13,39 @@ import type { ChunkService } from '../../chunk.service';
 export function createExecuteOperationTool(
   chunkService: ChunkService,
   getApprovedOperations: () => Set<string>,
-): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+): AgentTool<ExecuteOperationInput> {
+  return buildAgentTool({
     name: 'execute_operation',
     description:
       'Execute an approved chunk operation. ONLY call this after the user has explicitly approved the operation. Operations include: SPLIT, MERGE, REWRITE, DELETE, REORDER.',
-    schema: z.object({
-      collectionId: z.string().uuid().describe('Collection UUID'),
-      operationId: z
-        .string()
-        .uuid()
-        .describe('Operation ID from suggest_operation (must be approved)'),
-      operationType: z
-        .enum(['SPLIT', 'MERGE', 'REWRITE', 'DELETE', 'REORDER'])
-        .describe('Type of operation to execute'),
-      chunkId: z.string().describe('Primary chunk ID for the operation'),
-      userId: z.string().describe('User ID executing the operation'),
-      params: z
-        .record(z.unknown())
-        .describe(
-          'Operation-specific parameters: splitPoints/splitBlocks for SPLIT, mergeWithIds for MERGE, suggestedContent for REWRITE, positions for REORDER',
-        ),
-    }),
-    func: async ({
+    schema: executeOperationSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID' },
+        operationId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Operation ID from suggest_operation (must be approved)',
+        },
+        operationType: {
+          type: 'string',
+          enum: ['SPLIT', 'MERGE', 'REWRITE', 'DELETE', 'REORDER'],
+          description: 'Type of operation to execute',
+        },
+        chunkId: { type: 'string', description: 'Primary chunk ID for the operation' },
+        userId: { type: 'string', description: 'User ID executing the operation' },
+        params: {
+          type: 'object',
+          description:
+            'Operation-specific parameters: splitPoints/splitBlocks for SPLIT, mergeWithIds for MERGE, suggestedContent for REWRITE, positions for REORDER',
+          additionalProperties: true,
+        },
+      },
+      required: ['collectionId', 'operationId', 'operationType', 'chunkId', 'userId', 'params'],
+      additionalProperties: false,
+    },
+    execute: async ({
       collectionId,
       operationId,
       operationType,
@@ -144,3 +154,23 @@ export function createExecuteOperationTool(
     },
   });
 }
+
+const executeOperationSchema = z.object({
+  collectionId: z.string().uuid().describe('Collection UUID'),
+  operationId: z
+    .string()
+    .uuid()
+    .describe('Operation ID from suggest_operation (must be approved)'),
+  operationType: z
+    .enum(['SPLIT', 'MERGE', 'REWRITE', 'DELETE', 'REORDER'])
+    .describe('Type of operation to execute'),
+  chunkId: z.string().describe('Primary chunk ID for the operation'),
+  userId: z.string().describe('User ID executing the operation'),
+  params: z
+    .record(z.unknown())
+    .describe(
+      'Operation-specific parameters: splitPoints/splitBlocks for SPLIT, mergeWithIds for MERGE, suggestedContent for REWRITE, positions for REORDER',
+    ),
+});
+
+type ExecuteOperationInput = z.infer<typeof executeOperationSchema>;

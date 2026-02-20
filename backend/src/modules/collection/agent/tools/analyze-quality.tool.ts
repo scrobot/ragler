@@ -1,7 +1,7 @@
-import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { ChunkService } from '../../chunk.service';
 import type { EditorChunkResponse } from '../../dto';
+import { buildAgentTool, type AgentTool } from './tool.interface';
 
 interface QualityAnalysis {
   totalChunks: number;
@@ -33,15 +33,27 @@ interface QualityAnalysis {
  * Create the analyze_collection_quality tool
  * Analyzes a collection for quality issues
  */
-export function createAnalyzeQualityTool(chunkService: ChunkService): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+const analyzeQualitySchema = z.object({
+  collectionId: z.string().uuid().describe('Collection UUID to analyze'),
+});
+
+type AnalyzeQualityInput = z.infer<typeof analyzeQualitySchema>;
+
+export function createAnalyzeQualityTool(chunkService: ChunkService): AgentTool<AnalyzeQualityInput> {
+  return buildAgentTool({
     name: 'analyze_collection_quality',
     description:
       'Analyze a collection for quality issues including duplicates, too-long/short chunks, and low quality scores. Returns a comprehensive quality report.',
-    schema: z.object({
-      collectionId: z.string().uuid().describe('Collection UUID to analyze'),
-    }),
-    func: async ({ collectionId }): Promise<string> => {
+    schema: analyzeQualitySchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID to analyze' },
+      },
+      required: ['collectionId'],
+      additionalProperties: false,
+    },
+    execute: async ({ collectionId }): Promise<string> => {
       const allChunks: EditorChunkResponse[] = [];
       let offset = 0;
       const limit = 100;

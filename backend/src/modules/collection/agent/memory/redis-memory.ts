@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@infrastructure/redis';
-import { HumanMessage, AIMessage, BaseMessage } from '@langchain/core/messages';
 import type { StoredMessage } from '../../dto/agent.dto';
 
 const HISTORY_TTL = 86400; // 24 hours
 const APPROVED_OPS_TTL = 86400; // 24 hours
 const MAX_HISTORY_LENGTH = 50; // Maximum messages to retain
+
+export interface AgentHistoryMessage {
+  role: 'human' | 'ai';
+  content: string;
+}
 
 /**
  * Redis-backed conversation memory for collection agents
@@ -19,7 +23,7 @@ export class AgentMemoryService {
   /**
    * Load conversation history from Redis
    */
-  async loadHistory(sessionId: string): Promise<BaseMessage[]> {
+  async loadHistory(sessionId: string): Promise<AgentHistoryMessage[]> {
     const key = this.getHistoryKey(sessionId);
 
     try {
@@ -29,9 +33,10 @@ export class AgentMemoryService {
       }
 
       const messages: StoredMessage[] = JSON.parse(data);
-      return messages.map((m) =>
-        m.role === 'human' ? new HumanMessage(m.content) : new AIMessage(m.content),
-      );
+      return messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
     } catch (error) {
       this.logger.warn({
         event: 'load_history_failed',
@@ -45,7 +50,7 @@ export class AgentMemoryService {
   /**
    * Save conversation history to Redis
    */
-  async saveHistory(sessionId: string, messages: BaseMessage[]): Promise<void> {
+  async saveHistory(sessionId: string, messages: AgentHistoryMessage[]): Promise<void> {
     const key = this.getHistoryKey(sessionId);
 
     try {
@@ -53,8 +58,8 @@ export class AgentMemoryService {
       const trimmedMessages = messages.slice(-MAX_HISTORY_LENGTH);
 
       const data: StoredMessage[] = trimmedMessages.map((m) => ({
-        role: m._getType() === 'human' ? 'human' : 'ai',
-        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        role: m.role,
+        content: m.content,
         timestamp: new Date().toISOString(),
       }));
 
@@ -72,7 +77,7 @@ export class AgentMemoryService {
   /**
    * Add a single message to history
    */
-  async addMessage(sessionId: string, message: BaseMessage): Promise<void> {
+  async addMessage(sessionId: string, message: AgentHistoryMessage): Promise<void> {
     const history = await this.loadHistory(sessionId);
     history.push(message);
     await this.saveHistory(sessionId, history);

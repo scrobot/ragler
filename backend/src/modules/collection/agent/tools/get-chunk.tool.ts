@@ -1,22 +1,35 @@
-import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import type { ChunkService } from '../../chunk.service';
 import type { EditorChunkResponse } from '../../dto';
+import { buildAgentTool, type AgentTool } from './tool.interface';
 
 /**
  * Create the get_chunk_content tool
  * Retrieves chunk content and metadata
  */
-export function createGetChunkTool(chunkService: ChunkService): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+const getChunkSchema = z.object({
+  collectionId: z.string().uuid().describe('Collection UUID'),
+  chunkId: z.string().describe('Chunk ID to retrieve'),
+});
+
+type GetChunkInput = z.infer<typeof getChunkSchema>;
+
+export function createGetChunkTool(chunkService: ChunkService): AgentTool<GetChunkInput> {
+  return buildAgentTool({
     name: 'get_chunk_content',
     description:
       'Retrieve the full content and metadata of a specific chunk by ID. Use this to inspect chunk details before suggesting operations.',
-    schema: z.object({
-      collectionId: z.string().uuid().describe('Collection UUID'),
-      chunkId: z.string().describe('Chunk ID to retrieve'),
-    }),
-    func: async ({ collectionId, chunkId }): Promise<string> => {
+    schema: getChunkSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID' },
+        chunkId: { type: 'string', description: 'Chunk ID to retrieve' },
+      },
+      required: ['collectionId', 'chunkId'],
+      additionalProperties: false,
+    },
+    execute: async ({ collectionId, chunkId }): Promise<string> => {
       try {
         const chunk = await chunkService.getChunk(collectionId, chunkId);
 
@@ -51,16 +64,35 @@ export function createGetChunkTool(chunkService: ChunkService): DynamicStructure
  * Create the get_chunks_context tool
  * Retrieves multiple chunks for context analysis
  */
-export function createGetChunksContextTool(chunkService: ChunkService): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+const getChunksContextSchema = z.object({
+  collectionId: z.string().uuid().describe('Collection UUID'),
+  chunkIds: z.array(z.string()).describe('Array of chunk IDs to retrieve'),
+});
+
+type GetChunksContextInput = z.infer<typeof getChunksContextSchema>;
+
+export function createGetChunksContextTool(
+  chunkService: ChunkService,
+): AgentTool<GetChunksContextInput> {
+  return buildAgentTool({
     name: 'get_chunks_context',
     description:
       'Retrieve content and metadata for multiple chunks. Useful for analyzing surrounding context when considering merge operations.',
-    schema: z.object({
-      collectionId: z.string().uuid().describe('Collection UUID'),
-      chunkIds: z.array(z.string()).describe('Array of chunk IDs to retrieve'),
-    }),
-    func: async ({ collectionId, chunkIds }): Promise<string> => {
+    schema: getChunksContextSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID' },
+        chunkIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of chunk IDs to retrieve',
+        },
+      },
+      required: ['collectionId', 'chunkIds'],
+      additionalProperties: false,
+    },
+    execute: async ({ collectionId, chunkIds }): Promise<string> => {
       try {
         const chunks = await Promise.all(
           chunkIds.map((id: string) =>

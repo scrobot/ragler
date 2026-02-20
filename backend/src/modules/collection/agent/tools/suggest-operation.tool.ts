@@ -1,7 +1,7 @@
-import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import OpenAI from 'openai';
+import { buildAgentTool, type AgentTool } from './tool.interface';
 
 export type OperationType = 'SPLIT' | 'MERGE' | 'REWRITE' | 'DELETE' | 'KEEP';
 
@@ -51,21 +51,42 @@ Return JSON:
  * Create the suggest_operation tool
  * Suggests improvement operations for chunks
  */
-export function createSuggestOperationTool(openai: OpenAI): DynamicStructuredTool {
-  return new DynamicStructuredTool({
+const suggestOperationSchema = z.object({
+  chunkId: z.string().describe('Chunk ID to analyze'),
+  content: z.string().describe('Chunk text content'),
+  contextChunks: z
+    .string()
+    .optional()
+    .describe('JSON array of surrounding chunks for context'),
+  collectionPurpose: z.string().optional().describe('Collection purpose/audience'),
+});
+
+type SuggestOperationInput = z.infer<typeof suggestOperationSchema>;
+
+export function createSuggestOperationTool(openai: OpenAI): AgentTool<SuggestOperationInput> {
+  return buildAgentTool({
     name: 'suggest_operation',
     description:
       'Suggest an improvement operation for a chunk: SPLIT (if too broad), MERGE (if incomplete), REWRITE (if unclear), DELETE (if redundant), or KEEP (if good). Returns an operationId that can be used with execute_operation after user approval.',
-    schema: z.object({
-      chunkId: z.string().describe('Chunk ID to analyze'),
-      content: z.string().describe('Chunk text content'),
-      contextChunks: z
-        .string()
-        .optional()
-        .describe('JSON array of surrounding chunks for context'),
-      collectionPurpose: z.string().optional().describe('Collection purpose/audience'),
-    }),
-    func: async ({ chunkId, content, contextChunks, collectionPurpose }): Promise<string> => {
+    schema: suggestOperationSchema,
+    parameters: {
+      type: 'object',
+      properties: {
+        chunkId: { type: 'string', description: 'Chunk ID to analyze' },
+        content: { type: 'string', description: 'Chunk text content' },
+        contextChunks: {
+          type: 'string',
+          description: 'JSON array of surrounding chunks for context',
+        },
+        collectionPurpose: {
+          type: 'string',
+          description: 'Collection purpose/audience',
+        },
+      },
+      required: ['chunkId', 'content'],
+      additionalProperties: false,
+    },
+    execute: async ({ chunkId, content, contextChunks, collectionPurpose }): Promise<string> => {
       const prompt = SUGGEST_PROMPT.replace('{chunkId}', chunkId)
         .replace('{content}', content)
         .replace('{contextChunks}', contextChunks || 'No surrounding context provided')
