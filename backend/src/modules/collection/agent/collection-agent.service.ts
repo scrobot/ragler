@@ -1,5 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  ToolLoopAgent,
+  stepCountIs,
+  tool,
+  type ModelMessage,
+  type ToolSet,
+} from 'ai';
+import { createOpenAI, type OpenAIProvider } from '@ai-sdk/openai';
 import OpenAI from 'openai';
 
 import { ChunkService } from '../chunk.service';
@@ -22,8 +30,8 @@ const MAX_TOOL_ITERATIONS = 8;
 export class CollectionAgentService implements OnModuleInit {
   private readonly logger = new Logger(CollectionAgentService.name);
 
-  private openai!: OpenAI;
-  private modelName = 'gpt-4o';
+  private openaiProvider!: OpenAIProvider;
+  private modelId = 'gpt-4o';
   private tools: AgentTool[] = [];
 
   constructor(
@@ -39,21 +47,24 @@ export class CollectionAgentService implements OnModuleInit {
 
   private initializeClient(): void {
     const apiKey = this.configService.get<string>('openai.apiKey');
-    this.openai = new OpenAI({ apiKey });
+    this.openaiProvider = createOpenAI({ apiKey });
 
     const configuredModel = this.configService.get<string>('openai.agentModel');
     if (configuredModel) {
-      this.modelName = configuredModel;
+      this.modelId = configuredModel;
     }
 
-    this.logger.log({ event: 'agent_client_initialized', model: this.modelName });
+    this.logger.log({ event: 'agent_client_initialized', model: this.modelId });
   }
 
   private initializeTools(): void {
+    const apiKey = this.configService.get<string>('openai.apiKey');
+    const openaiClient = new OpenAI({ apiKey });
+
     this.tools = [
       createAnalyzeQualityTool(this.chunkService),
-      createScoreChunkTool(this.openai),
-      createSuggestOperationTool(this.openai),
+      createScoreChunkTool(openaiClient),
+      createSuggestOperationTool(openaiClient),
       createGetChunkTool(this.chunkService),
       createGetChunksContextTool(this.chunkService),
     ];
@@ -65,77 +76,26 @@ export class CollectionAgentService implements OnModuleInit {
     });
   }
 
-  private toOpenAITool(tool: AgentTool): OpenAI.Chat.Completions.ChatCompletionTool {
-    return {
-      type: 'function',
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      },
-    };
-  }
-
-  private getToolMap(tools: AgentTool[]): Map<string, AgentTool> {
-    return new Map(tools.map((tool) => [tool.name, tool]));
-  }
-
-  private extractTextContent(
-    content: unknown,
-  ): string {
-    if (typeof content === 'string') {
-      return content;
-    }
-
-    if (Array.isArray(content)) {
-      return content
-        .map((part: unknown) => {
-          if (
-            typeof part === 'object' &&
-            part !== null &&
-            'text' in part &&
-            typeof (part as { text: unknown }).text === 'string'
-          ) {
-            return (part as { text: string }).text;
-          }
-          return '';
-        })
-        .join('')
-        .trim();
-    }
-
-    return '';
-  }
-
-  private buildConversation(
+  private buildMessages(
     history: Awaited<ReturnType<AgentMemoryService['loadHistory']>>,
     userMessage: string,
-    collectionId: string,
-    userId: string,
-  ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-    const contextMessage = `You are helping with collection ID: ${collectionId}. User ID: ${userId}.`;
-
-    const convertedHistory: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = history
-      .map((entry) => {
-        if (entry.role === 'human') {
-          return {
-            role: 'user',
-            content: entry.content,
-          } satisfies OpenAI.Chat.Completions.ChatCompletionUserMessageParam;
-        }
-
+  ): ModelMessage[] {
+    const historyMessages: ModelMessage[] = history.map((entry) => {
+      if (entry.role === 'human') {
         return {
-          role: 'assistant',
+          role: 'user',
           content: entry.content,
-        } satisfies OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam;
-      });
+        };
+      }
+
+      return {
+        role: 'assistant',
+        content: entry.content,
+      };
+    });
 
     return [
-      {
-        role: 'system',
-        content: `${COLLECTION_AGENT_SYSTEM_PROMPT}\n\n${contextMessage}`,
-      },
-      ...convertedHistory,
+      ...historyMessages,
       {
         role: 'user',
         content: userMessage,
@@ -143,11 +103,42 @@ export class CollectionAgentService implements OnModuleInit {
     ];
   }
 
+  private toToolSet(tools: AgentTool[]): ToolSet {
+    const toolSet: ToolSet = {};
+
+    for (const agentTool of tools) {
+      toolSet[agentTool.name] = tool({
+        description: agentTool.description,
+        // Keep input schema broad to avoid deep generic instantiation.
+        inputSchema: agentTool.schema as any,
+        execute: async (input: unknown): Promise<string> => {
+          const parsed = agentTool.parse(input);
+          return agentTool.execute(parsed);
+        },
+      }) as ToolSet[string];
+    }
+
+    return toolSet;
+  }
+
+  private createAgent(
+    collectionId: string,
+    userId: string,
+    tools: AgentTool[],
+  ): ToolLoopAgent<never, ToolSet> {
+    const contextMessage = `You are helping with collection ID: ${collectionId}. User ID: ${userId}.`;
+
+    return new ToolLoopAgent({
+      model: this.openaiProvider(this.modelId),
+      instructions: `${COLLECTION_AGENT_SYSTEM_PROMPT}\n\n${contextMessage}`,
+      tools: this.toToolSet(tools),
+      temperature: 0,
+      stopWhen: stepCountIs(MAX_TOOL_ITERATIONS),
+    });
+  }
+
   /**
-   * Stream chat responses with the agent.
-   *
-   * LangChain/LangGraph has been replaced with direct tool-calling orchestration,
-   * matching the same frontend SSE event contract.
+   * Stream chat responses with Vercel AI SDK ToolLoopAgent.
    */
   async *streamChat(
     collectionId: string,
@@ -172,147 +163,65 @@ export class CollectionAgentService implements OnModuleInit {
         ...this.tools,
         createExecuteOperationTool(this.chunkService, () => approvedOps),
       ];
-      const openAITools = sessionTools.map((tool) => this.toOpenAITool(tool));
-      const toolMap = this.getToolMap(sessionTools);
 
-      const messages = this.buildConversation(history, message, collectionId, userId);
+      const agent = this.createAgent(collectionId, userId, sessionTools);
+      const messages = this.buildMessages(history, message);
+
+      const bufferedEvents: AgentEvent[] = [];
+      let latestAssistantText = '';
 
       yield { type: 'thinking', timestamp: new Date().toISOString() };
 
-      let finalContent = '';
+      const result = await agent.generate({
+        messages,
+        onStepFinish: (step) => {
+          const ts = new Date().toISOString();
 
-      for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
-        const response = await this.openai.chat.completions.create({
-          model: this.modelName,
-          temperature: 0,
-          messages,
-          tools: openAITools,
-          tool_choice: 'auto',
-        });
-
-        const assistantMessage = response.choices[0]?.message;
-        if (!assistantMessage) {
-          throw new Error('Model returned no message');
-        }
-
-        const assistantText = this.extractTextContent(assistantMessage.content);
-
-        if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-          const functionToolCalls = assistantMessage.tool_calls.filter(
-            (
-              call,
-            ): call is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
-              call.type === 'function',
-          );
-
-          const assistantWithTools: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam = {
-            role: 'assistant',
-            content: assistantText || null,
-            tool_calls: functionToolCalls.map((call) => ({
-              id: call.id,
-              type: 'function',
-              function: {
-                name: call.function.name,
-                arguments: call.function.arguments,
-              },
-            })),
-          };
-          messages.push(assistantWithTools);
-
-          if (assistantText) {
-            finalContent = assistantText;
-            yield {
-              type: 'message',
-              content: assistantText,
-              timestamp: new Date().toISOString(),
-            };
-          }
-
-          for (const toolCall of functionToolCalls) {
-            const toolName = toolCall.function.name;
-            let rawInput: unknown = {};
-
-            try {
-              rawInput = toolCall.function.arguments
-                ? JSON.parse(toolCall.function.arguments)
-                : {};
-            } catch (error) {
-              rawInput = {};
-              this.logger.warn({
-                event: 'agent_tool_args_parse_failed',
-                tool: toolName,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              });
-            }
-
-            yield {
+          for (const toolCall of step.toolCalls) {
+            bufferedEvents.push({
               type: 'tool_call',
-              tool: toolName,
-              input: rawInput,
-              timestamp: new Date().toISOString(),
-            };
-
-            const tool = toolMap.get(toolName);
-            let toolResult: string;
-
-            if (!tool) {
-              toolResult = JSON.stringify({
-                success: false,
-                error: `Unknown tool: ${toolName}`,
-              });
-            } else {
-              try {
-                const parsedInput = tool.parse(rawInput);
-                toolResult = await tool.execute(parsedInput);
-              } catch (error) {
-                toolResult = JSON.stringify({
-                  success: false,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                  tool: toolName,
-                });
-              }
-            }
-
-            yield {
-              type: 'tool_result',
-              tool: toolName,
-              output: toolResult,
-              timestamp: new Date().toISOString(),
-            };
-
-            const toolMessage: OpenAI.Chat.Completions.ChatCompletionToolMessageParam = {
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: toolResult,
-            };
-            messages.push(toolMessage);
+              tool: toolCall.toolName,
+              input: toolCall.input,
+              timestamp: ts,
+            });
           }
 
-          continue;
-        }
+          for (const toolResult of step.toolResults) {
+            bufferedEvents.push({
+              type: 'tool_result',
+              tool: toolResult.toolName,
+              output: toolResult.output,
+              timestamp: ts,
+            });
+          }
 
-        if (assistantText) {
-          finalContent = assistantText;
-          yield {
-            type: 'message',
-            content: assistantText,
-            timestamp: new Date().toISOString(),
-          };
-        } else if (assistantMessage.refusal) {
-          finalContent = assistantMessage.refusal;
-          yield {
-            type: 'message',
-            content: assistantMessage.refusal,
-            timestamp: new Date().toISOString(),
-          };
-        }
+          if (step.text && step.text.trim() && step.text !== latestAssistantText) {
+            latestAssistantText = step.text;
+            bufferedEvents.push({
+              type: 'message',
+              content: step.text,
+              timestamp: ts,
+            });
+          }
+        },
+      });
 
-        break;
+      if (result.text && result.text.trim() && result.text !== latestAssistantText) {
+        latestAssistantText = result.text;
+        bufferedEvents.push({
+          type: 'message',
+          content: result.text,
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      if (!finalContent) {
-        finalContent = 'No response generated. Please try again with a more specific request.';
+      for (const event of bufferedEvents) {
+        yield event;
       }
+
+      const persistedAssistantText =
+        latestAssistantText ||
+        'No response generated. Please try again with a more specific request.';
 
       await this.memoryService.addMessage(sessionId, {
         role: 'human',
@@ -320,7 +229,7 @@ export class CollectionAgentService implements OnModuleInit {
       });
       await this.memoryService.addMessage(sessionId, {
         role: 'ai',
-        content: finalContent,
+        content: persistedAssistantText,
       });
 
       yield { type: 'done', timestamp: new Date().toISOString() };

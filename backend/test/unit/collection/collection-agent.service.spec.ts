@@ -1,4 +1,5 @@
 import { CollectionAgentService } from '@modules/collection/agent/collection-agent.service';
+import type { AgentEvent } from '@modules/collection/dto/agent.dto';
 
 describe('CollectionAgentService', () => {
   let service: CollectionAgentService;
@@ -47,21 +48,20 @@ describe('CollectionAgentService', () => {
   });
 
   it('streams direct assistant response without tools', async () => {
-    const createMock = jest.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: 'Ready to help with collection quality.',
-          },
-        },
-      ],
+    const generateMock = jest.fn().mockImplementation(async ({ onStepFinish }) => {
+      onStepFinish({
+        toolCalls: [],
+        toolResults: [],
+        text: 'Ready to help with collection quality.',
+      });
+      return { text: 'Ready to help with collection quality.' };
     });
 
-    (service as unknown as { openai: { chat: { completions: { create: typeof createMock } } } }).openai = {
-      chat: { completions: { create: createMock } },
-    };
+    jest
+      .spyOn(service as unknown as { createAgent: (...args: unknown[]) => unknown }, 'createAgent')
+      .mockReturnValue({ generate: generateMock });
 
-    const events = [];
+    const events: AgentEvent[] = [];
     for await (const event of service.streamChat(
       '550e8400-e29b-41d4-a716-446655440000',
       'user@example.com',
@@ -81,46 +81,34 @@ describe('CollectionAgentService', () => {
       '550e8400-e29b-41d4-a716-446655440111',
       expect.objectContaining({ role: 'ai' }),
     );
+    expect(generateMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles tool-call loop and emits tool events', async () => {
-    const createMock = jest
-      .fn()
-      .mockResolvedValueOnce({
-        choices: [
+    const generateMock = jest.fn().mockImplementation(async ({ onStepFinish }) => {
+      onStepFinish({
+        toolCalls: [
           {
-            message: {
-              tool_calls: [
-                {
-                  id: 'call_1',
-                  type: 'function',
-                  function: {
-                    name: 'analyze_collection_quality',
-                    arguments:
-                      '{"collectionId":"550e8400-e29b-41d4-a716-446655440000"}',
-                  },
-                },
-              ],
-              content: null,
-            },
+            toolName: 'analyze_collection_quality',
+            input: { collectionId: '550e8400-e29b-41d4-a716-446655440000' },
           },
         ],
-      })
-      .mockResolvedValueOnce({
-        choices: [
+        toolResults: [
           {
-            message: {
-              content: 'I found no quality issues in this collection.',
-            },
+            toolName: 'analyze_collection_quality',
+            output: JSON.stringify({ score: 0.94, issues: [] }),
           },
         ],
+        text: 'I found no quality issues in this collection.',
       });
+      return { text: 'I found no quality issues in this collection.' };
+    });
 
-    (service as unknown as { openai: { chat: { completions: { create: typeof createMock } } } }).openai = {
-      chat: { completions: { create: createMock } },
-    };
+    jest
+      .spyOn(service as unknown as { createAgent: (...args: unknown[]) => unknown }, 'createAgent')
+      .mockReturnValue({ generate: generateMock });
 
-    const events = [];
+    const events: AgentEvent[] = [];
     for await (const event of service.streamChat(
       '550e8400-e29b-41d4-a716-446655440000',
       'user@example.com',
@@ -134,7 +122,7 @@ describe('CollectionAgentService', () => {
     expect(events.some((e) => e.type === 'tool_result')).toBe(true);
     expect(events.some((e) => e.type === 'message')).toBe(true);
     expect(events[events.length - 1]?.type).toBe('done');
-    expect(createMock).toHaveBeenCalledTimes(2);
-    expect(mockChunkService.listChunks).toHaveBeenCalled();
+    expect(generateMock).toHaveBeenCalledTimes(1);
+    expect(mockMemoryService.addMessage).toHaveBeenCalledTimes(2);
   });
 });
