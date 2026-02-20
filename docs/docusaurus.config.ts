@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'RAGler',
-  tagline: 'Open Source RAG Platform with Human-in-the-Loop',
+  tagline: 'Operational docs for ingestion, curation, and publishing in RAG',
   favicon: 'img/favicon.ico',
 
   url: 'https://ragler.ai',
@@ -27,12 +27,9 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/ragler-oss/ragler/tree/main/website/',
+          editUrl: 'https://github.com/ragler-oss/ragler/tree/main/docs/',
         },
-        blog: {
-          showReadingTime: true,
-          editUrl: 'https://github.com/ragler-oss/ragler/tree/main/website/',
-        },
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -48,7 +45,7 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'RAGler',
+      title: 'RAGler Docs',
       logo: {
         alt: 'RAGler Logo',
         src: 'img/logo.svg',
@@ -73,10 +70,10 @@ const config: Config = {
           label: 'Architecture',
         },
         {
-          to: '/docs/ai-context/core-concepts',
+          type: 'docSidebar',
+          sidebarId: 'aiSidebar',
           position: 'left',
           label: 'AI Context',
-          className: 'ai-context-link', // We can style this distinctly
         },
         {
           type: 'docSidebar',
@@ -84,7 +81,6 @@ const config: Config = {
           position: 'left',
           label: 'Changelog',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
         {
           href: 'https://github.com/ragler-oss/ragler',
           label: 'GitHub',
@@ -98,19 +94,19 @@ const config: Config = {
         {
           title: 'Docs',
           items: [
-            { label: 'Product Guide', to: '/docs/product/intro' },
+            { label: 'Quick Start', to: '/docs/getting-started/installation' },
+            { label: 'Workflow', to: '/docs/product/flows/workflow' },
             { label: 'Architecture', to: '/docs/architecture/overview' },
-            { label: 'AI Context', to: '/docs/ai-context/core-concepts' },
           ],
         },
         {
-          title: 'Community',
+          title: 'Project',
           items: [
-            { label: 'GitHub', href: 'https://github.com/ragler-oss/ragler' },
+            { label: 'Repository', href: 'https://github.com/ragler-oss/ragler' },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} RAGler OSS. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} RAGler OSS`,
     },
     prism: {
       theme: prismThemes.github,

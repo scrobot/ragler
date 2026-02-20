@@ -1,56 +1,37 @@
-# KMS-RAG MCP Server
+# RAGler MCP Server
 
-Model Context Protocol (MCP) server for KMS-RAG knowledge base. Provides AI agents with structured access to search and collection management operations.
+MCP adapter that exposes RAGler search and collection tools to MCP clients.
 
-## Features
+## TL;DR
 
-- **Semantic Search**: Search across knowledge collections with natural language queries
-- **Collection Management**: List and inspect knowledge collections
-- **Standards-Based**: Built on Anthropic's Model Context Protocol
-- **Stateless**: No local state, all operations delegated to KMS Backend API
-
-## Architecture
-
-```
-AI Agent (Claude) → MCP Server → KMS Backend API → Qdrant
+```bash
+pnpm install
+pnpm build
+pnpm start
 ```
 
-The MCP server acts as a protocol adapter, translating MCP tool calls into HTTP requests to the KMS-RAG backend.
+## What This Is For
+
+Use this server when an MCP client (for example Claude Desktop) needs read access to published RAGler knowledge.
 
 ## Prerequisites
 
-- Node.js 20+ installed
-- KMS-RAG backend running (default: `http://localhost:3000`)
-- pnpm (or npm)
-
-## Installation
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build the server
-pnpm build
-```
+- Node.js 20+
+- pnpm
+- RAGler backend running (`http://localhost:3000` by default)
 
 ## Configuration
 
-Create a `.env` file (or set environment variables):
+Create `.env`:
 
 ```env
 KMS_API_URL=http://localhost:3000
 MCP_USER_ID=mcp-server
 ```
 
-**Configuration options:**
-- `KMS_API_URL`: Backend API base URL (default: `http://localhost:3000`)
-- `MCP_USER_ID`: User identifier sent to backend for audit trail (default: `mcp-server`)
+## Run
 
-## Usage
-
-### Local Development
-
-Start the MCP server in development mode:
+### Development
 
 ```bash
 pnpm dev
@@ -58,21 +39,32 @@ pnpm dev
 
 ### Production
 
-Build and run:
-
 ```bash
 pnpm build
 pnpm start
 ```
 
-### Integration with Claude Desktop
+## Verify
 
-Add to your Claude Desktop MCP configuration (`claude_desktop_config.json`):
+- MCP process starts without config errors.
+- Backend responds:
+
+```bash
+curl http://localhost:3000/api/health/liveness
+```
+
+## Tools Exposed
+
+- `search_knowledge`
+- `list_collections`
+- `get_collection_info`
+
+## Claude Desktop Example
 
 ```json
 {
   "mcpServers": {
-    "kms-rag": {
+    "ragler": {
       "command": "node",
       "args": ["/absolute/path/to/mcp-server/dist/index.js"],
       "env": {
@@ -84,130 +76,7 @@ Add to your Claude Desktop MCP configuration (`claude_desktop_config.json`):
 }
 ```
 
-**Important:** Use absolute paths in Claude Desktop config.
-
-### Testing with MCP Inspector
-
-```bash
-# Install MCP Inspector (if not already installed)
-npm install -g @modelcontextprotocol/inspector
-
-# Run inspector
-mcp-inspector node dist/index.js
-```
-
-## Available Tools
-
-### 1. `search_knowledge`
-
-Search across knowledge collections with semantic search.
-
-**Parameters:**
-- `query` (required): Natural language search query
-- `collection_id` (required): UUID of collection to search
-- `limit` (optional): Max results (1-100, default 10)
-
-**Example:**
-```json
-{
-  "query": "how to authenticate users",
-  "collection_id": "123e4567-e89b-12d3-a456-426614174000",
-  "limit": 5
-}
-```
-
-### 2. `list_collections`
-
-List all available knowledge collections.
-
-**Parameters:** None
-
-**Returns:** Array of collections with metadata (id, name, description, creator, timestamp)
-
-### 3. `get_collection_info`
-
-Get detailed information about a specific collection.
-
-**Parameters:**
-- `collection_id` (required): UUID of collection
-
-**Returns:** Collection details with metadata
-
-## Error Handling
-
-The MCP server uses basic error handling:
-- Invalid inputs return error responses with Zod validation messages
-- HTTP errors from backend are propagated to the AI agent
-- Timeouts set to 30 seconds per request
-
-## Logging
-
-Logs are written to `stderr` (stdout is reserved for MCP protocol):
-- Startup messages
-- Tool execution (via backend API logs)
-- Errors
-
-## Limitations (Current MVP)
-
-- **No caching**: Every request hits the backend
-- **Collection ID required**: Cannot search across all collections yet
-- **No retry logic**: Fail-fast on errors
-- **No metrics**: Basic logging only
-
-## Development
-
-### Project Structure
-
-```
-mcp-server/
-├── src/
-│   ├── index.ts              # Entry point
-│   ├── server.ts             # MCP server setup
-│   ├── config.ts             # Configuration
-│   ├── client/
-│   │   └── kms-client.ts     # HTTP client for backend
-│   └── tools/
-│       ├── search.ts         # search_knowledge tool
-│       └── collections.ts    # collection tools
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-### Building
-
-```bash
-pnpm build
-```
-
-Output: `dist/` directory with compiled JavaScript + source maps
-
-### Running in Development
-
-```bash
-pnpm dev  # Uses tsx for hot reload
-```
-
 ## Troubleshooting
 
-### "Cannot connect to backend"
-
-- Verify backend is running: `curl http://localhost:3000/api/health/live`
-- Check `KMS_API_URL` environment variable
-- Ensure no firewall blocking localhost:3000
-
-### "Collection not found"
-
-- Use `list_collections` tool first to get valid collection IDs
-- Collection IDs must be UUIDs
-- Ensure collections exist in backend (check via `/api/collections`)
-
-### "Zod validation error"
-
-- Check tool input parameters match expected schema
-- `collection_id` must be valid UUID format
-- `query` cannot be empty string
-
-## License
-
-MIT
+- Connection errors: confirm `KMS_API_URL` and backend health.
+- Validation errors: check `collection_id` UUID and required params.

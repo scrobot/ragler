@@ -1,14 +1,27 @@
-# kms-rag-backend
+# Changelog
+
+All notable backend changes are documented here.
 
 ## 1.1.0
 
-### Minor Changes
+### What changed
 
-- Migrate DTO validation from class-validator to Zod schemas
+- Added collection editor backend APIs for direct chunk management.
+- Added collection agent endpoints for AI-assisted analysis and operation suggestions.
+- Expanded collection/vector DTOs for richer metadata and quality controls.
+- Added unit test coverage for chunk service operations.
 
-  - Replace class-validator decorators with Zod schemas across all DTOs
-  - Add global ZodValidationPipe from nestjs-zod for request validation
-  - Add ZodValidationPipe utility for custom schema validation
-  - Introduce nestjs-zod integration for Swagger schema generation
-  - Update ErrorResponseDto, CollectionDto, IngestDto, LlmDto, SessionDto, and VectorDto
-  - Improved type safety with explicit Zod schema inference
+### Verify
+
+- Swagger includes `Collection Editor - Chunks`, `Collection Editor - Reorder`, and `Collection Agent` sections.
+- `GET /api/health/readiness` reports healthy dependencies.
+
+## 1.0.0
+
+### What changed
+
+- Initial backend release with ingestion, session workflow, collection CRUD, and search.
+
+### Verify
+
+- Core flow works: ingest -> session edit -> preview -> publish -> search.

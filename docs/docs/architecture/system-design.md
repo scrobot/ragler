@@ -1,33 +1,24 @@
----
-sidebar_position: 2
-title: System Design
----
-
 # System Design
 
-## Technology Stack
+## What this page is for
 
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| **Backend** | Node.js (NestJS) | Strict modularity, DI, Typescript. |
-| **Frontend** | React 18 + Metronic | Enterprise UI ready-made components. |
-| **Draft Store** | Redis | Fast ephemeral storage for sessions. |
-| **Vector DB** | Qdrant | Self-hosted, performant, payload filtering. |
+Document service boundaries and request paths.
 
-## Deployment Topology
+## Backend boundaries
 
-Run via `docker-compose`:
+- `ingest`: source ingestion endpoints
+- `session`: draft editing lifecycle
+- `collection`: collection CRUD + editor operations
+- `vector`: search and vector operations
+- `health`: liveness and readiness checks
 
-```yaml
-version: '3.8'
-services:
-  api:
-    build: ./backend
-    depends_on: [redis, qdrant]
-  frontend:
-    build: ./frontend
-  qdrant:
-    image: qdrant/qdrant:latest
-  redis:
-    image: redis:alpine
-```
+## Design choices
+
+- API prefix: `/api`
+- Stateless HTTP service; state externalized to Redis/Qdrant
+- DTO validation at boundary via Zod schemas
+
+## Verify
+
+- Swagger lists all module endpoints.
+- Health readiness checks both Redis and Qdrant.

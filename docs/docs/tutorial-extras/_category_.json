@@ -1,7 +1,8 @@
 {
-  "label": "Tutorial - Extras",
-  "position": 3,
+  "label": "Legacy Links",
+  "position": 99,
   "link": {
-    "type": "generated-index"
+    "type": "generated-index",
+    "description": "Compatibility pages for moved documentation routes."
   }
 }

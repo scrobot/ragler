@@ -1,48 +1,26 @@
----
-sidebar_position: 1
-title: Overview
----
-
 # Architecture Overview
 
-## Executive Summary
+## What this page is for
 
-KMS-RAG is a knowledge management system that provides **Human-in-the-Loop** data validation before data enters the search index. The system allows L2-Support and Developers to curate the knowledge base without involvement of ML engineers.
+Describe the runtime architecture and data flow used by RAGler.
 
-**Architectural Paradigm (v2.0):**
+## High-level components
 
-- **Vector-First & Only:** Rejection of SQL. Data (content) and metadata (collection registry) are stored in Qdrant.
-- **Dynamic Context:** Collections are not rigidly fixed but managed via API.
-- **Atomic Consistency:** Document (source) updates follow a full replacement strategy (Delete-Insert).
+- Frontend (Next.js)
+- Backend API (NestJS)
+- Redis (draft sessions)
+- Qdrant (published vectors + metadata)
+- OpenAI (chunking/embedding/model tasks)
+- MCP server (tool adapter over backend API)
 
-## High-Level Architecture
+## Data flow
 
-```mermaid
-graph TD
-    User["User (L2/Dev)"] --> WebApp["SPA Client"]
-    WebApp --> API["KMS Backend API"]
+1. Source content enters via ingest endpoint.
+2. Draft session and chunk edits live in Redis.
+3. Publish writes embeddings and chunk payloads to Qdrant.
+4. Search queries Qdrant and returns structured results.
 
-    subgraph "Logic Layer"
-        API --> Ingest["Ingestion Strategy"]
-        API --> LLM_GW["LLM Gateway"]
-        API --> Coll_Mgr["Collection Manager"]
-    end
+## Next steps
 
-    subgraph "State Layer"
-        API --> Redis["Redis: Draft Sessions"]
-        Coll_Mgr --> Qdrant["Qdrant: Vector DB"]
-    end
-
-    subgraph "External"
-        Ingest --> Conf["Confluence"]
-        LLM_GW --> OpenAI["OpenAI API"]
-    end
-```
-
-## Key Components
-
-1. **Draft Store (Redis):** "Sandbox". This is where chunks live during editing, split/merge operations. Preview happens here too.
-2. **Knowledge Store (Qdrant):**
-   - `data_{collection_uuid}`: Storage of vectors and content.
-   - `sys_registry`: System collection storing the list of user-created collections.
-3. **Ingestion Engine:** Loading module. Computes source hash to control changes.
+- `/docs/architecture/system-design`
+- `/docs/architecture/data-model`

@@ -1,24 +1,24 @@
----
-sidebar_position: 1
-title: Core Concepts
----
+# AI Context Core Concepts
 
-# RAGler Core Concepts (AI Context)
+## What this page is for
 
-## Definitions
+Define how RAGler structures and governs context used by LLM-driven applications.
 
-- **Chunk**: The smallest unit of retrieval.
-    - Properties: `id` (uuid), `content` (text), `vector` (embedding), `source_id` (hash).
-- **Collection**: A logical container for chunks.
-    - Implementation: A Qdrant collection named `kb_{uuid}`.
-    - Metadata: Stored in `sys_registry` collection.
-- **Session**: A temporary workspace for editing chunks.
-    - Storage: Redis.
-    - TTL: Ephemeral.
-- **Atomic Replacement**: The strategy for updating documents.
-    - Rule: Delete all chunks with `source_id` -> Insert new chunks.
+## Concepts
 
-## Constraints
+- Context is curated, not raw dump.
+- Published data is immutable per operation but replaceable by workflow.
+- Human approval gates changes before publication.
+- Retrieval quality depends on chunk structure and metadata quality.
 
-- **No SQL**: Do not propose SQL migrations. Everything is Vector or Redis.
-- **No Direct Qdrant Access**: Frontend talks to API; API talks to Qdrant.
+## Operational rules
+
+1. Ingest creates draft sessions.
+2. Draft edits happen before publish.
+3. Publish updates collection knowledge state.
+4. Search only targets published content.
+
+## Verify
+
+- No direct draft access from search endpoints.
+- Session workflow is required before publish.

@@ -1,66 +1,57 @@
-# Metronic 9 | All-in-One Tailwind based HTML/React/Next.js Template for Modern Web Applications
+# RAGler Frontend
 
-## Getting Started
+Next.js UI for collection management, sessions, and publishing workflows.
 
-The official [Metronic Next.js Documentation](https://docs.keenthemes.com/metronic-nextjs) will be released soon,
-alongside the stable Metronic release, expected within the next week.
-
-### Prerequisites
-
-- Node.js 16.x or higher
-- Npm or Yarn
-- Tailwind CSS 4.x
-- React 19.x
-- Next.js 15.3.x
-- PostgreSQL 17.4.x
-
-## ReUI Components
-
-Metronic now leverages [ReUI](https://reui.io), our open-source React component library.
-
-Star the [ReUI on GitHub](https://github.com/keenthemes/reui) to help us grow the project and stay updated on new features!
-
-### Installation
-
-To set up the project dependencies, including those required for React 19, use the `--force` flag to resolve any dependency conflicts:
+## TL;DR
 
 ```bash
-npm install --force
+pnpm install
+pnpm dev
 ```
 
-### Database Deployment
+Default URL: `http://localhost:3001` (or Next.js default port output).
 
-This will create the necessary tables in database for user authorization and user management apps :
+## Prerequisites
+
+- Node.js 20+
+- pnpm
+- Running backend API (`http://localhost:3000/api`)
+
+## Quick Start
+
+1. Install dependencies.
 
 ```bash
-npx prisma db push
+pnpm install
 ```
 
-Once your schema is deployed, you need to generate the Prisma Client:
+2. Configure API URL (recommended).
 
 ```bash
-npx prisma generate
+echo 'NEXT_PUBLIC_API_URL=http://localhost:3000/api' > .env.local
 ```
 
-### Development
-
-Start the development server:
+3. Start dev server.
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-### Setting Up the Demo Layout
+## Verify
 
-Open `app/(protected)/layout.tsx` and change `Demo1Layout` to any demo, for example, `Demo5Layout` and you will switch entire app layout to the selected demo.
+- Open the app in browser.
+- Confirm collections and sessions load from backend.
+- If API calls fail, inspect browser network and `NEXT_PUBLIC_API_URL`.
+
+## Common Tasks
 
 ```bash
-<Demo5Layout>
-	{children}
-</Demo5Layout>
+pnpm lint
+pnpm build
+pnpm start
 ```
 
-### Reporting Issues
+## Troubleshooting
 
-If you encounter any issues or have suggestions for improvement, please contact us at [support@keenthemes.com](mailto:support@keenthemes.com).
-Include a detailed description of the issue or suggestion, and we will work to address it in the next stable release.
+- Empty data/state errors: backend not running or wrong API URL.
+- 404s on API from browser: ensure URL includes `/api` suffix.

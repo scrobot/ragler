@@ -1,41 +1,29 @@
----
-sidebar_position: 3
-title: Collections
----
-
 # Collections
 
-## Purpose
-A collection represents a **context of knowledge use**, not just a bag of chunks. It defines:
-- Intended audience
-- Usage scenarios
-- Expected style/tone
+## What this page is for
 
-## Collection Management
+Manage knowledge collections and direct chunk editing.
 
-The system provides comprehensive collection management capabilities:
+## Core endpoints
 
-### Creation
-- Requires descriptive purpose statement
-- Should define intended audience and use cases
-- Must specify expected style and level of detail
+- `GET /api/collections`
+- `GET /api/collections/:id`
+- `POST /api/collections`
+- `DELETE /api/collections/:id`
 
-### Editing
-- Collection description can be updated
-- Parameters and metadata can be modified
-- Purpose refinement without republishing chunks
+Collection editor endpoints:
 
-### Composition Management
-- Assign chunks to collections during session workflow
-- Move chunks between collections (re-publishing required)
-- View all chunks within a collection
+- `GET/POST /api/collections/:collectionId/chunks`
+- `GET/PUT/DELETE /api/collections/:collectionId/chunks/:chunkId`
+- `POST /api/collections/:collectionId/chunks/:chunkId/split`
+- `POST /api/collections/:collectionId/chunks/merge`
+- `PUT /api/collections/:collectionId/reorder`
 
-### Deletion Protection
-- Collection deletion requires explicit user confirmation
-- System prevents accidental loss of chunks
-- Orphaned chunks warning before deletion
+## Verify
 
-### Key Rules
-- **Association:** Every chunk must belong to exactly one collection
-- **Selection:** Collection must be selected before publishing
-- **Immutability:** Published chunks retain collection assignment until explicitly changed
+- Collection list returns created collections.
+- Direct chunk edits are visible in subsequent reads and search results.
+
+## Next steps
+
+- `/docs/product/flows/intro`

@@ -1,41 +1,41 @@
-# Website
+# RAGler Docs Site
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Docusaurus site for product, architecture, and operational documentation.
 
-## Installation
+## What This Is For
 
-```bash
-yarn
-```
+Use this package to edit and publish project documentation under `docs/docs`.
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm
 
 ## Local Development
 
 ```bash
-yarn start
+pnpm install
+pnpm start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-## Build
+## Build and Validate
 
 ```bash
-yarn build
+pnpm build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+If build fails, fix broken links/frontmatter issues before merge.
 
-## Deployment
+## Docs Workflow
 
-Using SSH:
+1. Update docs under `docs/docs/**`.
+2. Keep examples aligned with real API routes and DTO fields.
+3. Build locally before opening PR.
+
+## Common Commands
 
 ```bash
-USE_SSH=true yarn deploy
+pnpm typecheck
+pnpm clear
+pnpm serve
 ```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
