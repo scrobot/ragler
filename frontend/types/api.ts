@@ -141,3 +141,136 @@ export interface HealthResponse {
     qdrant?: { status: 'up' | 'down' };
   };
 }
+
+// Editor Chunks (for Collection Editor)
+export interface EditorChunk {
+  id: string;
+  content: string;
+  doc: {
+    source_id: string;
+    source_type: SourceType;
+    source_url: string;
+    title: string | null;
+  };
+  chunk: {
+    id: string;
+    type: string;
+    heading_path: string[];
+    section: string;
+  };
+  tags: string[];
+  editor?: {
+    position: number;
+    quality_score: number | null;
+    quality_issues: string[];
+    last_edited_at: string | null;
+    last_edited_by: string | null;
+    edit_count: number;
+  };
+}
+
+export interface EditorChunkListResponse {
+  chunks: EditorChunk[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ListChunksQuery {
+  limit?: number;
+  offset?: number;
+  sortBy?: 'position' | 'quality_score' | 'updated_at';
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+}
+
+export interface CreateEditorChunkRequest {
+  content: string;
+  chunkType?: string;
+  headingPath?: string[];
+  tags?: string[];
+  position?: number;
+}
+
+export interface UpdateEditorChunkRequest {
+  content?: string;
+  tags?: string[];
+}
+
+export interface SplitEditorChunkRequest {
+  splitPoints?: number[];
+  newTextBlocks?: string[];
+}
+
+export interface MergeEditorChunksRequest {
+  chunkIds: string[];
+  separator?: string;
+}
+
+export interface ReorderChunksRequest {
+  chunkPositions: Array<{
+    chunkId: string;
+    position: number;
+  }>;
+}
+
+export interface UpdateQualityScoreRequest {
+  qualityScore: number;
+  qualityIssues?: string[];
+}
+
+// Agent Events (for AI assistant)
+export type AgentEventType = 'thinking' | 'tool_call' | 'tool_result' | 'message' | 'error' | 'done';
+
+export interface AgentThinkingEvent {
+  type: 'thinking';
+  timestamp: string;
+}
+
+export interface AgentToolCallEvent {
+  type: 'tool_call';
+  tool: string;
+  input: unknown;
+  timestamp: string;
+}
+
+export interface AgentToolResultEvent {
+  type: 'tool_result';
+  tool: string;
+  output: unknown;
+  timestamp: string;
+}
+
+export interface AgentMessageEvent {
+  type: 'message';
+  content: string;
+  timestamp: string;
+}
+
+export interface AgentErrorEvent {
+  type: 'error';
+  message: string;
+  timestamp: string;
+}
+
+export interface AgentDoneEvent {
+  type: 'done';
+  timestamp: string;
+}
+
+export type AgentEvent =
+  | AgentThinkingEvent
+  | AgentToolCallEvent
+  | AgentToolResultEvent
+  | AgentMessageEvent
+  | AgentErrorEvent
+  | AgentDoneEvent;
+
+export interface AgentChatRequest {
+  message: string;
+  sessionId: string;
+}
+
+export interface ApproveOperationRequest {
+  sessionId: string;
+}

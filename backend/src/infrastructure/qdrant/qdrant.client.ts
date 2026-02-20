@@ -145,4 +145,106 @@ export class QdrantClientService implements OnModuleInit {
     });
     return result.points;
   }
+
+  /**
+   * Scroll with pagination and ordering support for Collection Editor
+   * Uses offset-based pagination with optional ordering by payload field
+   */
+  async scrollWithOrder(
+    collectionName: string,
+    options: {
+      filter?: Record<string, unknown>;
+      limit?: number;
+      offset?: number;
+      orderBy?: {
+        field: string;
+        direction?: 'asc' | 'desc';
+      };
+    } = {},
+  ): Promise<{ points: unknown[]; nextOffset: number | null }> {
+    const { filter, limit = 20, offset = 0, orderBy } = options;
+
+    // Qdrant scroll supports order_by since v1.7
+    const scrollParams: Record<string, unknown> = {
+      filter: filter as any,
+      limit,
+      with_payload: true,
+      with_vector: false,
+    };
+
+    if (orderBy) {
+      scrollParams.order_by = {
+        key: orderBy.field,
+        direction: orderBy.direction || 'asc',
+      };
+    }
+
+    // For offset-based pagination, we need to skip `offset` points
+    // Qdrant scroll uses cursor-based pagination, so we simulate offset
+    // by scrolling multiple times or using offset parameter if supported
+    if (offset > 0) {
+      scrollParams.offset = offset;
+    }
+
+    const result = await this.client.scroll(collectionName, scrollParams as any);
+
+    const hasMore = result.points.length === limit;
+    const nextOffset = hasMore ? offset + limit : null;
+
+    return {
+      points: result.points,
+      nextOffset,
+    };
+  }
+
+  /**
+   * Count points in collection with optional filter
+   */
+  async countPoints(
+    collectionName: string,
+    filter?: Record<string, unknown>,
+  ): Promise<number> {
+    const result = await this.client.count(collectionName, {
+      filter: filter as any,
+      exact: true,
+    });
+    return result.count;
+  }
+
+  /**
+   * Batch update payloads for multiple points
+   * Used for updating editor metadata (position, quality_score, etc.)
+   */
+  async updatePayloads(
+    collectionName: string,
+    updates: Array<{ id: string; payload: Record<string, unknown> }>,
+  ): Promise<void> {
+    // Qdrant set_payload can update multiple points at once
+    // But we need to call it per-point for different payloads
+    for (const update of updates) {
+      await this.client.setPayload(collectionName, {
+        wait: true,
+        points: [update.id],
+        payload: update.payload,
+      });
+    }
+
+    this.logger.debug(`Updated payloads for ${updates.length} points in ${collectionName}`);
+  }
+
+  /**
+   * Overwrite specific payload fields for points matching a filter
+   * Useful for bulk operations like resetting quality scores
+   */
+  async setPayloadByFilter(
+    collectionName: string,
+    filter: Record<string, unknown>,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await this.client.setPayload(collectionName, {
+      wait: true,
+      filter: filter as any,
+      payload,
+    });
+  }
 }

@@ -70,12 +70,23 @@ export const AclMetadataSchema = z.object({
   allowed_users: z.array(z.string()).default([]),
 });
 
+// Editor metadata schema (Collection Editor - FTR-008)
+export const EditorMetadataSchema = z.object({
+  position: z.number().int().nonnegative().describe('Order within collection for retrieval optimization'),
+  quality_score: z.number().min(0).max(100).nullable().describe('AI-assigned quality score (0-100)'),
+  quality_issues: z.array(z.string()).default([]).describe('Identified quality issues'),
+  last_edited_at: z.string().datetime().nullable().describe('ISO-8601 timestamp of last edit'),
+  last_edited_by: z.string().nullable().describe('User ID who last edited'),
+  edit_count: z.number().int().nonnegative().default(0).describe('Total number of edits'),
+});
+
 // Complete payload schema
 export const QdrantPayloadSchema = z.object({
   doc: DocMetadataSchema,
   chunk: ChunkMetadataSchema,
   tags: z.array(z.string().min(1).max(50)).max(12).default([]).describe('LLM-extracted topic tags'),
   acl: AclMetadataSchema,
+  editor: EditorMetadataSchema.optional().describe('Editor metadata for Collection Editor'),
 });
 
 // ============================================================================
@@ -85,6 +96,7 @@ export const QdrantPayloadSchema = z.object({
 export type DocMetadata = z.infer<typeof DocMetadataSchema>;
 export type ChunkMetadata = z.infer<typeof ChunkMetadataSchema>;
 export type AclMetadata = z.infer<typeof AclMetadataSchema>;
+export type EditorMetadata = z.infer<typeof EditorMetadataSchema>;
 export type QdrantPayload = z.infer<typeof QdrantPayloadSchema>;
 
 // ============================================================================
@@ -94,6 +106,7 @@ export type QdrantPayload = z.infer<typeof QdrantPayloadSchema>;
 export class DocMetadataDto extends createZodDto(DocMetadataSchema) {}
 export class ChunkMetadataDto extends createZodDto(ChunkMetadataSchema) {}
 export class AclMetadataDto extends createZodDto(AclMetadataSchema) {}
+export class EditorMetadataDto extends createZodDto(EditorMetadataSchema) {}
 export class QdrantPayloadDto extends createZodDto(QdrantPayloadSchema) {}
 
 // ============================================================================
@@ -105,6 +118,7 @@ export interface Chunk {
   chunk: ChunkMetadata;
   tags: string[];
   acl: AclMetadata;
+  editor?: EditorMetadata;
 }
 
 // ============================================================================
@@ -126,6 +140,21 @@ export function createDefaultAcl(): AclMetadata {
     visibility: 'internal',
     allowed_groups: [],
     allowed_users: [],
+  };
+}
+
+// ============================================================================
+// Helper: Create default editor metadata
+// ============================================================================
+
+export function createDefaultEditorMetadata(position: number, userId?: string): EditorMetadata {
+  return {
+    position,
+    quality_score: null,
+    quality_issues: [],
+    last_edited_at: userId ? new Date().toISOString() : null,
+    last_edited_by: userId ?? null,
+    edit_count: 0,
   };
 }
 
