@@ -16,9 +16,14 @@ export const ListChunksQuerySchema = z.object({
   sortBy: z.enum(['position', 'created_at', 'quality_score']).default('position'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
   search: z.string().max(200).optional(),
+  sourceType: z.enum(['confluence', 'web', 'manual', 'file']).optional(),
+  sourceId: z.string().max(200).optional(),
+  minQuality: z.coerce.number().min(0).max(100).optional(),
+  maxQuality: z.coerce.number().min(0).max(100).optional(),
+  tags: z.string().max(500).optional(), // comma-separated tag list
 });
 
-export class ListChunksQueryDto extends createZodDto(ListChunksQuerySchema) {}
+export class ListChunksQueryDto extends createZodDto(ListChunksQuerySchema) { }
 export type ListChunksQuery = z.infer<typeof ListChunksQuerySchema>;
 
 // ============================================================================
@@ -48,7 +53,7 @@ export const EditorChunkResponseSchema = z.object({
   editor: EditorMetadataSchema.optional(),
 });
 
-export class EditorChunkResponseDto extends createZodDto(EditorChunkResponseSchema) {}
+export class EditorChunkResponseDto extends createZodDto(EditorChunkResponseSchema) { }
 export type EditorChunkResponse = z.infer<typeof EditorChunkResponseSchema>;
 
 export const EditorChunkListResponseSchema = z.object({
@@ -58,7 +63,7 @@ export const EditorChunkListResponseSchema = z.object({
   offset: z.number().int().nonnegative(),
 });
 
-export class EditorChunkListResponseDto extends createZodDto(EditorChunkListResponseSchema) {}
+export class EditorChunkListResponseDto extends createZodDto(EditorChunkListResponseSchema) { }
 export type EditorChunkListResponse = z.infer<typeof EditorChunkListResponseSchema>;
 
 // ============================================================================
@@ -73,7 +78,7 @@ export const EditorCreateChunkSchema = z.object({
   position: z.number().int().nonnegative().optional(),
 });
 
-export class EditorCreateChunkDto extends createZodDto(EditorCreateChunkSchema) {}
+export class EditorCreateChunkDto extends createZodDto(EditorCreateChunkSchema) { }
 export type EditorCreateChunkInput = z.infer<typeof EditorCreateChunkSchema>;
 
 export const EditorUpdateChunkSchema = z.object({
@@ -83,7 +88,7 @@ export const EditorUpdateChunkSchema = z.object({
   chunkType: ChunkTypeSchema.optional(),
 });
 
-export class EditorUpdateChunkDto extends createZodDto(EditorUpdateChunkSchema) {}
+export class EditorUpdateChunkDto extends createZodDto(EditorUpdateChunkSchema) { }
 export type EditorUpdateChunkInput = z.infer<typeof EditorUpdateChunkSchema>;
 
 // ============================================================================
@@ -100,7 +105,7 @@ export const EditorSplitChunkSchema = z.object({
   { message: 'Either splitPoints or newTextBlocks must be provided' },
 );
 
-export class EditorSplitChunkDto extends createZodDto(EditorSplitChunkSchema) {}
+export class EditorSplitChunkDto extends createZodDto(EditorSplitChunkSchema) { }
 export type EditorSplitChunkInput = z.infer<typeof EditorSplitChunkSchema>;
 
 export const EditorMergeChunksSchema = z.object({
@@ -108,7 +113,7 @@ export const EditorMergeChunksSchema = z.object({
   separator: z.string().max(100).default('\n\n'),
 });
 
-export class EditorMergeChunksDto extends createZodDto(EditorMergeChunksSchema) {}
+export class EditorMergeChunksDto extends createZodDto(EditorMergeChunksSchema) { }
 export type EditorMergeChunksInput = z.infer<typeof EditorMergeChunksSchema>;
 
 // ============================================================================
@@ -124,7 +129,7 @@ export const ReorderChunksSchema = z.object({
   chunkPositions: z.array(ChunkPositionSchema).min(1),
 });
 
-export class ReorderChunksDto extends createZodDto(ReorderChunksSchema) {}
+export class ReorderChunksDto extends createZodDto(ReorderChunksSchema) { }
 export type ReorderChunksInput = z.infer<typeof ReorderChunksSchema>;
 
 // ============================================================================
@@ -136,7 +141,7 @@ export const UpdateQualityScoreSchema = z.object({
   issues: z.array(z.string()).default([]),
 });
 
-export class UpdateQualityScoreDto extends createZodDto(UpdateQualityScoreSchema) {}
+export class UpdateQualityScoreDto extends createZodDto(UpdateQualityScoreSchema) { }
 export type UpdateQualityScoreInput = z.infer<typeof UpdateQualityScoreSchema>;
 
 export const BulkQualityScoreSchema = z.object({
@@ -149,5 +154,5 @@ export const BulkQualityScoreSchema = z.object({
   ).min(1),
 });
 
-export class BulkQualityScoreDto extends createZodDto(BulkQualityScoreSchema) {}
+export class BulkQualityScoreDto extends createZodDto(BulkQualityScoreSchema) { }
 export type BulkQualityScoreInput = z.infer<typeof BulkQualityScoreSchema>;

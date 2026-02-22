@@ -52,7 +52,7 @@ export class ChunkService {
   }
 
   /**
-   * List chunks in a collection with pagination and sorting
+   * List chunks in a collection with pagination, sorting, and filtering
    */
   async listChunks(
     collectionId: string,
@@ -66,8 +66,13 @@ export class ChunkService {
       throw new NotFoundException(`Collection ${collectionId} not found`);
     }
 
-    // Get total count
-    const total = await this.qdrantClient.countPoints(collectionName);
+    // Build filter conditions
+    const filter = this.buildChunkFilter(query);
+
+    // Get total count (filtered if applicable)
+    const total = filter
+      ? await this.qdrantClient.countPoints(collectionName, filter)
+      : await this.qdrantClient.countPoints(collectionName);
 
     // Determine order field
     const orderField =
@@ -77,8 +82,9 @@ export class ChunkService {
           ? 'editor.quality_score'
           : 'doc.last_modified_at';
 
-    // Scroll with pagination and ordering
+    // Scroll with pagination, ordering, and filter
     const { points } = await this.qdrantClient.scrollWithOrder(collectionName, {
+      filter,
       limit: query.limit,
       offset: query.offset,
       orderBy: {
@@ -97,6 +103,7 @@ export class ChunkService {
       total,
       returned: chunks.length,
       offset: query.offset,
+      hasFilter: !!filter,
     });
 
     return {
@@ -751,6 +758,49 @@ export class ChunkService {
   // ============================================================================
   // Private Helpers
   // ============================================================================
+
+  /**
+   * Build Qdrant filter conditions from query parameters.
+   * Returns undefined if no filters are active (better performance).
+   */
+  private buildChunkFilter(
+    query: ListChunksQuery,
+  ): Record<string, unknown> | undefined {
+    const must: Record<string, unknown>[] = [];
+
+    if (query.sourceType) {
+      must.push({ key: 'doc.source_type', match: { value: query.sourceType } });
+    }
+
+    if (query.sourceId) {
+      must.push({ key: 'doc.source_id', match: { value: query.sourceId } });
+    }
+
+    if (query.minQuality !== undefined) {
+      must.push({ key: 'editor.quality_score', range: { gte: query.minQuality } });
+    }
+
+    if (query.maxQuality !== undefined) {
+      must.push({ key: 'editor.quality_score', range: { lte: query.maxQuality } });
+    }
+
+    if (query.tags) {
+      const tagList = query.tags.split(',').map((t) => t.trim()).filter(Boolean);
+      for (const tag of tagList) {
+        must.push({ key: 'tags', match: { value: tag } });
+      }
+    }
+
+    if (query.search) {
+      must.push({ key: 'chunk.text', match: { text: query.search } });
+    }
+
+    if (must.length === 0) {
+      return undefined;
+    }
+
+    return { must };
+  }
 
   private mapPointToChunkResponse(point: QdrantPoint): EditorChunkResponse {
     const payload = point.payload;
