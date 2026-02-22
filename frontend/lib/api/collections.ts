@@ -71,6 +71,71 @@ export const collectionsApi = {
 
   clearSession: (id: string, sessionId: string) =>
     apiClient.delete<void>(`/collections/${id}/agent/session/${sessionId}`),
+
+  // Session management
+  createSession: (collectionId: string, title?: string) =>
+    apiClient.post<{ id: string; title: string; collectionId: string; createdAt: string }>(
+      `/collections/${collectionId}/agent/sessions`,
+      { title },
+    ),
+
+  listSessions: (collectionId: string) =>
+    apiClient.get<{ sessions: Array<{ id: string; title: string; collectionId: string; createdAt: string; updatedAt: string }> }>(
+      `/collections/${collectionId}/agent/sessions`,
+    ),
+
+  getSessionWithHistory: (collectionId: string, sessionId: string) =>
+    apiClient.get<{
+      session: { id: string; title: string; collectionId: string; createdAt: string; updatedAt: string } | null;
+      messages: Array<{ role: string; content: string }>;
+    }>(`/collections/${collectionId}/agent/sessions/${sessionId}`),
+
+  renameSession: (collectionId: string, sessionId: string, title: string) =>
+    apiClient.patch<{ success: boolean }>(
+      `/collections/${collectionId}/agent/sessions/${sessionId}`,
+      { title },
+    ),
+
+  deleteAgentSession: (collectionId: string, sessionId: string) =>
+    apiClient.delete<void>(`/collections/${collectionId}/agent/sessions/${sessionId}`),
+
+  // Prompt management
+  getGlobalPrompt: (collectionId: string) =>
+    apiClient.get<{ prompt: string; isDefault: boolean }>(
+      `/collections/${collectionId}/agent/prompts/global`,
+    ),
+
+  getDefaultPrompt: (collectionId: string) =>
+    apiClient.get<{ prompt: string }>(
+      `/collections/${collectionId}/agent/prompts/default`,
+    ),
+
+  updateGlobalPrompt: (collectionId: string, prompt: string) =>
+    apiClient.patch<{ success: boolean }>(
+      `/collections/${collectionId}/agent/prompts/global`,
+      { prompt },
+    ),
+
+  resetGlobalPrompt: (collectionId: string) =>
+    apiClient.delete<{ success: boolean }>(
+      `/collections/${collectionId}/agent/prompts/global`,
+    ),
+
+  getCollectionPrompt: (collectionId: string) =>
+    apiClient.get<{ prompt: string | null; hasOverride: boolean }>(
+      `/collections/${collectionId}/agent/prompt`,
+    ),
+
+  updateCollectionPrompt: (collectionId: string, prompt: string) =>
+    apiClient.patch<{ success: boolean }>(
+      `/collections/${collectionId}/agent/prompt`,
+      { prompt },
+    ),
+
+  deleteCollectionPrompt: (collectionId: string) =>
+    apiClient.delete<{ success: boolean }>(
+      `/collections/${collectionId}/agent/prompt`,
+    ),
 };
 
 /**
@@ -85,7 +150,7 @@ export function streamAgentChat(
   onComplete: () => void
 ): () => void {
   const controller = new AbortController();
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
 
   fetch(`${baseUrl}/collections/${collectionId}/agent/chat`, {
     method: 'POST',

@@ -1,4 +1,4 @@
-import { FileText, FolderOpen, LayoutDashboard, ScrollText } from 'lucide-react';
+import { FileText, FolderOpen, LayoutDashboard, MessageCircle, ScrollText, Settings } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
 export const MENU_SIDEBAR: MenuConfig = [
@@ -22,6 +22,17 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Collections',
     icon: FolderOpen,
     path: '/collections',
+  },
+  {
+    title: 'Chat',
+    icon: MessageCircle,
+    path: '/chat',
+  },
+  { heading: 'Configuration' },
+  {
+    title: 'System Prompts',
+    icon: Settings,
+    path: '/settings/prompts',
   },
 ];
 

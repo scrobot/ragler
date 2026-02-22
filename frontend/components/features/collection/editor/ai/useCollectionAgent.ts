@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { streamAgentChat, collectionsApi } from "@/lib/api/collections";
 import type { AgentEvent } from "@/types/api";
 
+export type AgentMode = "hitl" | "automatic";
+
 export interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   toolCalls?: ToolCall[];
   timestamp: Date;
@@ -35,12 +37,39 @@ function updateAssistantMessage(
   return messages.map((m) => (m.id === id ? { ...m, ...updates } : m));
 }
 
-export function useCollectionAgent(collectionId: string, userId: string) {
-  const [sessionId] = useState(() => uuidv4());
+export function useCollectionAgent(collectionId: string, userId: string, initialSessionId?: string) {
+  const [sessionId, setSessionId] = useState<string>(initialSessionId || uuidv4());
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
+  const [mode, setMode] = useState<AgentMode>("hitl");
   const abortRef = useRef<(() => void) | null>(null);
+  const modeRef = useRef<AgentMode>(mode);
+
+  // Keep modeRef in sync for use inside callbacks
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  // Auto-load history when resuming an existing session
+  useEffect(() => {
+    if (!initialSessionId) return;
+
+    collectionsApi
+      .getSessionWithHistory(collectionId, initialSessionId)
+      .then((result) => {
+        const loadedMessages: Message[] = result.messages.map((m, i) => ({
+          id: `loaded-${i}`,
+          role: m.role === "human" ? ("user" as const) : ("assistant" as const),
+          content: m.content,
+          timestamp: new Date(),
+        }));
+        setMessages(loadedMessages);
+      })
+      .catch((err) => console.error("Failed to load session:", err));
+    // Only run on mount (initialSessionId doesn't change)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -62,7 +91,6 @@ export function useCollectionAgent(collectionId: string, userId: string) {
       const handleEvent = (event: AgentEvent) => {
         switch (event.type) {
           case "thinking":
-            // Show typing indicator - handled by isStreaming state
             break;
 
           case "tool_call":
@@ -96,15 +124,36 @@ export function useCollectionAgent(collectionId: string, userId: string) {
                     ? JSON.parse(event.output)
                     : event.output;
                 if (suggestion.action && suggestion.action !== "KEEP") {
-                  setPendingOperations((prev) => [
-                    ...prev,
-                    {
-                      operationId: suggestion.operationId,
-                      type: suggestion.action,
-                      description: suggestion.rationale || "",
-                      preview: suggestion.suggestedContent,
-                    },
-                  ]);
+                  const operation: PendingOperation = {
+                    operationId: suggestion.operationId,
+                    type: suggestion.action,
+                    description: suggestion.rationale || "",
+                    preview: suggestion.suggestedContent,
+                  };
+
+                  if (modeRef.current === "automatic") {
+                    // Auto-approve in automatic mode
+                    collectionsApi
+                      .approveOperation(collectionId, suggestion.operationId, {
+                        sessionId,
+                      })
+                      .then(() => {
+                        setMessages((prev) => [
+                          ...prev,
+                          {
+                            id: uuidv4(),
+                            role: "system" as const,
+                            content: `Auto-approved: ${suggestion.action} — ${suggestion.rationale || ""}`,
+                            timestamp: new Date(),
+                          },
+                        ]);
+                      })
+                      .catch(() => {
+                        // Silently handle approval failures
+                      });
+                  } else {
+                    setPendingOperations((prev) => [...prev, operation]);
+                  }
                 }
               } catch {
                 // Ignore parse errors
@@ -208,15 +257,45 @@ export function useCollectionAgent(collectionId: string, userId: string) {
     await collectionsApi.clearSession(collectionId, sessionId);
   }, [collectionId, sessionId]);
 
+  const loadSession = useCallback(async (targetSessionId: string) => {
+    try {
+      const result = await collectionsApi.getSessionWithHistory(collectionId, targetSessionId);
+      setSessionId(targetSessionId);
+      setPendingOperations([]);
+
+      const loadedMessages: Message[] = result.messages.map((m, i) => ({
+        id: `loaded-${i}`,
+        role: m.role === 'human' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        timestamp: new Date(),
+      }));
+
+      setMessages(loadedMessages);
+    } catch (error) {
+      console.error('Failed to load session:', error);
+    }
+  }, [collectionId]);
+
+  const startNewSession = useCallback(() => {
+    const newId = uuidv4();
+    setSessionId(newId);
+    setMessages([]);
+    setPendingOperations([]);
+  }, []);
+
   return {
     sessionId,
     messages,
     isStreaming,
     pendingOperations,
+    mode,
+    setMode,
     sendMessage,
     approveOperation,
     rejectOperation,
     stopStreaming,
     clearChat,
+    loadSession,
+    startNewSession,
   };
 }

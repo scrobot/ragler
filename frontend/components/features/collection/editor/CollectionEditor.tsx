@@ -15,11 +15,13 @@ import {
   FileText,
   Layers,
   MessageCircle,
+  LayoutGrid,
 } from "lucide-react";
 import { CollectionChunkList } from "./CollectionChunkList";
 import { DocumentBrowser } from "./DocumentBrowser";
 import { FilterPanel, FilterValues } from "./FilterPanel";
 import { ChatPlayground } from "./ChatPlayground";
+import { CollectionOverview } from "./CollectionOverview";
 import { AIAssistantPanel } from "./ai/AIAssistantPanel";
 
 interface CollectionEditorProps {
@@ -30,7 +32,7 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
   const queryClient = useQueryClient();
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState("documents");
+  const [activeTab, setActiveTab] = useState("overview");
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterValues>({});
   const limit = 20;
@@ -46,13 +48,19 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
     error,
     isFetching,
   } = useQuery({
-    queryKey: ["collection-chunks", collectionId, page, limit],
+    queryKey: ["collection-chunks", collectionId, page, limit, filters, selectedSourceId],
     queryFn: () =>
       collectionsApi.listChunks(collectionId, {
         limit,
         offset: page * limit,
         sortBy: "position",
         sortOrder: "asc",
+        ...(filters.search ? { search: filters.search } : {}),
+        ...(filters.sourceType ? { sourceType: filters.sourceType } : {}),
+        ...(selectedSourceId ? { sourceId: selectedSourceId } : {}),
+        ...(filters.minQuality !== undefined ? { minQuality: filters.minQuality } : {}),
+        ...(filters.maxQuality !== undefined ? { maxQuality: filters.maxQuality } : {}),
+        ...(filters.tags ? { tags: filters.tags } : {}),
       }),
   });
 
@@ -63,7 +71,13 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
 
   const handleSelectDocument = (sourceId: string) => {
     setSelectedSourceId(sourceId);
+    setFilters({});
     setActiveTab("chunks");
+    setPage(0);
+  };
+
+  const handleFiltersChange = (newFilters: FilterValues) => {
+    setFilters(newFilters);
     setPage(0);
   };
 
@@ -83,21 +97,6 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
             <Skeleton key={i} className="h-32 w-full" />
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-        <h2 className="text-xl font-semibold text-destructive">
-          Failed to load collection
-        </h2>
-        <Button variant="outline" asChild>
-          <Link href="/collections">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Collections
-          </Link>
-        </Button>
       </div>
     );
   }
@@ -166,6 +165,10 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="documents" className="gap-2">
             <FileText className="h-4 w-4" />
             Documents
@@ -180,6 +183,14 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="overview">
+          <CollectionOverview
+            collectionId={collectionId}
+            collection={collection}
+            totalChunks={chunksData?.total ?? 0}
+          />
+        </TabsContent>
+
         <TabsContent value="documents">
           <DocumentBrowser
             collectionId={collectionId}
@@ -189,7 +200,7 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
 
         <TabsContent value="chunks">
           <div className="space-y-4">
-            <FilterPanel filters={filters} onChange={setFilters} />
+            <FilterPanel filters={filters} onChange={handleFiltersChange} />
 
             {selectedSourceId && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
@@ -214,6 +225,11 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-32 w-full" />
                 ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm">Failed to load chunks</p>
+                <p className="text-xs mt-1">This collection may not have been published yet.</p>
               </div>
             ) : (
               <CollectionChunkList

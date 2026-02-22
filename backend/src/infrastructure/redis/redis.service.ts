@@ -75,4 +75,18 @@ export class RedisService implements OnModuleDestroy {
 
     return keys;
   }
+
+  // Sorted set operations for session indexing
+
+  async zadd(key: string, score: number, member: string): Promise<void> {
+    await this.client.zadd(key, score, member);
+  }
+
+  async zrevrange(key: string, start: number, stop: number): Promise<string[]> {
+    return this.client.zrevrange(key, start, stop);
+  }
+
+  async zrem(key: string, member: string): Promise<void> {
+    await this.client.zrem(key, member);
+  }
 }

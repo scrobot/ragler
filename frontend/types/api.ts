@@ -79,7 +79,7 @@ export interface DeleteSessionResponse {
 }
 
 // Ingest
-export type SourceType = 'manual' | 'confluence' | 'web';
+export type SourceType = 'manual' | 'confluence' | 'web' | 'file';
 
 export interface IngestManualRequest {
   sourceType: 'manual';
@@ -182,6 +182,11 @@ export interface ListChunksQuery {
   sortBy?: 'position' | 'quality_score' | 'updated_at';
   sortOrder?: 'asc' | 'desc';
   search?: string;
+  sourceType?: string;
+  sourceId?: string;
+  minQuality?: number;
+  maxQuality?: number;
+  tags?: string;
 }
 
 export interface CreateEditorChunkRequest {

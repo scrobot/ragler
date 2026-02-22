@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { collectionsApi } from "@/lib/api/collections";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,12 +22,13 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Trash2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Loader2, ExternalLink } from "lucide-react";
 import { CreateCollectionModal } from "./CreateCollectionModal";
 import { toast } from "sonner";
 
 export function CollectionList() {
     const queryClient = useQueryClient();
+    const router = useRouter();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const { data, isLoading, error } = useQuery({
@@ -44,10 +47,16 @@ export function CollectionList() {
         },
     });
 
-    const handleDelete = (id: string) => {
+    const handleDelete = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         if (confirm("Are you sure you want to delete this collection?")) {
             deleteMutation.mutate(id);
         }
+    };
+
+    const handleCreated = (id: string) => {
+        setIsCreateModalOpen(false);
+        router.push(`/collections/${id}`);
     };
 
     if (isLoading) {
@@ -110,9 +119,19 @@ export function CollectionList() {
                                 </TableRow>
                             ) : (
                                 data?.collections.map((collection) => (
-                                    <TableRow key={collection.id}>
+                                    <TableRow
+                                        key={collection.id}
+                                        className="cursor-pointer"
+                                        onClick={() => router.push(`/collections/${collection.id}`)}
+                                    >
                                         <TableCell className="font-medium">
-                                            {collection.name}
+                                            <Link
+                                                href={`/collections/${collection.id}`}
+                                                className="hover:text-primary transition-colors hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {collection.name}
+                                            </Link>
                                         </TableCell>
                                         <TableCell>{collection.description}</TableCell>
                                         <TableCell>{collection.createdBy}</TableCell>
@@ -120,14 +139,26 @@ export function CollectionList() {
                                             {format(new Date(collection.createdAt), "PPp")}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(collection.id)}
-                                                disabled={deleteMutation.isPending}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    asChild
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <Link href={`/collections/${collection.id}`}>
+                                                        <ExternalLink className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => handleDelete(collection.id, e)}
+                                                    disabled={deleteMutation.isPending}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -140,6 +171,7 @@ export function CollectionList() {
             <CreateCollectionModal
                 open={isCreateModalOpen}
                 onOpenChange={setIsCreateModalOpen}
+                onCreated={handleCreated}
             />
         </div>
     );

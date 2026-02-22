@@ -6,6 +6,7 @@ import { ChunkService } from './chunk.service';
 import { CollectionAgentService } from './agent/collection-agent.service';
 import { CollectionAgentController } from './agent/collection-agent.controller';
 import { AgentMemoryService } from './agent/memory/redis-memory';
+import { PromptService } from './agent/prompts/prompt.service';
 import { ChatService } from './chat/chat.service';
 import { ChatController } from './chat/chat.controller';
 import { LlmModule } from '@llm/llm.module';
@@ -24,6 +25,7 @@ import { LlmModule } from '@llm/llm.module';
     ChunkService,
     CollectionAgentService,
     AgentMemoryService,
+    PromptService,
     ChatService,
   ],
   exports: [CollectionService, ChunkService, CollectionAgentService],

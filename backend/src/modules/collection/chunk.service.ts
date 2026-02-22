@@ -83,17 +83,36 @@ export class ChunkService {
           : 'doc.last_modified_at';
 
     // Scroll with pagination, ordering, and filter
-    const { points } = await this.qdrantClient.scrollWithOrder(collectionName, {
-      filter,
-      limit: query.limit,
-      offset: query.offset,
-      orderBy: {
-        field: orderField,
-        direction: query.sortOrder,
-      },
-    });
+    // Falls back to unordered scroll if the order field is missing from payload
+    let points: QdrantPoint[];
+    try {
+      const result = await this.qdrantClient.scrollWithOrder(collectionName, {
+        filter,
+        limit: query.limit,
+        offset: query.offset,
+        orderBy: {
+          field: orderField,
+          direction: query.sortOrder,
+        },
+      });
+      points = result.points as QdrantPoint[];
+    } catch {
+      this.logger.warn({
+        event: 'chunks_scroll_order_fallback',
+        collectionId,
+        orderField,
+        reason: 'Order field may not exist in payload, falling back to unordered scroll',
+      });
 
-    const chunks = (points as QdrantPoint[]).map((point) =>
+      const result = await this.qdrantClient.scrollWithOrder(collectionName, {
+        filter,
+        limit: query.limit,
+        offset: query.offset,
+      });
+      points = result.points as QdrantPoint[];
+    }
+
+    const chunks = points.map((point) =>
       this.mapPointToChunkResponse(point),
     );
 

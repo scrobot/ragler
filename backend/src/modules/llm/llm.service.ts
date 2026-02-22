@@ -282,13 +282,37 @@ Rules:
   }
 
   private deduplicateAndRenumber(chunks: ChunkDto[]): ChunkDto[] {
-    const seen = new Set<string>();
-    const unique = chunks.filter((chunk) => {
-      const key = chunk.text.slice(0, 100); // Use first 100 chars as key
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const unique: ChunkDto[] = [];
+
+    for (const chunk of chunks) {
+      const trimmed = chunk.text.trim();
+      if (!trimmed) continue;
+
+      const isDuplicate = unique.some((existing) => {
+        const existingText = existing.text.trim();
+
+        // Exact match
+        if (existingText === trimmed) return true;
+
+        // Near-duplicate: one contains the other, or >80% overlap
+        if (existingText.includes(trimmed) || trimmed.includes(existingText)) {
+          return true;
+        }
+
+        // Jaccard-like overlap on character n-grams (fast approximation)
+        const shorter = trimmed.length < existingText.length ? trimmed : existingText;
+        const longer = trimmed.length < existingText.length ? existingText : trimmed;
+        if (shorter.length > 50 && longer.includes(shorter.slice(10, shorter.length - 10))) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (!isDuplicate) {
+        unique.push(chunk);
+      }
+    }
 
     return unique.map((chunk, index) => ({
       ...chunk,

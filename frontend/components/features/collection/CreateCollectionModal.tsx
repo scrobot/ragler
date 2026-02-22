@@ -30,11 +30,13 @@ import { Loader2 } from "lucide-react";
 interface CreateCollectionModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onCreated?: (id: string) => void;
 }
 
 export function CreateCollectionModal({
     open,
     onOpenChange,
+    onCreated,
 }: CreateCollectionModalProps) {
     const queryClient = useQueryClient();
 
@@ -48,11 +50,15 @@ export function CreateCollectionModal({
 
     const mutation = useMutation({
         mutationFn: collectionsApi.create,
-        onSuccess: () => {
+        onSuccess: (created) => {
             queryClient.invalidateQueries({ queryKey: ["collections"] });
             toast.success("Collection created successfully");
-            onOpenChange(false);
             form.reset();
+            if (onCreated && created?.id) {
+                onCreated(created.id);
+            } else {
+                onOpenChange(false);
+            }
         },
         onError: () => {
             toast.error("Failed to create collection");

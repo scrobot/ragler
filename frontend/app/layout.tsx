@@ -24,7 +24,7 @@ export default async function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html className="h-full" suppressHydrationWarning>
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body
         className={cn(
           'antialiased flex h-full text-base text-foreground bg-background',
@@ -35,7 +35,7 @@ export default async function RootLayout({
           <UserProvider>
             <ThemeProvider
               attribute="class"
-              defaultTheme="system"
+              defaultTheme="dark"
               storageKey="nextjs-theme"
               enableSystem
               disableTransitionOnChange

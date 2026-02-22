@@ -10,21 +10,25 @@ import {
 import { createOpenAI, type OpenAIProvider } from '@ai-sdk/openai';
 import OpenAI from 'openai';
 
-import { ChunkService } from '../chunk.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
+import { LlmService } from '@llm/llm.service';
 import { AgentMemoryService } from './memory/redis-memory';
-import { COLLECTION_AGENT_SYSTEM_PROMPT } from './prompts/system-prompt';
+import { PromptService } from './prompts/prompt.service';
 import {
-  createAnalyzeQualityTool,
   createScoreChunkTool,
-  createSuggestOperationTool,
-  createGetChunkTool,
-  createGetChunksContextTool,
-  createExecuteOperationTool,
+  createListCollectionsTool,
+  createScrollChunksTool,
+  createSearchChunksTool,
+  createGetChunkDirectTool,
+  createCountChunksTool,
+  createUpdateChunkPayloadTool,
+  createDeleteChunksTool,
+  createUpsertChunkTool,
   type AgentTool,
 } from './tools';
 import type { AgentEvent } from '../dto/agent.dto';
 
-const MAX_TOOL_ITERATIONS = 8;
+const MAX_TOOL_ITERATIONS = 12;
 
 @Injectable()
 export class CollectionAgentService implements OnModuleInit {
@@ -36,9 +40,11 @@ export class CollectionAgentService implements OnModuleInit {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly chunkService: ChunkService,
+    private readonly qdrantClient: QdrantClientService,
+    private readonly llmService: LlmService,
     private readonly memoryService: AgentMemoryService,
-  ) {}
+    private readonly promptService: PromptService,
+  ) { }
 
   onModuleInit(): void {
     this.initializeClient();
@@ -62,11 +68,17 @@ export class CollectionAgentService implements OnModuleInit {
     const openaiClient = new OpenAI({ apiKey });
 
     this.tools = [
-      createAnalyzeQualityTool(this.chunkService),
+      // Direct Qdrant tools
+      createListCollectionsTool(this.qdrantClient),
+      createScrollChunksTool(this.qdrantClient),
+      createSearchChunksTool(this.qdrantClient, this.llmService),
+      createGetChunkDirectTool(this.qdrantClient),
+      createCountChunksTool(this.qdrantClient),
+      createUpdateChunkPayloadTool(this.qdrantClient),
+      createDeleteChunksTool(this.qdrantClient),
+      createUpsertChunkTool(this.qdrantClient, this.llmService),
+      // LLM-based scoring
       createScoreChunkTool(openaiClient),
-      createSuggestOperationTool(openaiClient),
-      createGetChunkTool(this.chunkService),
-      createGetChunksContextTool(this.chunkService),
     ];
 
     this.logger.log({
@@ -109,7 +121,6 @@ export class CollectionAgentService implements OnModuleInit {
     for (const agentTool of tools) {
       toolSet[agentTool.name] = tool({
         description: agentTool.description,
-        // Keep input schema broad to avoid deep generic instantiation.
         inputSchema: agentTool.schema as any,
         execute: async (input: unknown): Promise<string> => {
           const parsed = agentTool.parse(input);
@@ -121,17 +132,17 @@ export class CollectionAgentService implements OnModuleInit {
     return toolSet;
   }
 
-  private createAgent(
+  private async createAgent(
     collectionId: string,
     userId: string,
-    tools: AgentTool[],
-  ): ToolLoopAgent<never, ToolSet> {
+  ): Promise<ToolLoopAgent<never, ToolSet>> {
     const contextMessage = `You are helping with collection ID: ${collectionId}. User ID: ${userId}.`;
+    const systemPrompt = await this.promptService.getEffectivePrompt(collectionId);
 
     return new ToolLoopAgent({
       model: this.openaiProvider(this.modelId),
-      instructions: `${COLLECTION_AGENT_SYSTEM_PROMPT}\n\n${contextMessage}`,
-      tools: this.toToolSet(tools),
+      instructions: `${systemPrompt}\n\n${contextMessage}`,
+      tools: this.toToolSet(this.tools),
       temperature: 0,
       stopWhen: stepCountIs(MAX_TOOL_ITERATIONS),
     });
@@ -139,6 +150,7 @@ export class CollectionAgentService implements OnModuleInit {
 
   /**
    * Stream chat responses with Vercel AI SDK ToolLoopAgent.
+   * Uses an async queue so events are yielded in real-time as each step finishes.
    */
   async *streamChat(
     collectionId: string,
@@ -156,68 +168,103 @@ export class CollectionAgentService implements OnModuleInit {
     });
 
     try {
+      // Auto-create session if it doesn't exist yet
+      const existingSession = await this.memoryService.getSession(sessionId);
+      if (!existingSession) {
+        await this.memoryService.createSession(userId, collectionId, undefined, sessionId);
+        this.logger.log({ event: 'agent_session_auto_created', sessionId, collectionId });
+      }
+
       const history = await this.memoryService.loadHistory(sessionId);
-      const approvedOps = await this.memoryService.loadApprovedOperations(sessionId);
 
-      const sessionTools: AgentTool[] = [
-        ...this.tools,
-        createExecuteOperationTool(this.chunkService, () => approvedOps),
-      ];
-
-      const agent = this.createAgent(collectionId, userId, sessionTools);
+      const agent = await this.createAgent(collectionId, userId);
       const messages = this.buildMessages(history, message);
 
-      const bufferedEvents: AgentEvent[] = [];
+      // Async queue: events pushed from onStepFinish, consumed by the generator
+      const queue: AgentEvent[] = [];
+      let isGenerationDone = false;
+      let resolveWaiter: (() => void) | null = null;
+
+      const enqueue = (event: AgentEvent): void => {
+        queue.push(event);
+        resolveWaiter?.();
+        resolveWaiter = null;
+      };
+
       let latestAssistantText = '';
 
       yield { type: 'thinking', timestamp: new Date().toISOString() };
 
-      const result = await agent.generate({
-        messages,
-        onStepFinish: (step) => {
-          const ts = new Date().toISOString();
+      // Start generation in the background — events flow via enqueue()
+      const generationPromise = agent
+        .generate({
+          messages,
+          onStepFinish: (step) => {
+            const ts = new Date().toISOString();
 
-          for (const toolCall of step.toolCalls) {
-            bufferedEvents.push({
-              type: 'tool_call',
-              tool: toolCall.toolName,
-              input: toolCall.input,
-              timestamp: ts,
-            });
-          }
+            for (const toolCall of step.toolCalls) {
+              enqueue({
+                type: 'tool_call',
+                tool: toolCall.toolName,
+                input: toolCall.input,
+                timestamp: ts,
+              });
+            }
 
-          for (const toolResult of step.toolResults) {
-            bufferedEvents.push({
-              type: 'tool_result',
-              tool: toolResult.toolName,
-              output: toolResult.output,
-              timestamp: ts,
-            });
-          }
+            for (const toolResult of step.toolResults) {
+              enqueue({
+                type: 'tool_result',
+                tool: toolResult.toolName,
+                output: toolResult.output,
+                timestamp: ts,
+              });
+            }
 
-          if (step.text && step.text.trim() && step.text !== latestAssistantText) {
-            latestAssistantText = step.text;
-            bufferedEvents.push({
+            if (step.text && step.text.trim() && step.text !== latestAssistantText) {
+              latestAssistantText = step.text;
+              enqueue({
+                type: 'message',
+                content: step.text,
+                timestamp: ts,
+              });
+            }
+          },
+        })
+        .then((result) => {
+          if (result.text && result.text.trim() && result.text !== latestAssistantText) {
+            latestAssistantText = result.text;
+            enqueue({
               type: 'message',
-              content: step.text,
-              timestamp: ts,
+              content: result.text,
+              timestamp: new Date().toISOString(),
             });
           }
-        },
-      });
+          isGenerationDone = true;
+          resolveWaiter?.();
+          resolveWaiter = null;
+          return result;
+        });
 
-      if (result.text && result.text.trim() && result.text !== latestAssistantText) {
-        latestAssistantText = result.text;
-        bufferedEvents.push({
-          type: 'message',
-          content: result.text,
-          timestamp: new Date().toISOString(),
+      // Consume events from the queue as they arrive
+      while (true) {
+        if (queue.length > 0) {
+          yield queue.shift()!;
+          continue;
+        }
+        if (isGenerationDone) break;
+
+        await new Promise<void>((resolve) => {
+          resolveWaiter = resolve;
         });
       }
 
-      for (const event of bufferedEvents) {
-        yield event;
+      // Drain any remaining events
+      while (queue.length > 0) {
+        yield queue.shift()!;
       }
+
+      // Await to propagate errors
+      await generationPromise;
 
       const persistedAssistantText =
         latestAssistantText ||
@@ -260,46 +307,7 @@ export class CollectionAgentService implements OnModuleInit {
   }
 
   /**
-   * Approve an operation for execution
-   */
-  async approveOperation(sessionId: string, operationId: string): Promise<void> {
-    await this.memoryService.approveOperation(sessionId, operationId);
-
-    this.logger.log({
-      event: 'operation_approved',
-      sessionId,
-      operationId,
-    });
-  }
-
-  /**
-   * Revoke an operation approval
-   */
-  async revokeApproval(sessionId: string, operationId: string): Promise<void> {
-    await this.memoryService.revokeApproval(sessionId, operationId);
-
-    this.logger.log({
-      event: 'operation_revoked',
-      sessionId,
-      operationId,
-    });
-  }
-
-  /**
-   * Clear conversation history for a session
-   */
-  async clearSession(sessionId: string): Promise<void> {
-    await this.memoryService.clearHistory(sessionId);
-    await this.memoryService.clearApprovedOperations(sessionId);
-
-    this.logger.log({
-      event: 'session_cleared',
-      sessionId,
-    });
-  }
-
-  /**
-   * Non-streaming chat for simple requests
+   * Synchronous chat — runs agent and returns final response.
    */
   async chat(
     collectionId: string,
@@ -314,21 +322,39 @@ export class CollectionAgentService implements OnModuleInit {
       if (event.type === 'tool_call') {
         toolCalls.push({ tool: event.tool, input: event.input, output: undefined });
       }
-
       if (event.type === 'tool_result') {
-        const lastToolCall = toolCalls.find(
-          (tc) => tc.tool === event.tool && tc.output === undefined,
-        );
-        if (lastToolCall) {
-          lastToolCall.output = event.output;
-        }
+        const tc = toolCalls.find((t) => t.tool === event.tool && t.output === undefined);
+        if (tc) tc.output = event.output;
       }
-
       if (event.type === 'message') {
         response = event.content;
       }
     }
 
     return { response, toolCalls };
+  }
+
+  /**
+   * Approve an operation for execution.
+   */
+  async approveOperation(sessionId: string, operationId: string): Promise<void> {
+    await this.memoryService.approveOperation(sessionId, operationId);
+  }
+
+  /**
+   * Revoke an operation approval.
+   */
+  async revokeApproval(sessionId: string, operationId: string): Promise<void> {
+    await this.memoryService.revokeApproval(sessionId, operationId);
+  }
+
+  /**
+   * Clear session data.
+   */
+  async clearSession(sessionId: string): Promise<void> {
+    await Promise.all([
+      this.memoryService.clearHistory(sessionId),
+      this.memoryService.clearApprovedOperations(sessionId),
+    ]);
   }
 }
