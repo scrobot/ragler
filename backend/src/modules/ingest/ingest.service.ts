@@ -59,6 +59,16 @@ export class IngestService {
     return this.createSession(dto.content, 'manual', userId);
   }
 
+  async ingestFile(file: Express.Multer.File, userId: string): Promise<IngestResponseDto> {
+    const input = JSON.stringify({
+      buffer: file.buffer.toString('base64'),
+      filename: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
+    return this.createSession(input, 'file', userId);
+  }
+
   private async createSession(
     input: string,
     sourceType: SourceType,

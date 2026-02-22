@@ -4,6 +4,7 @@ import { IngestService } from './ingest.service';
 import { ConfluenceStrategy } from './strategies/confluence.strategy';
 import { WebStrategy } from './strategies/web.strategy';
 import { ManualStrategy } from './strategies/manual.strategy';
+import { FileStrategy } from './strategies/file.strategy';
 import { IngestStrategyResolver } from './strategies/ingest-strategy.resolver';
 import { INGEST_STRATEGIES } from './strategies/ingest.strategy';
 import { LlmModule } from '@llm/llm.module';
@@ -16,14 +17,16 @@ import { LlmModule } from '@llm/llm.module';
     ConfluenceStrategy,
     WebStrategy,
     ManualStrategy,
+    FileStrategy,
     {
       provide: INGEST_STRATEGIES,
       useFactory: (
         confluence: ConfluenceStrategy,
         web: WebStrategy,
         manual: ManualStrategy,
-      ) => [confluence, web, manual],
-      inject: [ConfluenceStrategy, WebStrategy, ManualStrategy],
+        file: FileStrategy,
+      ) => [confluence, web, manual, file],
+      inject: [ConfluenceStrategy, WebStrategy, ManualStrategy, FileStrategy],
     },
     IngestStrategyResolver,
   ],

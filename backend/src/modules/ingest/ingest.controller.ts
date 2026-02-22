@@ -1,5 +1,6 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
+import { Controller, Post, Body, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes } from '@nestjs/swagger';
 import { IngestService } from './ingest.service';
 import {
   IngestConfluenceDto,
@@ -8,6 +9,9 @@ import {
   IngestResponseDto,
 } from './dto';
 import { User, RequestUser } from '@common/decorators';
+import { SUPPORTED_EXTENSIONS } from './parsers';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 @ApiTags('Ingest')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
@@ -43,5 +47,31 @@ export class IngestController {
     @User() user: RequestUser,
   ): Promise<IngestResponseDto> {
     return this.ingestService.ingestManual(dto, user.id);
+  }
+
+  @Post('file')
+  @ApiOperation({ summary: 'Start ingestion session from file upload' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Session created', type: IngestResponseDto })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }))
+  async ingestFile(
+    @UploadedFile() file: Express.Multer.File,
+    @User() user: RequestUser,
+  ): Promise<IngestResponseDto> {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    const extension = file.originalname
+      .substring(file.originalname.lastIndexOf('.'))
+      .toLowerCase();
+
+    if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+      throw new BadRequestException(
+        `Unsupported file type "${extension}". Supported: ${SUPPORTED_EXTENSIONS.join(', ')}`,
+      );
+    }
+
+    return this.ingestService.ingestFile(file, user.id);
   }
 }
