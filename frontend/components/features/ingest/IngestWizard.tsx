@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, FileText, Globe, Type } from "lucide-react";
+import { Loader2, FileText, Globe, Type, Upload } from "lucide-react";
 import {
     Form,
     FormControl,
@@ -32,10 +32,12 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileUploadStep } from "./FileUploadStep";
 
 export function IngestWizard() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("confluence");
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const form = useForm<IngestRequest>({
         resolver: zodResolver(IngestSchema),
@@ -61,6 +63,9 @@ export function IngestWizard() {
                 case "manual":
                     if (!data.content) throw new Error("Content is required");
                     return ingestApi.ingestManual({ content: data.content });
+                case "file":
+                    if (!selectedFile) throw new Error("File is required");
+                    return ingestApi.ingestFile(selectedFile);
                 default:
                     throw new Error("Invalid source type");
             }
@@ -84,6 +89,7 @@ export function IngestWizard() {
         form.resetField("url");
         form.resetField("pageId");
         form.resetField("content");
+        setSelectedFile(null);
     };
 
     return (
@@ -96,7 +102,7 @@ export function IngestWizard() {
             </CardHeader>
             <CardContent>
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                    <TabsList className="grid w-full grid-cols-4 mb-6">
                         <TabsTrigger value="confluence" className="flex items-center gap-2">
                             <FileText className="h-4 w-4" /> Confluence
                         </TabsTrigger>
@@ -104,7 +110,10 @@ export function IngestWizard() {
                             <Globe className="h-4 w-4" /> Web URL
                         </TabsTrigger>
                         <TabsTrigger value="manual" className="flex items-center gap-2">
-                            <Type className="h-4 w-4" /> Manual Text
+                            <Type className="h-4 w-4" /> Manual
+                        </TabsTrigger>
+                        <TabsTrigger value="file" className="flex items-center gap-2">
+                            <Upload className="h-4 w-4" /> File
                         </TabsTrigger>
                     </TabsList>
 
@@ -182,6 +191,13 @@ export function IngestWizard() {
                                             <FormMessage />
                                         </FormItem>
                                     )}
+                                />
+                            </TabsContent>
+
+                            <TabsContent value="file" className="space-y-4">
+                                <FileUploadStep
+                                    onFileSelect={setSelectedFile}
+                                    selectedFile={selectedFile}
                                 />
                             </TabsContent>
 

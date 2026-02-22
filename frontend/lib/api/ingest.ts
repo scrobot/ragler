@@ -10,4 +10,12 @@ export const ingestApi = {
 
   ingestManual: (data: { content: string }) =>
     apiClient.post<IngestResponse>('/ingest/manual', data),
+
+  ingestFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post<IngestResponse>('/ingest/file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
