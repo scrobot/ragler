@@ -14,9 +14,12 @@ import {
   RefreshCw,
   FileText,
   Layers,
+  MessageCircle,
 } from "lucide-react";
 import { CollectionChunkList } from "./CollectionChunkList";
 import { DocumentBrowser } from "./DocumentBrowser";
+import { FilterPanel, FilterValues } from "./FilterPanel";
+import { ChatPlayground } from "./ChatPlayground";
 import { AIAssistantPanel } from "./ai/AIAssistantPanel";
 
 interface CollectionEditorProps {
@@ -29,6 +32,7 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
   const [page, setPage] = useState(0);
   const [activeTab, setActiveTab] = useState("documents");
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterValues>({});
   const limit = 20;
 
   const { data: collection, isLoading: isLoadingCollection } = useQuery({
@@ -170,6 +174,10 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
             <Layers className="h-4 w-4" />
             All Chunks
           </TabsTrigger>
+          <TabsTrigger value="chat" className="gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Chat
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="documents">
@@ -180,40 +188,48 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
         </TabsContent>
 
         <TabsContent value="chunks">
-          {selectedSourceId && (
-            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-muted/50 border">
-              <span className="text-sm text-muted-foreground">
-                Filtered by document:
-              </span>
-              <code className="text-xs font-mono bg-background px-2 py-0.5 rounded">
-                {selectedSourceId.substring(0, 16)}...
-              </code>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearFilter}
-                className="ml-auto text-xs"
-              >
-                Clear filter
-              </Button>
-            </div>
-          )}
-          {isLoadingChunks ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-32 w-full" />
-              ))}
-            </div>
-          ) : (
-            <CollectionChunkList
-              collectionId={collectionId}
-              chunks={chunksData?.chunks ?? []}
-              total={chunksData?.total ?? 0}
-              page={page}
-              limit={limit}
-              onPageChange={setPage}
-            />
-          )}
+          <div className="space-y-4">
+            <FilterPanel filters={filters} onChange={setFilters} />
+
+            {selectedSourceId && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+                <span className="text-sm text-muted-foreground">
+                  Filtered by document:
+                </span>
+                <code className="text-xs font-mono bg-background px-2 py-0.5 rounded">
+                  {selectedSourceId.substring(0, 16)}...
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearFilter}
+                  className="ml-auto text-xs"
+                >
+                  Clear filter
+                </Button>
+              </div>
+            )}
+            {isLoadingChunks ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
+              </div>
+            ) : (
+              <CollectionChunkList
+                collectionId={collectionId}
+                chunks={chunksData?.chunks ?? []}
+                total={chunksData?.total ?? 0}
+                page={page}
+                limit={limit}
+                onPageChange={setPage}
+              />
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="chat">
+          <ChatPlayground collectionId={collectionId} />
         </TabsContent>
       </Tabs>
 
