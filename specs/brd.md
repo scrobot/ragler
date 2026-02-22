@@ -14,10 +14,15 @@ Define what RAGler must deliver from a product perspective for knowledge operati
 ## In Scope
 
 - Source ingestion (Confluence, web, manual)
+- Source ingestion from file uploads (PDF, DOCX, MD, TXT, CSV)
 - Draft session editing workflow
 - Collection management
 - Publish and search workflows
 - Collection editor and AI-assisted maintenance
+- Document lineage tracking (document → chunks)
+- Configurable chunking strategy (LLM or character-based)
+- Knowledge browsing with document grouping and filtering
+- Integrated chat playground for published collections
 
 ## Out of Scope
 
@@ -47,6 +52,12 @@ Define what RAGler must deliver from a product perspective for knowledge operati
 - FR-BRD-004: Support collection CRUD and direct chunk editing in collections.
 - FR-BRD-005: Support semantic search over published collections.
 - FR-BRD-006: Provide AI-assisted collection quality suggestions with approval flow.
+- FR-BRD-007: Support file upload ingestion (PDF, DOCX, DOC, TXT, MD, CSV) up to 10 MB.
+- FR-BRD-008: Track document lineage metadata (filename, size, mime type, ingest date).
+- FR-BRD-009: Provide document-level browsing grouped by source with quality aggregation.
+- FR-BRD-010: Support configurable chunking (LLM semantic or character-based with overlap).
+- FR-BRD-011: Support chunk filtering by source type, source ID, quality score, and tags.
+- FR-BRD-012: Provide RAG-powered chat playground with conversation history per collection.
 
 ## Acceptance Criteria
 
