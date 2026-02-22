@@ -6,13 +6,17 @@ import Link from "next/link";
 import { collectionsApi } from "@/lib/api/collections";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Database,
   Wand2,
   RefreshCw,
+  FileText,
+  Layers,
 } from "lucide-react";
 import { CollectionChunkList } from "./CollectionChunkList";
+import { DocumentBrowser } from "./DocumentBrowser";
 import { AIAssistantPanel } from "./ai/AIAssistantPanel";
 
 interface CollectionEditorProps {
@@ -23,15 +27,15 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
   const queryClient = useQueryClient();
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState("documents");
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const limit = 20;
 
-  // Fetch collection metadata
   const { data: collection, isLoading: isLoadingCollection } = useQuery({
     queryKey: ["collection", collectionId],
     queryFn: () => collectionsApi.get(collectionId),
   });
 
-  // Fetch chunks with pagination
   const {
     data: chunksData,
     isLoading: isLoadingChunks,
@@ -50,6 +54,17 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["collection-chunks", collectionId] });
+    queryClient.invalidateQueries({ queryKey: ["collection-documents", collectionId] });
+  };
+
+  const handleSelectDocument = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
+    setActiveTab("chunks");
+    setPage(0);
+  };
+
+  const handleClearFilter = () => {
+    setSelectedSourceId(null);
   };
 
   if (isLoadingCollection) {
@@ -111,9 +126,7 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
               <Database className="h-4 w-4" />
-              <span>
-                {chunksData?.total ?? 0} chunks
-              </span>
+              <span>{chunksData?.total ?? 0} chunks</span>
               {collection?.description && (
                 <>
                   <span className="text-muted-foreground/50">|</span>
@@ -131,7 +144,7 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
               size="icon"
               onClick={handleRefresh}
               disabled={isFetching}
-              title="Refresh chunks"
+              title="Refresh"
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -146,28 +159,68 @@ export function CollectionEditor({ collectionId }: CollectionEditorProps) {
         </div>
       </div>
 
-      {/* Chunk List */}
-      {isLoadingChunks ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-      ) : (
-        <CollectionChunkList
-          collectionId={collectionId}
-          chunks={chunksData?.chunks ?? []}
-          total={chunksData?.total ?? 0}
-          page={page}
-          limit={limit}
-          onPageChange={setPage}
-        />
-      )}
+      {/* Tabbed Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="documents" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Documents
+          </TabsTrigger>
+          <TabsTrigger value="chunks" className="gap-2">
+            <Layers className="h-4 w-4" />
+            All Chunks
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="documents">
+          <DocumentBrowser
+            collectionId={collectionId}
+            onSelectDocument={handleSelectDocument}
+          />
+        </TabsContent>
+
+        <TabsContent value="chunks">
+          {selectedSourceId && (
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-muted/50 border">
+              <span className="text-sm text-muted-foreground">
+                Filtered by document:
+              </span>
+              <code className="text-xs font-mono bg-background px-2 py-0.5 rounded">
+                {selectedSourceId.substring(0, 16)}...
+              </code>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilter}
+                className="ml-auto text-xs"
+              >
+                Clear filter
+              </Button>
+            </div>
+          )}
+          {isLoadingChunks ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          ) : (
+            <CollectionChunkList
+              collectionId={collectionId}
+              chunks={chunksData?.chunks ?? []}
+              total={chunksData?.total ?? 0}
+              page={page}
+              limit={limit}
+              onPageChange={setPage}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* AI Assistant Panel */}
       <AIAssistantPanel
         collectionId={collectionId}
-        userId="demo-user" // TODO: Get from auth context
+        userId="demo-user"
         open={isAIPanelOpen}
         onOpenChange={setIsAIPanelOpen}
       />

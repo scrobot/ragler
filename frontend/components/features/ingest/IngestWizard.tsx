@@ -33,11 +33,17 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadStep } from "./FileUploadStep";
+import { ChunkingConfig, ChunkingConfigValue } from "./ChunkingConfig";
 
 export function IngestWizard() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("confluence");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [chunkingConfig, setChunkingConfig] = useState<ChunkingConfigValue>({
+        method: "llm",
+        chunkSize: 1000,
+        overlap: 200,
+    });
 
     const form = useForm<IngestRequest>({
         resolver: zodResolver(IngestSchema),
@@ -51,21 +57,23 @@ export function IngestWizard() {
 
     const mutation = useMutation({
         mutationFn: (data: IngestRequest) => {
+            const config = chunkingConfig.method === 'llm' ? undefined : chunkingConfig;
             switch (data.sourceType) {
                 case "confluence":
                     return ingestApi.ingestConfluence({
                         url: data.url || undefined,
                         pageId: data.pageId || undefined,
+                        chunkingConfig: config,
                     });
                 case "web":
                     if (!data.url) throw new Error("URL is required");
-                    return ingestApi.ingestWeb({ url: data.url });
+                    return ingestApi.ingestWeb({ url: data.url, chunkingConfig: config });
                 case "manual":
                     if (!data.content) throw new Error("Content is required");
-                    return ingestApi.ingestManual({ content: data.content });
+                    return ingestApi.ingestManual({ content: data.content, chunkingConfig: config });
                 case "file":
                     if (!selectedFile) throw new Error("File is required");
-                    return ingestApi.ingestFile(selectedFile);
+                    return ingestApi.ingestFile(selectedFile, config);
                 default:
                     throw new Error("Invalid source type");
             }
@@ -200,6 +208,13 @@ export function IngestWizard() {
                                     selectedFile={selectedFile}
                                 />
                             </TabsContent>
+
+                            <div className="pt-4">
+                                <ChunkingConfig
+                                    value={chunkingConfig}
+                                    onChange={setChunkingConfig}
+                                />
+                            </div>
 
                             <div className="flex justify-end pt-4">
                                 <Button type="submit" disabled={mutation.isPending}>
