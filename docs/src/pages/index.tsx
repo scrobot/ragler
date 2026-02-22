@@ -12,19 +12,27 @@ function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
 
   return (
-    <header className={clsx('hero', styles.heroBanner)}>
+    <header className={styles.hero}>
+      <div className={styles.heroGlow} />
       <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
-        </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <div className={styles.buttons}>
-          <Link className="button button--secondary button--lg" to="/docs/getting-started/installation">
-            Quick Start →
-          </Link>
-          <Link className="button button--outline button--lg" to="/docs/architecture/adr" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }}>
-            Architecture Docs
-          </Link>
+        <div className={styles.heroContent}>
+          <span className={styles.heroBadge}>Open Source · RAG Platform</span>
+          <Heading as="h1" className={styles.heroTitle}>
+            {siteConfig.title}
+          </Heading>
+          <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
+          <p className={styles.heroDescription}>
+            Ingest from Confluence, files, and web. Curate chunks with AI-powered
+            quality scoring. Publish atomically and chat with your knowledge base.
+          </p>
+          <div className={styles.heroCta}>
+            <Link className={styles.ctaPrimary} to="/docs/getting-started/installation">
+              Get Started
+            </Link>
+            <Link className={styles.ctaSecondary} to="/docs/architecture/overview">
+              Architecture →
+            </Link>
+          </div>
         </div>
       </div>
     </header>
@@ -35,7 +43,10 @@ export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
 
   return (
-    <Layout title={`${siteConfig.title} — ${siteConfig.tagline}`} description="RAGler: ingest, curate, and publish knowledge for RAG with human-in-the-loop quality control.">
+    <Layout
+      title={`${siteConfig.title} — ${siteConfig.tagline}`}
+      description="RAGler: ingest, curate, and publish knowledge for RAG with human-in-the-loop quality control."
+    >
       <HomepageHeader />
       <main>
         <HomepageFeatures />

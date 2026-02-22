@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import clsx from 'clsx';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
@@ -7,46 +6,68 @@ type FeatureItem = {
   title: string;
   emoji: string;
   description: ReactNode;
+  tag?: string;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Confluence Ingestor',
+    title: 'Multi-Source Ingestion',
     emoji: '🔗',
-    description: <>Pull pages directly from Confluence, web URLs, or manual text. Your knowledge, any source.</>,
+    tag: 'Core',
+    description: (
+      <>Pull from Confluence, web URLs, manual text, or upload PDF, DOCX, Markdown, and CSV files directly.</>
+    ),
   },
   {
-    title: 'Multi-Format File Upload',
-    emoji: '📄',
-    description: <>Upload PDF, DOCX, Markdown, TXT, and CSV files. Automatic text extraction and chunking.</>,
-  },
-  {
-    title: 'Session-Based Quality Control',
+    title: 'Session-Based Curation',
     emoji: '✏️',
-    description: <>Draft, review, split, merge, and reorder chunks before publishing. Human in the loop.</>,
+    tag: 'Workflow',
+    description: (
+      <>Draft sessions let you review, edit, split, merge, and reorder chunks before publishing. Human in the loop.</>
+    ),
   },
   {
-    title: 'AI-Powered Chunk Scoring',
+    title: 'AI Quality Scoring',
     emoji: '🤖',
-    description: <>AI assistant analyzes quality, suggests operations, and scores chunks with approval flow.</>,
+    tag: 'AI',
+    description: (
+      <>AI assistant analyzes chunk quality, suggests operations, and scores with an approval flow.</>
+    ),
+  },
+  {
+    title: 'Configurable Chunking',
+    emoji: '⚙️',
+    tag: 'Config',
+    description: (
+      <>Choose between LLM semantic chunking or fast character-based splitting with size and overlap control.</>
+    ),
   },
   {
     title: 'Chat Playground',
     emoji: '💬',
-    description: <>Ask questions against your knowledge base. RAG-powered responses with cited sources.</>,
+    tag: 'RAG',
+    description: (
+      <>Ask questions against your knowledge base. RAG-powered answers grounded in your chunks with cited sources.</>
+    ),
   },
   {
     title: 'Atomic Publish',
     emoji: '🚀',
-    description: <>Preview, validate, then atomically replace collections. Zero-downtime knowledge updates.</>,
+    tag: 'Infra',
+    description: (
+      <>Preview, validate, then atomically replace collection contents. Zero-downtime knowledge updates.</>
+    ),
   },
 ];
 
-function Feature({ title, emoji, description }: FeatureItem) {
+function Feature({ title, emoji, description, tag }: FeatureItem) {
   return (
-    <div className={clsx('col col--4')}>
+    <div className={styles.featureCol}>
       <div className={styles.featureCard}>
-        <div className={styles.featureEmoji}>{emoji}</div>
+        <div className={styles.featureHeader}>
+          <span className={styles.featureEmoji}>{emoji}</span>
+          {tag && <span className={styles.featureTag}>{tag}</span>}
+        </div>
         <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
         <p className={styles.featureDescription}>{description}</p>
       </div>
@@ -58,7 +79,15 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
+        <div className={styles.sectionHeader}>
+          <Heading as="h2" className={styles.sectionTitle}>
+            Everything you need for production RAG
+          </Heading>
+          <p className={styles.sectionSubtitle}>
+            From ingestion to retrieval — a complete platform for building and maintaining knowledge bases.
+          </p>
+        </div>
+        <div className={styles.featureGrid}>
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />
           ))}
