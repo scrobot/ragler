@@ -14,6 +14,7 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { SessionService } from './session.service';
+import { CollectionAgentService } from '@collection/agent/collection-agent.service';
 import {
   SessionResponseDto,
   SessionListResponseDto,
@@ -32,7 +33,10 @@ import { ErrorResponseDto } from '@common/dto';
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
 @Controller('session')
 export class SessionController {
-  constructor(private readonly sessionService: SessionService) { }
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly agentService: CollectionAgentService,
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'List all sessions' })
@@ -91,6 +95,27 @@ export class SessionController {
     @Body() dto: UpdateChunkDto,
   ): Promise<SessionResponseDto> {
     return this.sessionService.updateChunk(id, chunkId, dto);
+  }
+
+  @Post(':id/chunks/add')
+  @ApiOperation({ summary: 'Add a new chunk to the session' })
+  @ApiResponse({ status: 200, description: 'Chunk added', type: SessionResponseDto })
+  async addChunk(
+    @Param('id') id: string,
+    @Body() body: { text: string },
+  ): Promise<SessionResponseDto> {
+    return this.sessionService.addChunk(id, body.text);
+  }
+
+  @Post(':id/chunks/generate')
+  @ApiOperation({ summary: 'Generate a chunk using AI web search' })
+  @ApiResponse({ status: 200, description: 'Chunk generated and added', type: SessionResponseDto })
+  async generateChunk(
+    @Param('id') id: string,
+    @Body() body: { prompt: string },
+  ): Promise<SessionResponseDto> {
+    const text = await this.agentService.generateChunkContent(body.prompt);
+    return this.sessionService.addChunk(id, text);
   }
 
   @Post(':id/preview')

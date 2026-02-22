@@ -35,6 +35,7 @@ export class CollectionAgentService implements OnModuleInit {
   private readonly logger = new Logger(CollectionAgentService.name);
 
   private openaiProvider!: OpenAIProvider;
+  private openaiClient!: OpenAI;
   private modelId = 'gpt-4o';
   private tools: AgentTool[] = [];
 
@@ -54,6 +55,7 @@ export class CollectionAgentService implements OnModuleInit {
   private initializeClient(): void {
     const apiKey = this.configService.get<string>('openai.apiKey');
     this.openaiProvider = createOpenAI({ apiKey });
+    this.openaiClient = new OpenAI({ apiKey });
 
     const configuredModel = this.configService.get<string>('openai.agentModel');
     if (configuredModel) {
@@ -356,5 +358,65 @@ export class CollectionAgentService implements OnModuleInit {
       this.memoryService.clearHistory(sessionId),
       this.memoryService.clearApprovedOperations(sessionId),
     ]);
+  }
+
+  /**
+   * Generate a knowledge chunk using web search.
+   * Uses OpenAI with web_search_preview to get web-grounded content.
+   */
+  async generateChunkContent(prompt: string): Promise<string> {
+    this.logger.log({ event: 'chunk_generation_start', promptLength: prompt.length });
+    const startTime = Date.now();
+
+    try {
+      const response = await this.openaiClient.responses.create({
+        model: this.modelId,
+        tools: [{ type: 'web_search_preview' }],
+        input: [
+          {
+            role: 'system',
+            content: `You are a knowledge base content writer. The user will give you a topic or question.
+Search the web for accurate, up-to-date information and write a concise, factual knowledge chunk.
+
+Rules:
+- Write in the SAME LANGUAGE as the user's prompt
+- Be factual and cite sources when possible
+- Write 150-500 words — enough context for a RAG knowledge base
+- Use clear structure: brief intro, key facts, conclusion
+- Do NOT add meta-commentary like "Here is the chunk" — just write the content directly
+- Do NOT use markdown headers — write plain flowing text with line breaks`,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      });
+
+      // Extract text from response output items
+      const textContent = response.output
+        .filter((item) => item.type === 'message')
+        .flatMap((item) => 'content' in item ? (item as { content: Array<{ type: string; text?: string }> }).content : [])
+        .filter((block) => block.type === 'output_text' && typeof block.text === 'string')
+        .map((block) => block.text as string)
+        .join('\n\n');
+
+      const duration = Date.now() - startTime;
+      this.logger.log({ event: 'chunk_generation_success', durationMs: duration, resultLength: textContent.length });
+
+      if (!textContent.trim()) {
+        throw new Error('Web search returned empty content');
+      }
+
+      return textContent.trim();
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error({
+        event: 'chunk_generation_failure',
+        durationMs: duration,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
   }
 }

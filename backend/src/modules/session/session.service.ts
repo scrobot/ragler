@@ -298,6 +298,37 @@ export class SessionService {
     return this.getSession(sessionId);
   }
 
+  async addChunk(
+    sessionId: string,
+    text: string,
+  ): Promise<SessionResponseDto> {
+    const session = await this.ingestService.getSession(sessionId);
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+
+    if (session.status !== 'DRAFT') {
+      throw new BadRequestException('Cannot add chunks in non-DRAFT status');
+    }
+
+    const newChunk = {
+      id: `chunk_${uuidv4()}`,
+      text: text.trim(),
+      isDirty: true,
+    };
+
+    session.chunks.push(newChunk);
+    await this.ingestService.updateSession(sessionId, { chunks: session.chunks });
+
+    this.logger.log({
+      event: 'chunk_added',
+      sessionId,
+      chunkId: newChunk.id,
+    });
+
+    return this.getSession(sessionId);
+  }
+
   async preview(sessionId: string): Promise<PreviewResponseDto> {
     const session = await this.ingestService.getSession(sessionId);
     if (!session) {

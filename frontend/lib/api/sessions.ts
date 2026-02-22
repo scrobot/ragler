@@ -28,6 +28,12 @@ export const sessionsApi = {
       data
     ),
 
+  addChunk: (sessionId: string, text: string) =>
+    apiClient.post<Session>(`/session/${sessionId}/chunks/add`, { text }),
+
+  generateChunk: (sessionId: string, prompt: string) =>
+    apiClient.post<Session>(`/session/${sessionId}/chunks/generate`, { prompt }),
+
   preview: (sessionId: string) =>
     apiClient.post<PreviewResponse>(`/session/${sessionId}/preview`),
 
