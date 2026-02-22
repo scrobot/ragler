@@ -15,10 +15,12 @@ describe('CollectionService', () => {
       QdrantClientService,
       | 'collectionExists'
       | 'createCollection'
+      | 'createPayloadIndex'
       | 'deleteCollection'
       | 'scroll'
       | 'getPoints'
       | 'upsertPoints'
+      | 'deletePoints'
       | 'deletePointsByFilter'
     >
   >;
@@ -40,10 +42,12 @@ describe('CollectionService', () => {
     mockQdrantClient = {
       collectionExists: jest.fn(),
       createCollection: jest.fn(),
+      createPayloadIndex: jest.fn(),
       deleteCollection: jest.fn(),
       scroll: jest.fn(),
       getPoints: jest.fn(),
       upsertPoints: jest.fn(),
+      deletePoints: jest.fn(),
       deletePointsByFilter: jest.fn(),
     };
 
@@ -259,11 +263,9 @@ describe('CollectionService', () => {
       await service.remove(validCollectionId);
 
       expect(mockQdrantClient.deleteCollection).toHaveBeenCalledWith(`kb_${validCollectionId}`);
-      expect(mockQdrantClient.deletePointsByFilter).toHaveBeenCalledWith(
+      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith(
         SYS_REGISTRY_COLLECTION,
-        {
-          must: [{ key: 'id', match: { value: validCollectionId } }],
-        },
+        [validCollectionId],
       );
     });
 
@@ -277,7 +279,10 @@ describe('CollectionService', () => {
       await service.remove(validCollectionId);
 
       expect(mockQdrantClient.deleteCollection).not.toHaveBeenCalled();
-      expect(mockQdrantClient.deletePointsByFilter).toHaveBeenCalled();
+      expect(mockQdrantClient.deletePoints).toHaveBeenCalledWith(
+        SYS_REGISTRY_COLLECTION,
+        [validCollectionId],
+      );
     });
 
     it('should throw NotFoundException when collection does not exist in registry', async () => {

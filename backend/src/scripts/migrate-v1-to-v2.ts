@@ -18,7 +18,6 @@
  */
 
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -236,7 +235,7 @@ function deduplicatePoints(
   const deduplicated: typeof points = [];
 
   // Deduplicate within each group by content_hash
-  for (const [_key, groupPoints] of groups) {
+  for (const groupPoints of groups.values()) {
     const byHash = new Map<string, typeof points>();
 
     for (const point of groupPoints) {
@@ -248,14 +247,14 @@ function deduplicatePoints(
     }
 
     // For each hash, keep the one with latest last_modified_at
-    for (const [_hash, duplicates] of byHash) {
+    for (const duplicates of byHash.values()) {
       if (duplicates.length === 1) {
         deduplicated.push(duplicates[0]);
       } else {
         // Keep latest by timestamp
         const latest = duplicates.reduce((prev, curr) =>
           new Date(curr.payload.doc.last_modified_at) >
-          new Date(prev.payload.doc.last_modified_at)
+            new Date(prev.payload.doc.last_modified_at)
             ? curr
             : prev
         );
@@ -593,7 +592,7 @@ async function main() {
 
 // Run if called directly
 if (require.main === module) {
-  main();
+  void main();
 }
 
 export { migrateCollection, mapV1ToV2, deduplicatePoints, classifyChunkType };

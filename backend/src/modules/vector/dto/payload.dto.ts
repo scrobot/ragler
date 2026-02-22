@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import * as crypto from 'crypto';
 
 /**
  * Chunk Schema - Enhanced payload structure for Qdrant points
@@ -103,11 +104,11 @@ export type QdrantPayload = z.infer<typeof QdrantPayloadSchema>;
 // NestJS DTOs (for API validation)
 // ============================================================================
 
-export class DocMetadataDto extends createZodDto(DocMetadataSchema) {}
-export class ChunkMetadataDto extends createZodDto(ChunkMetadataSchema) {}
-export class AclMetadataDto extends createZodDto(AclMetadataSchema) {}
-export class EditorMetadataDto extends createZodDto(EditorMetadataSchema) {}
-export class QdrantPayloadDto extends createZodDto(QdrantPayloadSchema) {}
+export class DocMetadataDto extends createZodDto(DocMetadataSchema) { }
+export class ChunkMetadataDto extends createZodDto(ChunkMetadataSchema) { }
+export class AclMetadataDto extends createZodDto(AclMetadataSchema) { }
+export class EditorMetadataDto extends createZodDto(EditorMetadataSchema) { }
+export class QdrantPayloadDto extends createZodDto(QdrantPayloadSchema) { }
 
 // ============================================================================
 // Chunk with full structure (used during chunking pipeline)
@@ -176,7 +177,6 @@ export function formatSection(headingPath: string[]): string | null {
 export function generateChunkId(sourceId: string, contentHash: string): string {
   // Qdrant requires UUIDs or unsigned integers as point IDs
   // Generate a deterministic UUID v5 from sourceId + contentHash
-  const crypto = require('crypto');
 
   // Remove 'sha256:' prefix from hash
   const hash = contentHash.startsWith('sha256:')

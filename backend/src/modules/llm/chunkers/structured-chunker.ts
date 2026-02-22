@@ -3,7 +3,6 @@ import {
   Section,
   Table,
   CodeBlock,
-  buildHeadingPath,
   flattenSections,
 } from '../parsers/document-parser';
 import { countTokens, splitOnBoundaries } from '../utils/token-counter';

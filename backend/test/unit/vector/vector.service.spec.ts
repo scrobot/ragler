@@ -107,7 +107,7 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         10,
-        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
+        expect.objectContaining({ must_not: expect.any(Array) }), // Expects navigation exclusion filter
       );
 
       expect(result).toEqual({
@@ -207,7 +207,7 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         5,
-        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
+        expect.objectContaining({ must_not: expect.any(Array) }), // Expects navigation exclusion filter
       );
     });
 
@@ -227,7 +227,7 @@ describe('VectorService', () => {
         `kb_${validCollectionId}`,
         mockEmbedding,
         10,
-        expect.objectContaining({ must: expect.any(Array) }), // Expects navigation filter
+        expect.objectContaining({ must_not: expect.any(Array) }), // Expects navigation exclusion filter
       );
     });
 
