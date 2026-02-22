@@ -87,10 +87,10 @@ export function UserDropdownMenu({ trigger }: { trigger: ReactNode }) {
                 Sean
               </Link>
               <a
-                href={`mailto:sean@kt.com`}
+                href={`mailto:user@ragler.dev`}
                 className="text-xs text-muted-foreground hover:text-primary"
               >
-                sean@kt.com
+                user@ragler.dev
               </a>
             </div>
           </div>
@@ -187,11 +187,11 @@ export function UserDropdownMenu({ trigger }: { trigger: ReactNode }) {
 
         <DropdownMenuItem asChild>
           <Link
-            href="https://devs.keenthemes.com"
+            href="https://github.com/scrobot/ragler"
             className="flex items-center gap-2"
           >
             <SquareCode />
-            Dev Forum
+            GitHub
           </Link>
         </DropdownMenuItem>
 

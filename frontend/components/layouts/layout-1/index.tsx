@@ -8,10 +8,10 @@ import { Main } from './components/main';
 export async function generateMetadata(): Promise<Metadata> {
   // You can access route params here if needed
   // const { params } = props;
-  
+
   return {
-    title: 'Dashboard | Metronic',
-    description: 'Central Hub for Personal Customization',
+    title: 'Dashboard | RAGler',
+    description: 'The human-in-the-loop RAG knowledge platform',
   };
 }
 

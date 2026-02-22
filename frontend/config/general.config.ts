@@ -1,10 +1,8 @@
 const generalSettings = {
-  purchaseLink: 'https://1.envato.market/Vm7VRE',
-  docsLink: '',
-  licenseLink: '',
-  devsLink: 'https://devs.keenthemes.com',
-  faqLink: 'https://keenthemes.com/metronic',
-  aboutLink: 'https://keenthemes.com/metronic',
+  docsLink: 'https://scrobot.github.io/ragler',
+  githubLink: 'https://github.com/scrobot/ragler',
+  supportLink: 'https://github.com/scrobot/ragler/issues',
+  aboutLink: 'https://scrobot.github.io/ragler',
 };
 
 export { generalSettings };

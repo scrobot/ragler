@@ -5,7 +5,7 @@ export async function GET() {
     {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'metronic-react-starter-kit',
+      service: 'ragler-frontend',
     },
     { status: 200 }
   );
