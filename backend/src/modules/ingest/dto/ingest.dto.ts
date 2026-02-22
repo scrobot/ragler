@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
-export const SourceTypeEnum = z.enum(['confluence', 'web', 'manual']);
+export const SourceTypeEnum = z.enum(['confluence', 'web', 'manual', 'file']);
 export type SourceType = z.infer<typeof SourceTypeEnum>;
 
 export * from './ingest-confluence.dto';

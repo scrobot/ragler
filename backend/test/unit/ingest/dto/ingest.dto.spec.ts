@@ -1,6 +1,8 @@
 import { IngestManualSchema } from '@ingest/dto/ingest-manual.dto';
 import { IngestConfluenceSchema } from '@ingest/dto/ingest-confluence.dto';
 import { IngestWebSchema } from '@ingest/dto/ingest-web.dto';
+import { SourceTypeEnum } from '@ingest/dto/ingest.dto';
+import { IngestFileSchema } from '@ingest/dto/ingest-file.dto';
 
 describe('Ingest DTOs', () => {
   describe('IngestManualSchema', () => {
@@ -142,6 +144,38 @@ describe('Ingest DTOs', () => {
       const result = IngestConfluenceSchema.safeParse({
         pageId: '9876543210',
       });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('SourceTypeEnum', () => {
+    it('should accept all valid source types', () => {
+      const validTypes = ['confluence', 'web', 'manual', 'file'];
+      for (const type of validTypes) {
+        const result = SourceTypeEnum.safeParse(type);
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it('should reject invalid source type', () => {
+      const result = SourceTypeEnum.safeParse('invalid');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty string as source type', () => {
+      const result = SourceTypeEnum.safeParse('');
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('IngestFileSchema', () => {
+    it('should accept empty object (file comes via multipart)', () => {
+      const result = IngestFileSchema.safeParse({});
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept object with extra fields (stripped by Zod)', () => {
+      const result = IngestFileSchema.safeParse({ extra: 'field' });
       expect(result.success).toBe(true);
     });
   });

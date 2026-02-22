@@ -17,7 +17,7 @@ import * as crypto from 'crypto';
 // ============================================================================
 
 export type ChunkType = 'knowledge' | 'navigation' | 'table_row' | 'glossary' | 'faq' | 'code';
-export type SourceType = 'confluence' | 'web' | 'manual';
+export type SourceType = 'confluence' | 'web' | 'manual' | 'file';
 export type Language = 'ru' | 'en' | 'mixed';
 export type Visibility = 'internal' | 'public';
 
@@ -34,7 +34,7 @@ export const ChunkTypeSchema = z.enum([
   'code',
 ]);
 
-export const SourceTypeSchema = z.enum(['confluence', 'web', 'manual']);
+export const SourceTypeSchema = z.enum(['confluence', 'web', 'manual', 'file']);
 
 export const LanguageSchema = z.enum(['ru', 'en', 'mixed']);
 

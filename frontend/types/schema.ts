@@ -37,7 +37,7 @@ export type Session = z.infer<typeof SessionSchema>;
 
 // Ingest
 export const IngestSchema = z.object({
-    sourceType: z.enum(['manual', 'confluence', 'web']),
+    sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
     url: z.string().optional(),
     pageId: z.string().optional(),
     content: z.string().optional(),
