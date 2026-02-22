@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { IngestStrategy, IngestResult } from './ingest.strategy';
 import { SourceType } from '@ingest/dto';
-import { resolveFileParser, SUPPORTED_EXTENSIONS } from '../parsers';
+import { resolveFileParser } from '../parsers';
 
 interface FileInput {
     buffer: string; // base64-encoded

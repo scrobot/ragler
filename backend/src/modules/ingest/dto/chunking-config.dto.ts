@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { createZodDto } from 'nestjs-zod';
 
 export const ChunkingConfigSchema = z.object({
     method: z.enum(['llm', 'character']).default('llm'),

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import OpenAI from 'openai';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
-import { AgentMemoryService, AgentHistoryMessage } from '../agent/memory/redis-memory';
+import { AgentMemoryService } from '../agent/memory/redis-memory';
 import { ChatResponse, ChatCitation } from '../dto';
 
 interface QdrantSearchResult {

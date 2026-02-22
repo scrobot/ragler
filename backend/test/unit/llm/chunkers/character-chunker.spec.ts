@@ -1,4 +1,4 @@
-import { chunkByCharacter, ChunkingConfig } from '@llm/chunkers/character-chunker';
+import { chunkByCharacter } from '@llm/chunkers/character-chunker';
 
 describe('chunkByCharacter', () => {
     describe('basic splitting', () => {

@@ -36,7 +36,7 @@ export class ChatController {
     async chat(
         @Param('collectionId') collectionId: string,
         @Body() dto: ChatRequestDto,
-        @User() user: RequestUser,
+        @User() _user: RequestUser,
     ): Promise<ChatResponseDto> {
         return this.chatService.chat(collectionId, dto.message, dto.sessionId);
     }

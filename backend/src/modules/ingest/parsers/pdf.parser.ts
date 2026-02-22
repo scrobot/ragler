@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse = require('pdf-parse');
 import { FileParser, FileParseResult } from './file-parser.interface';
 import { extractFilenameTitle } from './utils';
