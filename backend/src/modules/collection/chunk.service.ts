@@ -19,6 +19,8 @@ import {
   EditorMergeChunksInput,
   ReorderChunksInput,
   UpdateQualityScoreInput,
+  DocumentSummary,
+  DocumentListResponse,
 } from './dto';
 import {
   createDefaultEditorMetadata,
@@ -645,6 +647,105 @@ export class ChunkService {
     });
 
     return this.getChunk(collectionId, chunkId);
+  }
+
+  // ============================================================================
+  // Document Lineage
+  // ============================================================================
+
+  /**
+   * List documents in a collection, aggregated from chunk-level metadata.
+   * Groups points by doc.source_id and computes summary stats.
+   */
+  async listDocuments(collectionId: string): Promise<DocumentListResponse> {
+    const collectionName = this.getCollectionName(collectionId);
+
+    const exists = await this.qdrantClient.collectionExists(collectionName);
+    if (!exists) {
+      throw new NotFoundException(`Collection ${collectionId} not found`);
+    }
+
+    // Scroll all points (payload only, no vectors)
+    const points = (await this.qdrantClient.scroll(collectionName)) as QdrantPoint[];
+
+    // Group by doc.source_id
+    const docMap = new Map<string, {
+      sourceId: string;
+      title: string | null;
+      sourceType: string;
+      sourceUrl: string;
+      filename: string | null;
+      mimeType: string | null;
+      chunkCount: number;
+      qualityScores: number[];
+      ingestDate: string | null;
+      lastModifiedAt: string;
+    }>();
+
+    for (const point of points) {
+      const doc = point.payload.doc;
+      const sourceId = doc.source_id;
+
+      const existing = docMap.get(sourceId);
+      if (existing) {
+        existing.chunkCount++;
+        if (point.payload.editor?.quality_score != null) {
+          existing.qualityScores.push(point.payload.editor.quality_score);
+        }
+        if (doc.last_modified_at > existing.lastModifiedAt) {
+          existing.lastModifiedAt = doc.last_modified_at;
+        }
+      } else {
+        const qualityScores: number[] = [];
+        if (point.payload.editor?.quality_score != null) {
+          qualityScores.push(point.payload.editor.quality_score);
+        }
+        docMap.set(sourceId, {
+          sourceId,
+          title: doc.title,
+          sourceType: doc.source_type,
+          sourceUrl: doc.url,
+          filename: doc.filename ?? null,
+          mimeType: doc.mime_type ?? null,
+          chunkCount: 1,
+          qualityScores,
+          ingestDate: doc.ingest_date ?? null,
+          lastModifiedAt: doc.last_modified_at,
+        });
+      }
+    }
+
+    const documents: DocumentSummary[] = Array.from(docMap.values()).map((entry) => ({
+      sourceId: entry.sourceId,
+      title: entry.title,
+      sourceType: entry.sourceType as DocumentSummary['sourceType'],
+      sourceUrl: entry.sourceUrl,
+      filename: entry.filename,
+      mimeType: entry.mimeType,
+      chunkCount: entry.chunkCount,
+      avgQualityScore: entry.qualityScores.length > 0
+        ? Math.round(entry.qualityScores.reduce((sum, s) => sum + s, 0) / entry.qualityScores.length)
+        : null,
+      ingestDate: entry.ingestDate,
+      lastModifiedAt: entry.lastModifiedAt,
+    }));
+
+    // Sort by lastModifiedAt descending (newest first)
+    documents.sort(
+      (a, b) => new Date(b.lastModifiedAt).getTime() - new Date(a.lastModifiedAt).getTime(),
+    );
+
+    this.logger.log({
+      event: 'documents_listed',
+      collectionId,
+      documentCount: documents.length,
+      totalChunks: points.length,
+    });
+
+    return {
+      documents,
+      total: documents.length,
+    };
   }
 
   // ============================================================================

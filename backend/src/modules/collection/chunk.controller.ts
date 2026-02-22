@@ -28,6 +28,7 @@ import {
   EditorMergeChunksDto,
   ReorderChunksDto,
   UpdateQualityScoreDto,
+  DocumentListResponseDto,
 } from './dto';
 import { User, RequestUser } from '@common/decorators';
 import { ErrorResponseDto } from '@common/dto';
@@ -36,7 +37,7 @@ import { ErrorResponseDto } from '@common/dto';
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
 @Controller('collections/:collectionId/chunks')
 export class ChunkController {
-  constructor(private readonly chunkService: ChunkService) {}
+  constructor(private readonly chunkService: ChunkService) { }
 
   @Get()
   @ApiOperation({
@@ -248,11 +249,33 @@ export class ChunkController {
  * Separate controller for collection-level reorder operation
  * (not under /chunks path)
  */
-@ApiTags('Collection Editor - Reorder')
+@ApiTags('Collection Editor - Documents & Reorder')
 @ApiHeader({ name: 'X-User-ID', required: true, description: 'User identifier' })
 @Controller('collections/:collectionId')
 export class CollectionReorderController {
-  constructor(private readonly chunkService: ChunkService) {}
+  constructor(private readonly chunkService: ChunkService) { }
+
+  @Get('documents')
+  @ApiOperation({
+    summary: 'List documents in collection',
+    description: 'Get all source documents aggregated from chunk-level metadata',
+  })
+  @ApiParam({ name: 'collectionId', description: 'Collection UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of documents with chunk counts and quality scores',
+    type: DocumentListResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Collection not found',
+    type: ErrorResponseDto,
+  })
+  async listDocuments(
+    @Param('collectionId') collectionId: string,
+  ): Promise<DocumentListResponseDto> {
+    return this.chunkService.listDocuments(collectionId);
+  }
 
   @Put('reorder')
   @HttpCode(HttpStatus.NO_CONTENT)
