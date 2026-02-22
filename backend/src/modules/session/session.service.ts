@@ -378,6 +378,10 @@ export class SessionService {
         revision: 1, // TODO: Implement revision tracking
         last_modified_at: now,
         last_modified_by: userId,
+        filename: session.metadata?.filename ?? null,
+        file_size: session.metadata?.fileSize ?? null,
+        mime_type: session.metadata?.mimeType ?? null,
+        ingest_date: session.createdAt,
       };
 
       // Use rawContent for Confluence (storage XML with structure) or content for others

@@ -40,7 +40,7 @@ export class ChunkService {
     private readonly qdrantClient: QdrantClientService,
     private readonly llmService: LlmService,
     private readonly collectionService: CollectionService,
-  ) {}
+  ) { }
 
   /**
    * Get the Qdrant collection name for a given collection ID
@@ -167,6 +167,10 @@ export class ChunkService {
         revision: 1,
         last_modified_at: new Date().toISOString(),
         last_modified_by: userId,
+        filename: null,
+        file_size: null,
+        mime_type: null,
+        ingest_date: new Date().toISOString(),
       },
       chunk: {
         id: chunkId,
@@ -410,6 +414,10 @@ export class ChunkService {
           revision: 1,
           last_modified_at: new Date().toISOString(),
           last_modified_by: userId,
+          filename: null,
+          file_size: null,
+          mime_type: null,
+          ingest_date: new Date().toISOString(),
         },
         chunk: {
           id: newChunkId,
@@ -511,6 +519,10 @@ export class ChunkService {
         revision: 1,
         last_modified_at: new Date().toISOString(),
         last_modified_by: userId,
+        filename: null,
+        file_size: null,
+        mime_type: null,
+        ingest_date: new Date().toISOString(),
       },
       chunk: {
         id: mergedChunkId,

@@ -40,6 +40,10 @@ describe('ChunkService', () => {
       revision: 1,
       last_modified_at: '2025-01-01T00:00:00.000Z',
       last_modified_by: 'user-1',
+      filename: null,
+      file_size: null,
+      mime_type: null,
+      ingest_date: '2025-01-01T00:00:00.000Z',
     },
     chunk: {
       id: overrides.id || 'chunk-1',

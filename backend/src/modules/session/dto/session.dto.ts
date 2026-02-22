@@ -12,7 +12,7 @@ export type ChunkDto = z.infer<typeof ChunkSchema>;
 export const SessionResponseSchema = z.object({
   sessionId: z.string(),
   sourceUrl: z.string(),
-  sourceType: z.enum(['manual', 'confluence', 'web']),
+  sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
   status: z.string(),
   chunks: z.array(ChunkSchema),
   /**
@@ -26,7 +26,7 @@ export const SessionResponseSchema = z.object({
   updatedAt: z.string(),
 });
 
-export class SessionResponseDto extends createZodDto(SessionResponseSchema) {}
+export class SessionResponseDto extends createZodDto(SessionResponseSchema) { }
 
 export const MergeChunksSchema = z.object({
   chunkIds: z
@@ -34,7 +34,7 @@ export const MergeChunksSchema = z.object({
     .min(2, 'At least 2 chunks are required for merge'),
 });
 
-export class MergeChunksDto extends createZodDto(MergeChunksSchema) {}
+export class MergeChunksDto extends createZodDto(MergeChunksSchema) { }
 
 export const SplitChunkSchema = z
   .object({
@@ -48,19 +48,19 @@ export const SplitChunkSchema = z
     },
   );
 
-export class SplitChunkDto extends createZodDto(SplitChunkSchema) {}
+export class SplitChunkDto extends createZodDto(SplitChunkSchema) { }
 
 export const UpdateChunkSchema = z.object({
   text: z.string().min(1, 'Text is required'),
 });
 
-export class UpdateChunkDto extends createZodDto(UpdateChunkSchema) {}
+export class UpdateChunkDto extends createZodDto(UpdateChunkSchema) { }
 
 export const PublishSchema = z.object({
   targetCollectionId: z.string().uuid('Invalid collection ID format'),
 });
 
-export class PublishDto extends createZodDto(PublishSchema) {}
+export class PublishDto extends createZodDto(PublishSchema) { }
 
 export const PreviewResponseSchema = z.object({
   sessionId: z.string(),
@@ -70,7 +70,7 @@ export const PreviewResponseSchema = z.object({
   warnings: z.array(z.string()),
 });
 
-export class PreviewResponseDto extends createZodDto(PreviewResponseSchema) {}
+export class PreviewResponseDto extends createZodDto(PreviewResponseSchema) { }
 
 export const PublishResponseSchema = z.object({
   sessionId: z.string(),
@@ -78,30 +78,30 @@ export const PublishResponseSchema = z.object({
   collectionId: z.string(),
 });
 
-export class PublishResponseDto extends createZodDto(PublishResponseSchema) {}
+export class PublishResponseDto extends createZodDto(PublishResponseSchema) { }
 
 export const SessionListItemSchema = z.object({
   sessionId: z.string(),
   sourceUrl: z.string(),
-  sourceType: z.enum(['manual', 'confluence', 'web']),
+  sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
   status: z.string(),
   chunkCount: z.number().int().nonnegative(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
-export class SessionListItemDto extends createZodDto(SessionListItemSchema) {}
+export class SessionListItemDto extends createZodDto(SessionListItemSchema) { }
 
 export const SessionListResponseSchema = z.object({
   sessions: z.array(SessionListItemSchema),
   total: z.number().int().nonnegative(),
 });
 
-export class SessionListResponseDto extends createZodDto(SessionListResponseSchema) {}
+export class SessionListResponseDto extends createZodDto(SessionListResponseSchema) { }
 
 export const DeleteSessionResponseSchema = z.object({
   sessionId: z.string(),
   deleted: z.boolean(),
 });
 
-export class DeleteSessionResponseDto extends createZodDto(DeleteSessionResponseSchema) {}
+export class DeleteSessionResponseDto extends createZodDto(DeleteSessionResponseSchema) { }

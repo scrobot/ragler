@@ -12,6 +12,13 @@ import {
 } from './dto';
 import { IngestStrategyResolver } from './strategies/ingest-strategy.resolver';
 
+export interface SessionMetadata {
+  filename?: string;
+  fileSize?: number;
+  mimeType?: string;
+  [key: string]: unknown;
+}
+
 export interface SessionData {
   sessionId: string;
   sourceUrl: string;
@@ -30,6 +37,8 @@ export interface SessionData {
    * Undefined for manual text sources.
    */
   rawContent?: string;
+  /** Document metadata from ingestion strategy */
+  metadata?: SessionMetadata;
   createdAt: string;
   updatedAt: string;
 }
@@ -77,7 +86,7 @@ export class IngestService {
     const sessionId = `session_${uuidv4()}`;
     const strategy = this.strategyResolver.resolve(sourceType);
 
-    const { content, sourceUrl, rawContent } = await strategy.ingest(input);
+    const { content, sourceUrl, rawContent, metadata } = await strategy.ingest(input);
 
     // Generate chunks using LLM
     this.logger.log({ event: 'chunking_start', sessionId, userId, sourceType });
@@ -115,6 +124,7 @@ export class IngestService {
       content,
       chunks,
       rawContent,
+      metadata: metadata as SessionMetadata,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -50,6 +50,10 @@ export const DocMetadataSchema = z.object({
   revision: z.union([z.number(), z.string()]).describe('Document version'),
   last_modified_at: z.string().datetime().describe('ISO-8601 timestamp'),
   last_modified_by: z.string().nullable().describe('User email or ID'),
+  filename: z.string().nullable().default(null).describe('Original filename for file uploads'),
+  file_size: z.number().nullable().default(null).describe('File size in bytes'),
+  mime_type: z.string().nullable().default(null).describe('MIME type of source document'),
+  ingest_date: z.string().datetime().describe('ISO-8601 timestamp of ingestion'),
 });
 
 // Chunk metadata schema
