@@ -10,6 +10,8 @@ import {
   IngestResponseDto,
   SourceType,
 } from './dto';
+import { ChunkingConfig } from './dto/chunking-config.dto';
+import { chunkByCharacter } from '@llm/chunkers/character-chunker';
 import { IngestStrategyResolver } from './strategies/ingest-strategy.resolver';
 
 export interface SessionMetadata {
@@ -57,44 +59,53 @@ export class IngestService {
   async ingestConfluence(dto: IngestConfluenceDto, userId: string): Promise<IngestResponseDto> {
     const input = dto.pageId ?? dto.url;
     // We already validated that one exists in the DTO
-    return this.createSession(input!, 'confluence', userId);
+    return this.createSession(input!, 'confluence', userId, dto.chunkingConfig);
   }
 
   async ingestWeb(dto: IngestWebDto, userId: string): Promise<IngestResponseDto> {
-    return this.createSession(dto.url, 'web', userId);
+    return this.createSession(dto.url, 'web', userId, dto.chunkingConfig);
   }
 
   async ingestManual(dto: IngestManualDto, userId: string): Promise<IngestResponseDto> {
-    return this.createSession(dto.content, 'manual', userId);
+    return this.createSession(dto.content, 'manual', userId, dto.chunkingConfig);
   }
 
-  async ingestFile(file: Express.Multer.File, userId: string): Promise<IngestResponseDto> {
+  async ingestFile(file: Express.Multer.File, userId: string, chunkingConfig?: ChunkingConfig): Promise<IngestResponseDto> {
     const input = JSON.stringify({
       buffer: file.buffer.toString('base64'),
       filename: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
     });
-    return this.createSession(input, 'file', userId);
+    return this.createSession(input, 'file', userId, chunkingConfig);
   }
 
   private async createSession(
     input: string,
     sourceType: SourceType,
     userId: string,
+    chunkingConfig?: ChunkingConfig,
   ): Promise<IngestResponseDto> {
     const sessionId = `session_${uuidv4()}`;
     const strategy = this.strategyResolver.resolve(sourceType);
 
     const { content, sourceUrl, rawContent, metadata } = await strategy.ingest(input);
 
-    // Generate chunks using LLM
-    this.logger.log({ event: 'chunking_start', sessionId, userId, sourceType });
+    // Generate chunks using configured method
+    const chunkMethod = chunkingConfig?.method ?? 'llm';
+    this.logger.log({ event: 'chunking_start', sessionId, userId, sourceType, method: chunkMethod });
     const startTime = Date.now();
 
     let chunks: Array<{ id: string; text: string; isDirty: boolean }> = [];
     try {
-      chunks = await this.llmService.chunkContent(content, sessionId);
+      if (chunkMethod === 'character') {
+        chunks = chunkByCharacter(content, {
+          chunkSize: chunkingConfig?.chunkSize,
+          overlap: chunkingConfig?.overlap,
+        });
+      } else {
+        chunks = await this.llmService.chunkContent(content, sessionId);
+      }
       const duration = Date.now() - startTime;
       this.logger.log({
         event: 'chunking_success',
