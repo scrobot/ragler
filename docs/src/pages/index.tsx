@@ -12,7 +12,7 @@ function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
 
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+    <header className={clsx('hero', styles.heroBanner)}>
       <div className="container">
         <Heading as="h1" className="hero__title">
           {siteConfig.title}
@@ -20,7 +20,10 @@ function HomepageHeader() {
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/getting-started/installation">
-            Open Quick Start
+            Quick Start →
+          </Link>
+          <Link className="button button--outline button--lg" to="/docs/architecture/adr" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }}>
+            Architecture Docs
           </Link>
         </div>
       </div>
@@ -32,7 +35,7 @@ export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
 
   return (
-    <Layout title={`${siteConfig.title}`} description="RAGler product and architecture documentation">
+    <Layout title={`${siteConfig.title} — ${siteConfig.tagline}`} description="RAGler: ingest, curate, and publish knowledge for RAG with human-in-the-loop quality control.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

@@ -4,13 +4,13 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'RAGler',
-  tagline: 'Operational docs for ingestion, curation, and publishing in RAG',
+  tagline: 'The human-in-the-loop RAG knowledge platform',
   favicon: 'img/favicon.ico',
 
-  url: 'https://ragler.ai',
-  baseUrl: '/',
+  url: 'https://scrobot.github.io',
+  baseUrl: '/ragler/',
 
-  organizationName: 'ragler-oss',
+  organizationName: 'scrobot',
   projectName: 'ragler',
 
   onBrokenLinks: 'throw',

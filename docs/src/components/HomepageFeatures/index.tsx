@@ -5,37 +5,50 @@ import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
+  emoji: string;
   description: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Task-First Docs',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
-    description: <>Follow operational guides with prerequisites, steps, verification, and troubleshooting.</>,
+    title: 'Confluence Ingestor',
+    emoji: '🔗',
+    description: <>Pull pages directly from Confluence, web URLs, or manual text. Your knowledge, any source.</>,
   },
   {
-    title: 'Product Workflows',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
-    description: <>Execute ingest, session editing, publish, and search flows with copy-paste API examples.</>,
+    title: 'Multi-Format File Upload',
+    emoji: '📄',
+    description: <>Upload PDF, DOCX, Markdown, TXT, and CSV files. Automatic text extraction and chunking.</>,
   },
   {
-    title: 'Architecture Clarity',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
-    description: <>Map each runtime module, data boundary, and decision record to real backend interfaces.</>,
+    title: 'Session-Based Quality Control',
+    emoji: '✏️',
+    description: <>Draft, review, split, merge, and reorder chunks before publishing. Human in the loop.</>,
+  },
+  {
+    title: 'AI-Powered Chunk Scoring',
+    emoji: '🤖',
+    description: <>AI assistant analyzes quality, suggests operations, and scores chunks with approval flow.</>,
+  },
+  {
+    title: 'Chat Playground',
+    emoji: '💬',
+    description: <>Ask questions against your knowledge base. RAG-powered responses with cited sources.</>,
+  },
+  {
+    title: 'Atomic Publish',
+    emoji: '🚀',
+    description: <>Preview, validate, then atomically replace collections. Zero-downtime knowledge updates.</>,
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem) {
+function Feature({ title, emoji, description }: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+      <div className={styles.featureCard}>
+        <div className={styles.featureEmoji}>{emoji}</div>
+        <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
+        <p className={styles.featureDescription}>{description}</p>
       </div>
     </div>
   );
