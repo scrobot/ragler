@@ -11,7 +11,7 @@ Store all document metadata in the existing Qdrant `doc.*` payload fields (`sour
 ## Consequences
 
 - No additional database dependency.
-- Aggregation happens at query time — acceptable for collections with <10K chunks.
+- Aggregation happens at query time — acceptable for collections with fewer than 10K chunks.
 - Document-level operations (delete all chunks for a document) are straightforward with Qdrant filters.
 
 ## Alternatives considered
