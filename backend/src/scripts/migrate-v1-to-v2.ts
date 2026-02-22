@@ -196,6 +196,10 @@ function mapV1ToV2(
     revision: v1.revision,
     last_modified_at: v1.last_modified_at,
     last_modified_by: v1.last_modified_by,
+    filename: null, // Not available in v1
+    file_size: null, // Not available in v1
+    mime_type: null, // Not available in v1
+    ingest_date: new Date().toISOString(),
   };
 
   return {
