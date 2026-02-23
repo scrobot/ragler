@@ -10,8 +10,10 @@ const HTML_TAG_REPLACE_REGEX = /<[^>]*>/g;
 const HTML_TAG_TEST_REGEX = /<[^>]*>/;
 const MIN_MEANINGFUL_TEXT_LENGTH = 20;
 const MIN_CHUNK_TEXT_LENGTH = 50;
+const BASE64_PATTERN = /[A-Za-z0-9+/=]{100,}/;
+const JSON_BLOB_PATTERN = /"\w+":\s*(?:true|false|null|"|\d|\[|\{)/g;
 
-type DirtyReason = 'html_only' | 'too_short' | 'whitespace_only' | 'empty_payload';
+type DirtyReason = 'html_only' | 'too_short' | 'whitespace_only' | 'empty_payload' | 'base64_blob' | 'json_blob';
 
 function stripHtml(html: string): string {
     return html.replace(HTML_TAG_REPLACE_REGEX, ' ').replace(/\s+/g, ' ').trim();
@@ -34,6 +36,16 @@ function classifyChunk(text: string | undefined | null): DirtyReason | null {
 
     if (stripped.length < MIN_CHUNK_TEXT_LENGTH) {
         return 'too_short';
+    }
+
+    if (BASE64_PATTERN.test(trimmed)) {
+        return 'base64_blob';
+    }
+
+    const jsonMatches = trimmed.match(JSON_BLOB_PATTERN);
+    if (jsonMatches && jsonMatches.length >= 5) {
+        const jsonCharCount = jsonMatches.reduce((sum, m) => sum + m.length, 0);
+        if (jsonCharCount / trimmed.length > 0.15) return 'json_blob';
     }
 
     return null;

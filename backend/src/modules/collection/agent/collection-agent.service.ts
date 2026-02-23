@@ -458,6 +458,11 @@ Rules:
     const MIN_CHUNK_LEN = 50;
     const SCROLL_PAGE = 50;
 
+    // Base64: long runs of alphanumeric+/= with no spaces (e.g. JPEG/PNG data)
+    const BASE64_PATTERN = /[A-Za-z0-9+/=]{100,}/;
+    // JSON blob: lots of {"key": patterns
+    const JSON_BLOB_PATTERN = /"\w+":\s*(?:true|false|null|"|\d|\[|\{)/g;
+
     const classifyChunk = (text: string | undefined | null): string | null => {
       if (text === undefined || text === null) return 'empty_payload';
       const trimmed = text.trim();
@@ -465,6 +470,18 @@ Rules:
       const stripped = trimmed.replace(HTML_TAG_REPLACE, ' ').replace(/\s+/g, ' ').trim();
       if (HTML_TAG_TEST.test(trimmed) && stripped.length < MIN_MEANINGFUL) return 'html_only';
       if (stripped.length < MIN_CHUNK_LEN) return 'too_short';
+
+      // Detect base64-encoded binary data (images, fonts, etc.)
+      if (BASE64_PATTERN.test(trimmed)) return 'base64_blob';
+
+      // Detect raw JSON data dumps (API responses, serialized objects)
+      const jsonMatches = trimmed.match(JSON_BLOB_PATTERN);
+      if (jsonMatches && jsonMatches.length >= 5) {
+        // If >30% of content is JSON key-value pairs, it's a data dump
+        const jsonCharCount = jsonMatches.reduce((sum, m) => sum + m.length, 0);
+        if (jsonCharCount / trimmed.length > 0.15) return 'json_blob';
+      }
+
       return null;
     };
 
