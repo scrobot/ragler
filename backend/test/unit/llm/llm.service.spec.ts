@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { LlmService } from '@llm/llm.service';
+import { SettingsService } from '@modules/settings/settings.service';
 import { RefineScenario } from '@llm/dto';
 import {
   LlmChunkingValidationError,
@@ -96,6 +97,11 @@ function createChunkingResponse(
   };
 }
 
+const mockSettingsService = {
+  getEffectiveApiKey: jest.fn().mockResolvedValue('test-api-key'),
+  getEffectiveModel: jest.fn().mockResolvedValue('gpt-4o'),
+};
+
 describe('LlmService', () => {
   let service: LlmService;
   let mockConfigService: jest.Mocked<Pick<ConfigService, 'get'>>;
@@ -120,6 +126,7 @@ describe('LlmService', () => {
       providers: [
         LlmService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: SettingsService, useValue: mockSettingsService },
       ],
     }).compile();
 
@@ -310,6 +317,7 @@ describe('LlmService', () => {
           providers: [
             LlmService,
             { provide: ConfigService, useValue: lowLimitConfigService },
+            { provide: SettingsService, useValue: mockSettingsService },
           ],
         }).compile();
 
@@ -348,6 +356,7 @@ describe('LlmService', () => {
           providers: [
             LlmService,
             { provide: ConfigService, useValue: lowLimitConfigService },
+            { provide: SettingsService, useValue: mockSettingsService },
           ],
         }).compile();
 
@@ -952,8 +961,8 @@ describe('LlmService', () => {
   });
 
   describe('constructor', () => {
-    it('should read OpenAI API key from config', () => {
-      expect(mockConfigService.get).toHaveBeenCalledWith('openai.apiKey');
+    it('should not read OpenAI API key from config (now uses SettingsService at call time)', () => {
+      expect(mockConfigService.get).not.toHaveBeenCalledWith('openai.apiKey');
     });
 
     it('should read LLM chunking configuration', () => {

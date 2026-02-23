@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SessionController } from '@session/session.controller';
 import { SessionService } from '@session/session.service';
+import { CollectionAgentService } from '@modules/collection/agent/collection-agent.service';
 import { RequestUser } from '@common/decorators';
 import {
   SessionResponseDto,
@@ -46,6 +47,10 @@ describe('SessionController', () => {
     deleted: true,
   };
 
+  const mockAgentService = {
+    generateChunkContent: jest.fn().mockResolvedValue('Generated content'),
+  };
+
   beforeEach(async () => {
     mockSessionService = {
       getSession: jest.fn(),
@@ -61,6 +66,7 @@ describe('SessionController', () => {
       controllers: [SessionController],
       providers: [
         { provide: SessionService, useValue: mockSessionService },
+        { provide: CollectionAgentService, useValue: mockAgentService },
       ],
     }).compile();
 

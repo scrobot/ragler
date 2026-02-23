@@ -4,11 +4,9 @@ import type { AgentEvent } from '@modules/collection/dto/agent.dto';
 describe('CollectionAgentService', () => {
   let service: CollectionAgentService;
 
-  const mockConfigService = {
-    get: jest.fn((key: string) => {
-      if (key === 'openai.apiKey') return 'test-key';
-      return undefined;
-    }),
+  const mockSettingsService = {
+    getEffectiveApiKey: jest.fn().mockResolvedValue('test-key'),
+    getEffectiveModel: jest.fn().mockResolvedValue('gpt-4o'),
   };
 
   const mockChunkService = {
@@ -34,15 +32,23 @@ describe('CollectionAgentService', () => {
     revokeApproval: jest.fn().mockResolvedValue(undefined),
     clearHistory: jest.fn().mockResolvedValue(undefined),
     clearApprovedOperations: jest.fn().mockResolvedValue(undefined),
+    getSession: jest.fn().mockResolvedValue({ id: 'test' }),
+    createSession: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPromptService = {
+    getEffectivePrompt: jest.fn().mockResolvedValue('You are a helpful agent.'),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new CollectionAgentService(
-      mockConfigService as never,
+      mockSettingsService as never,
       mockChunkService as never,
+      { generateEmbeddings: jest.fn() } as never,
       mockMemoryService as never,
+      mockPromptService as never,
     );
     service.onModuleInit();
   });

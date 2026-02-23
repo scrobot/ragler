@@ -11,11 +11,13 @@ import {
   LlmModule,
   VectorModule,
   HealthModule,
+  SettingsModule,
 } from './modules';
 
 @Module({
   imports: [
     AppConfigModule,
+    SettingsModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -44,4 +46,4 @@ import {
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

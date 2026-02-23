@@ -150,27 +150,63 @@ export class WebStrategy implements IngestStrategy {
   private extractContent(html: string, url: string): IngestResult {
     try {
       const dom = new JSDOM(html, { url });
-      const reader = new Readability(dom.window.document);
+      const document = dom.window.document;
+
+      // Pre-clean: remove elements that pollute text extraction
+      const elementsToRemove = document.querySelectorAll(
+        'script, style, noscript, iframe, svg, nav, footer, header, aside, ' +
+        'form, button, input, select, textarea, [role="navigation"], ' +
+        '[role="banner"], [role="contentinfo"], .nav, .navbar, .footer, ' +
+        '.sidebar, .menu, .ad, .advertisement, .cookie-banner',
+      );
+      elementsToRemove.forEach((el) => el.remove());
+
+      // Try Readability first
+      const reader = new Readability(document);
       const article = reader.parse();
 
-      if (!article || !article.textContent?.trim()) {
-        throw new ContentExtractionError(
-          'Failed to extract meaningful content from the page',
-        );
-      }
+      let text: string;
+      let title: string;
+      let metadata: Record<string, unknown> = {};
 
-      return {
-        content: article.textContent.trim(),
-        title: article.title || new URL(url).hostname,
-        sourceUrl: url,
-        metadata: {
+      if (article && article.textContent?.trim()) {
+        text = article.textContent;
+        title = article.title || new URL(url).hostname;
+        metadata = {
           excerpt: article.excerpt ?? null,
           byline: article.byline ?? null,
           siteName: article.siteName ?? null,
           lang: article.lang ?? null,
           publishedTime: article.publishedTime ?? null,
           length: article.length,
-        },
+        };
+      } else {
+        // Fallback: extract from body directly
+        const body = new JSDOM(html, { url }).window.document.body;
+        if (body) {
+          // Remove the same noise elements
+          body.querySelectorAll('script, style, noscript, iframe, svg, nav, footer, header').forEach((el) => el.remove());
+          text = body.textContent ?? '';
+        } else {
+          text = '';
+        }
+        title = new JSDOM(html, { url }).window.document.title || new URL(url).hostname;
+      }
+
+      // Post-process: clean text
+      text = this.cleanExtractedText(text);
+
+      if (!text) {
+        throw new ContentExtractionError(
+          'Failed to extract meaningful content from the page',
+        );
+      }
+
+      return {
+        content: text,
+        title,
+        sourceUrl: url,
+        metadata,
       };
     } catch (error) {
       if (error instanceof ContentExtractionError) {
@@ -180,6 +216,36 @@ export class WebStrategy implements IngestStrategy {
         `Failed to parse HTML: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  /**
+   * Clean extracted text: normalize whitespace, strip residual HTML entities,
+   * remove excessive blank lines, and trim.
+   */
+  private cleanExtractedText(text: string): string {
+    return text
+      // Decode common HTML entities
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      // Strip any remaining HTML tags (safety net)
+      .replace(/<[^>]*>/g, '')
+      // Normalize whitespace within lines
+      .replace(/[ \t]+/g, ' ')
+      // Normalize line breaks
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      // Collapse 3+ newlines into 2
+      .replace(/\n{3,}/g, '\n\n')
+      // Trim each line
+      .split('\n')
+      .map((line) => line.trim())
+      .join('\n')
+      // Final trim
+      .trim();
   }
 
 }

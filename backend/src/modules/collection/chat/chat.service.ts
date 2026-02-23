@@ -1,9 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import OpenAI from 'openai';
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
+import { SettingsService } from '@modules/settings/settings.service';
 import { AgentMemoryService } from '../agent/memory/redis-memory';
 import { ChatResponse, ChatCitation } from '../dto';
 
@@ -22,18 +22,13 @@ const MAX_HISTORY_TURNS = 10;
 @Injectable()
 export class ChatService {
     private readonly logger = new Logger(ChatService.name);
-    private readonly openai: OpenAI;
 
     constructor(
         private readonly qdrantClient: QdrantClientService,
         private readonly llmService: LlmService,
         private readonly memoryService: AgentMemoryService,
-        private readonly configService: ConfigService,
-    ) {
-        this.openai = new OpenAI({
-            apiKey: this.configService.get<string>('OPENAI_API_KEY'),
-        });
-    }
+        private readonly settingsService: SettingsService,
+    ) { }
 
     async chat(
         collectionId: string,
@@ -103,8 +98,14 @@ Cite specific sources when possible using [Source N] notation.
 ${contextText || 'No relevant context found in the knowledge base.'}`;
 
         // 6. Call LLM
-        const completion = await this.openai.chat.completions.create({
-            model: 'gpt-4o',
+        const [apiKey, modelId] = await Promise.all([
+            this.settingsService.getEffectiveApiKey(),
+            this.settingsService.getEffectiveModel(),
+        ]);
+        const openai = new OpenAI({ apiKey });
+
+        const completion = await openai.chat.completions.create({
+            model: modelId,
             messages: [
                 { role: 'system', content: systemPrompt },
                 ...historyMessages,

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { SettingsService } from '@modules/settings/settings.service';
 import {
   RefineScenario,
   LlmChunkResponseSchema,
@@ -80,7 +81,6 @@ const CHUNK_RESPONSE_SCHEMA = {
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private readonly openai: OpenAI;
   private readonly chunkingTimeout: number;
   private readonly chunkingMaxRetries: number;
   private readonly maxContentLength: number;
@@ -92,7 +92,6 @@ export class LlmService {
   private readonly documentParser: ConfluenceDocumentParser;
   private readonly markdownParser: MarkdownParser;
   private readonly structuredChunker: StructuredChunker;
-  private readonly tagExtractor: LLMTagExtractor;
 
   private readonly CHUNKING_SYSTEM_PROMPT = `You are a document chunking specialist. Your task is to split the provided content into semantically meaningful chunks for a knowledge retrieval system.
 
@@ -108,9 +107,10 @@ Rules:
 - is_dirty must always be false (initial state)
 - If content cannot be chunked meaningfully, return a single chunk with all content`;
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('openai.apiKey');
-    this.openai = new OpenAI({ apiKey });
+  constructor(
+    private configService: ConfigService,
+    private settingsService: SettingsService,
+  ) {
     this.chunkingTimeout =
       this.configService.get<number>('llm.chunking.timeout') ?? 60000;
     this.chunkingMaxRetries =
@@ -132,7 +132,23 @@ Rules:
       maxTokens: 700,
       minTokens: 50,
     });
-    this.tagExtractor = new LLMTagExtractor(this.openai, {
+    // tagExtractor initialized lazily in getTagExtractor()
+  }
+
+  /**
+   * Create a fresh OpenAI client with the current effective API key.
+   */
+  private async createOpenAiClient(): Promise<OpenAI> {
+    const apiKey = await this.settingsService.getEffectiveApiKey();
+    return new OpenAI({ apiKey });
+  }
+
+  /**
+   * Get a tag extractor with the current API key.
+   */
+  private async getTagExtractor(): Promise<LLMTagExtractor> {
+    const openai = await this.createOpenAiClient();
+    return new LLMTagExtractor(openai, {
       model: 'gpt-4o-mini',
       timeout: 10000,
       maxRetries: 2,
@@ -193,9 +209,11 @@ Rules:
 
   private async chunkSingleRequest(content: string): Promise<ChunkDto[]> {
     try {
-      const completion = await this.openai.chat.completions.create(
+      const openai = await this.createOpenAiClient();
+      const modelId = await this.settingsService.getEffectiveModel();
+      const completion = await openai.chat.completions.create(
         {
-          model: 'gpt-4o',
+          model: modelId,
           messages: [
             { role: 'system', content: this.CHUNKING_SYSTEM_PROMPT },
             { role: 'user', content },
@@ -461,8 +479,9 @@ Rules:
       }
 
       // Step 3: Extract tags for all chunks in parallel
+      const tagExtractor = await this.getTagExtractor();
       const tagPromises = chunkInputs.map((chunk) =>
-        this.tagExtractor.extractTags(chunk.text, {
+        tagExtractor.extractTags(chunk.text, {
           title: docMetadata.title || undefined,
           headingPath: chunk.headingPath,
         }),
@@ -548,7 +567,8 @@ Rules:
     };
 
     try {
-      const response = await this.openai.chat.completions.create({
+      const openai = await this.createOpenAiClient();
+      const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           {
@@ -575,7 +595,8 @@ Rules:
     this.logger.log('Generating embedding');
 
     try {
-      const response = await this.openai.embeddings.create({
+      const openai = await this.createOpenAiClient();
+      const response = await openai.embeddings.create({
         model: 'text-embedding-3-small',
         input: text,
       });
@@ -614,7 +635,8 @@ Rules:
     });
 
     try {
-      const response = await this.openai.embeddings.create(
+      const openai = await this.createOpenAiClient();
+      const response = await openai.embeddings.create(
         {
           model: 'text-embedding-3-small',
           input: texts,
