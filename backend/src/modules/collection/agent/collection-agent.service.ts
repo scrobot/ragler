@@ -557,10 +557,114 @@ Rules:
         if (cursor === null || cursor === undefined) break;
       }
 
+      // =====================================================================
+      // Pass 2: LLM-assisted HTML cleaning (extract text from HTML-rich chunks)
+      // =====================================================================
+
+      yield {
+        type: 'message' as const,
+        content: 'Pass 1 done. Starting HTML cleaning with LLM...',
+        timestamp: ts(),
+      };
+
+      const isHtmlRich = (text: string): boolean => {
+        const tagCount = (text.match(HTML_TAG_TEST) || []).length;
+        if (tagCount === 0) return false;
+        const stripped = text.replace(HTML_TAG_REPLACE, '').replace(/\s+/g, ' ').trim();
+        if (stripped.length < MIN_CHUNK_LEN) return false;
+        // Check if HTML tags make up >20% of the content
+        const htmlLen = text.length - stripped.length;
+        return htmlLen / text.length > 0.2;
+      };
+
+      let totalCleaned = 0;
+      cursor = undefined;
+      const openai = new (await import('openai')).default({
+        apiKey: await this.settingsService.getEffectiveApiKey(),
+      });
+      const modelId = await this.settingsService.getEffectiveModel();
+
+      while (true) {
+        const result = await qdrant.scroll(collectionName, {
+          limit: SCROLL_PAGE,
+          offset: cursor as any,
+          with_payload: true,
+          with_vector: false,
+        });
+
+        const points = result.points as Array<{
+          id: string | number;
+          payload?: Record<string, unknown>;
+        }>;
+
+        if (points.length === 0) break;
+
+        for (const point of points) {
+          const chunkPayload = point.payload?.chunk as Record<string, unknown> | undefined;
+          const text = chunkPayload?.text as string | undefined;
+
+          if (text && isHtmlRich(text)) {
+            const chunkId = String(point.id);
+
+            try {
+              const completion = await openai.chat.completions.create({
+                model: modelId,
+                messages: [
+                  {
+                    role: 'system',
+                    content: `Extract clean plain text from HTML content.
+Remove ALL HTML tags, Vue.js comments (<!--[-->, <!---->), class attributes, and markup artifacts.
+Convert <li> items to bullet points (• item).
+Convert <h1>-<h6> headings to uppercase or bold markers.
+Keep ALL original text content — do NOT summarize, rewrite, or translate.
+Return ONLY the cleaned text, nothing else.`,
+                  },
+                  { role: 'user', content: text },
+                ],
+                temperature: 0,
+                max_tokens: 2000,
+              });
+
+              const cleanedText = completion.choices[0]?.message?.content?.trim();
+
+              if (cleanedText && cleanedText.length >= MIN_CHUNK_LEN) {
+                // Update chunk text in Qdrant payload
+                await this.qdrantClient.updatePayloads(collectionName, [{
+                  id: chunkId,
+                  payload: {
+                    chunk: { ...chunkPayload, text: cleanedText },
+                  },
+                }]);
+
+                totalCleaned++;
+
+                yield {
+                  type: 'chunk_cleaned' as const,
+                  chunkId,
+                  preview: cleanedText.substring(0, 120),
+                  timestamp: ts(),
+                };
+              }
+            } catch (llmError) {
+              this.logger.warn({
+                event: 'clean_chunk_llm_error',
+                chunkId,
+                error: llmError instanceof Error ? llmError.message : 'Unknown',
+              });
+              // Skip this chunk, continue with next
+            }
+          }
+        }
+
+        cursor = result.next_page_offset;
+        if (cursor === null || cursor === undefined) break;
+      }
+
       yield {
         type: 'clean_complete' as const,
         totalScanned,
         totalDeleted,
+        totalCleaned,
         remaining: totalScanned - totalDeleted,
         breakdown,
         timestamp: ts(),
@@ -572,6 +676,7 @@ Rules:
         collectionId,
         totalScanned,
         totalDeleted,
+        totalCleaned,
         breakdown,
         durationMs: duration,
       });

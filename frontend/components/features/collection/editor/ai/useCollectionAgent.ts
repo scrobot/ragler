@@ -263,6 +263,7 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
 
       const assistantMessageId = uuidv4();
       let deletedCount = 0;
+      let cleanedCount = 0;
       const deletedItems: string[] = [];
 
       setMessages((prev) => [
@@ -306,17 +307,35 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
             break;
           }
 
+          case "message":
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: (event as any).content,
+              })
+            );
+            break;
+
+          case "chunk_cleaned":
+            cleanedCount++;
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: `Cleaning HTML... ${cleanedCount} chunk${cleanedCount > 1 ? "s" : ""} cleaned so far.\n\n✨ ${(event as any).preview?.substring(0, 80)}...`,
+              })
+            );
+            break;
+
           case "clean_complete": {
-            const { totalScanned, totalDeleted, remaining, breakdown } = event as any;
+            const { totalScanned, totalDeleted, totalCleaned, remaining, breakdown } = event as any;
             const breakdownStr = Object.entries(breakdown as Record<string, number>)
               .map(([k, v]) => `${v}× ${k}`)
               .join(", ");
-            const summary = totalDeleted > 0
-              ? `✅ **Cleaning complete!**\n\nScanned: ${totalScanned} chunks\nDeleted: ${totalDeleted} (${breakdownStr})\nRemaining: ${remaining}`
-              : `✅ Collection is clean! Scanned ${totalScanned} chunks — no junk found.`;
+            const parts: string[] = [`✅ **Cleaning complete!**\n\nScanned: ${totalScanned} chunks`];
+            if (totalDeleted > 0) parts.push(`Deleted: ${totalDeleted} junk (${breakdownStr})`);
+            if (totalCleaned > 0) parts.push(`Cleaned: ${totalCleaned} HTML chunks (text extracted)`);
+            parts.push(`Remaining: ${remaining}`);
             setMessages((prev) =>
               updateAssistantMessage(prev, assistantMessageId, {
-                content: summary,
+                content: parts.join("\n"),
               })
             );
             setIsStreaming(false);

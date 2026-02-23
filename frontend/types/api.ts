@@ -288,8 +288,16 @@ export interface CleanCompleteEvent {
   type: 'clean_complete';
   totalScanned: number;
   totalDeleted: number;
+  totalCleaned: number;
   remaining: number;
   breakdown: Record<string, number>;
+  timestamp: string;
+}
+
+export interface ChunkCleanedEvent {
+  type: 'chunk_cleaned';
+  chunkId: string;
+  preview: string;
   timestamp: string;
 }
 
@@ -303,7 +311,8 @@ export type AgentEvent =
   | CleanProgressEvent
   | DirtyChunkFoundEvent
   | DirtyChunkDeletedEvent
-  | CleanCompleteEvent;
+  | CleanCompleteEvent
+  | ChunkCleanedEvent;
 
 export interface AgentChatRequest {
   message: string;
