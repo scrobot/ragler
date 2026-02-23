@@ -205,3 +205,67 @@ export function streamAgentChat(
 
   return () => controller.abort();
 }
+
+/**
+ * Stream collection cleaning progress via SSE
+ */
+export function streamCleanCollection(
+  collectionId: string,
+  onEvent: (event: AgentEvent) => void,
+  onError: (error: Error) => void,
+  onComplete: () => void
+): () => void {
+  const controller = new AbortController();
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+  fetch(`${baseUrl}/collections/${collectionId}/agent/clean`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const eventData = JSON.parse(line.slice(6));
+              onEvent(eventData);
+            } catch {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+
+      onComplete();
+    })
+    .catch((error) => {
+      if (error.name !== 'AbortError') {
+        onError(error);
+      }
+    });
+
+  return () => controller.abort();
+}

@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   ToolLoopAgent,
   stepCountIs,
@@ -7,11 +6,12 @@ import {
   type ModelMessage,
   type ToolSet,
 } from 'ai';
-import { createOpenAI, type OpenAIProvider } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import OpenAI from 'openai';
 
 import { QdrantClientService } from '@infrastructure/qdrant';
 import { LlmService } from '@llm/llm.service';
+import { SettingsService } from '@modules/settings/settings.service';
 import { AgentMemoryService } from './memory/redis-memory';
 import { PromptService } from './prompts/prompt.service';
 import {
@@ -24,23 +24,22 @@ import {
   createUpdateChunkPayloadTool,
   createDeleteChunksTool,
   createUpsertChunkTool,
+  createScanNextDirtyChunkTool,
+
   type AgentTool,
 } from './tools';
 import type { AgentEvent } from '../dto/agent.dto';
 
-const MAX_TOOL_ITERATIONS = 12;
+const MAX_TOOL_ITERATIONS = 30;
 
 @Injectable()
 export class CollectionAgentService implements OnModuleInit {
   private readonly logger = new Logger(CollectionAgentService.name);
 
-  private openaiProvider!: OpenAIProvider;
-  private openaiClient!: OpenAI;
-  private modelId = 'gpt-4o';
   private tools: AgentTool[] = [];
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly settingsService: SettingsService,
     private readonly qdrantClient: QdrantClientService,
     private readonly llmService: LlmService,
     private readonly memoryService: AgentMemoryService,
@@ -48,25 +47,11 @@ export class CollectionAgentService implements OnModuleInit {
   ) { }
 
   onModuleInit(): void {
-    this.initializeClient();
     this.initializeTools();
   }
 
-  private initializeClient(): void {
-    const apiKey = this.configService.get<string>('openai.apiKey');
-    this.openaiProvider = createOpenAI({ apiKey });
-    this.openaiClient = new OpenAI({ apiKey });
-
-    const configuredModel = this.configService.get<string>('openai.agentModel');
-    if (configuredModel) {
-      this.modelId = configuredModel;
-    }
-
-    this.logger.log({ event: 'agent_client_initialized', model: this.modelId });
-  }
-
-  private initializeTools(): void {
-    const apiKey = this.configService.get<string>('openai.apiKey');
+  private async initializeTools(): Promise<void> {
+    const apiKey = await this.settingsService.getEffectiveApiKey();
     const openaiClient = new OpenAI({ apiKey });
 
     this.tools = [
@@ -79,6 +64,8 @@ export class CollectionAgentService implements OnModuleInit {
       createUpdateChunkPayloadTool(this.qdrantClient),
       createDeleteChunksTool(this.qdrantClient),
       createUpsertChunkTool(this.qdrantClient, this.llmService),
+      createScanNextDirtyChunkTool(this.qdrantClient),
+
       // LLM-based scoring
       createScoreChunkTool(openaiClient),
     ];
@@ -138,11 +125,20 @@ export class CollectionAgentService implements OnModuleInit {
     collectionId: string,
     userId: string,
   ): Promise<ToolLoopAgent<never, ToolSet>> {
+    const [apiKey, modelId] = await Promise.all([
+      this.settingsService.getEffectiveApiKey(),
+      this.settingsService.getEffectiveModel(),
+    ]);
+    const openaiProvider = createOpenAI({ apiKey });
+
+    // Re-initialize tools with current API key
+    await this.initializeTools();
+
     const contextMessage = `You are helping with collection ID: ${collectionId}. User ID: ${userId}.`;
     const systemPrompt = await this.promptService.getEffectivePrompt(collectionId);
 
     return new ToolLoopAgent({
-      model: this.openaiProvider(this.modelId),
+      model: openaiProvider(modelId),
       instructions: `${systemPrompt}\n\n${contextMessage}`,
       tools: this.toToolSet(this.tools),
       temperature: 0,
@@ -205,6 +201,11 @@ export class CollectionAgentService implements OnModuleInit {
             const ts = new Date().toISOString();
 
             for (const toolCall of step.toolCalls) {
+              this.logger.log({
+                event: 'agent_tool_call',
+                tool: toolCall.toolName,
+                input: JSON.stringify(toolCall.input).substring(0, 200),
+              });
               enqueue({
                 type: 'tool_call',
                 tool: toolCall.toolName,
@@ -214,6 +215,14 @@ export class CollectionAgentService implements OnModuleInit {
             }
 
             for (const toolResult of step.toolResults) {
+              const output = typeof toolResult.output === 'string'
+                ? toolResult.output.substring(0, 300)
+                : JSON.stringify(toolResult.output).substring(0, 300);
+              this.logger.log({
+                event: 'agent_tool_result',
+                tool: toolResult.toolName,
+                outputPreview: output,
+              });
               enqueue({
                 type: 'tool_result',
                 tool: toolResult.toolName,
@@ -223,6 +232,10 @@ export class CollectionAgentService implements OnModuleInit {
             }
 
             if (step.text && step.text.trim() && step.text !== latestAssistantText) {
+              this.logger.log({
+                event: 'agent_step_text',
+                textPreview: step.text.substring(0, 200),
+              });
               latestAssistantText = step.text;
               enqueue({
                 type: 'message',
@@ -369,8 +382,14 @@ export class CollectionAgentService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      const response = await this.openaiClient.responses.create({
-        model: this.modelId,
+      const [apiKey, modelId] = await Promise.all([
+        this.settingsService.getEffectiveApiKey(),
+        this.settingsService.getEffectiveModel(),
+      ]);
+      const openaiClient = new OpenAI({ apiKey });
+
+      const response = await openaiClient.responses.create({
+        model: modelId,
         tools: [{ type: 'web_search_preview' }],
         input: [
           {
@@ -417,6 +436,140 @@ Rules:
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
+    }
+  }
+
+  // ============================================================================
+  // Collection Cleaning (processor-driven, no LLM)
+  // ============================================================================
+
+  async *streamCleanCollection(
+    collectionId: string,
+  ): AsyncGenerator<AgentEvent> {
+    const startTime = Date.now();
+    const collectionName = `kb_${collectionId}`;
+    const qdrant = this.qdrantClient.getClient();
+
+    this.logger.log({ event: 'clean_collection_start', collectionId });
+
+    const HTML_TAG_REPLACE = /<[^>]*>/g;
+    const HTML_TAG_TEST = /<[^>]*>/;
+    const MIN_MEANINGFUL = 20;
+    const MIN_CHUNK_LEN = 50;
+    const SCROLL_PAGE = 50;
+
+    const classifyChunk = (text: string | undefined | null): string | null => {
+      if (text === undefined || text === null) return 'empty_payload';
+      const trimmed = text.trim();
+      if (trimmed.length === 0) return 'whitespace_only';
+      const stripped = trimmed.replace(HTML_TAG_REPLACE, ' ').replace(/\s+/g, ' ').trim();
+      if (HTML_TAG_TEST.test(trimmed) && stripped.length < MIN_MEANINGFUL) return 'html_only';
+      if (stripped.length < MIN_CHUNK_LEN) return 'too_short';
+      return null;
+    };
+
+    const ts = (): string => new Date().toISOString();
+
+    // Get total count upfront for progress reporting
+    const totalCount = await this.qdrantClient.countPoints(collectionName);
+
+    yield { type: 'thinking', timestamp: ts() };
+
+    let totalScanned = 0;
+    let totalDeleted = 0;
+    const breakdown: Record<string, number> = {};
+    let cursor: string | number | Record<string, unknown> | null | undefined = undefined;
+
+    try {
+      while (true) {
+        // Use raw Qdrant scroll with cursor-based pagination
+        const result = await qdrant.scroll(collectionName, {
+          limit: SCROLL_PAGE,
+          offset: cursor as any,
+          with_payload: true,
+          with_vector: false,
+        });
+
+        const points = result.points as Array<{
+          id: string | number;
+          payload?: Record<string, unknown>;
+        }>;
+
+        if (points.length === 0) break;
+
+        for (const point of points) {
+          totalScanned++;
+          const chunkPayload = point.payload?.chunk as Record<string, unknown> | undefined;
+          const text = chunkPayload?.text as string | undefined;
+          const reason = classifyChunk(text);
+
+          if (reason) {
+            const chunkId = String(point.id);
+            const preview = (text ?? '(no text)').substring(0, 100);
+
+            yield {
+              type: 'dirty_chunk_found' as const,
+              chunkId,
+              reason,
+              preview,
+              timestamp: ts(),
+            };
+
+            await this.qdrantClient.deletePoints(collectionName, [chunkId]);
+            totalDeleted++;
+            breakdown[reason] = (breakdown[reason] ?? 0) + 1;
+
+            yield {
+              type: 'dirty_chunk_deleted' as const,
+              chunkId,
+              timestamp: ts(),
+            };
+          }
+        }
+
+        // Emit progress every page
+        yield {
+          type: 'clean_progress' as const,
+          scanned: totalScanned,
+          total: totalCount,
+          timestamp: ts(),
+        };
+
+        // Cursor-based pagination: use next_page_offset from Qdrant
+        cursor = result.next_page_offset;
+        if (cursor === null || cursor === undefined) break;
+      }
+
+      yield {
+        type: 'clean_complete' as const,
+        totalScanned,
+        totalDeleted,
+        remaining: totalScanned - totalDeleted,
+        breakdown,
+        timestamp: ts(),
+      };
+
+      const duration = Date.now() - startTime;
+      this.logger.log({
+        event: 'clean_collection_success',
+        collectionId,
+        totalScanned,
+        totalDeleted,
+        breakdown,
+        durationMs: duration,
+      });
+    } catch (error) {
+      this.logger.error({
+        event: 'clean_collection_failure',
+        collectionId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      yield {
+        type: 'error' as const,
+        message: error instanceof Error ? error.message : 'Unknown cleaning error',
+        timestamp: ts(),
+      };
     }
   }
 }

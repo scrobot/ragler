@@ -9,7 +9,7 @@ export const AgentChatSchema = z.object({
   sessionId: z.string().uuid().describe('Conversation session ID'),
 });
 
-export class AgentChatDto extends createZodDto(AgentChatSchema) {}
+export class AgentChatDto extends createZodDto(AgentChatSchema) { }
 
 /**
  * Approve Operation Request DTO
@@ -19,7 +19,7 @@ export const ApproveOperationSchema = z.object({
   operationId: z.string().uuid().describe('Operation ID to approve'),
 });
 
-export class ApproveOperationDto extends createZodDto(ApproveOperationSchema) {}
+export class ApproveOperationDto extends createZodDto(ApproveOperationSchema) { }
 
 /**
  * Agent Event Types for SSE streaming
@@ -30,7 +30,11 @@ export type AgentEventType =
   | 'tool_result'
   | 'message'
   | 'error'
-  | 'done';
+  | 'done'
+  | 'clean_progress'
+  | 'dirty_chunk_found'
+  | 'dirty_chunk_deleted'
+  | 'clean_complete';
 
 export interface AgentThinkingEvent {
   type: 'thinking';
@@ -68,13 +72,47 @@ export interface AgentDoneEvent {
   timestamp: string;
 }
 
+export interface CleanProgressEvent {
+  type: 'clean_progress';
+  scanned: number;
+  total: number;
+  timestamp: string;
+}
+
+export interface DirtyChunkFoundEvent {
+  type: 'dirty_chunk_found';
+  chunkId: string;
+  reason: string;
+  preview: string;
+  timestamp: string;
+}
+
+export interface DirtyChunkDeletedEvent {
+  type: 'dirty_chunk_deleted';
+  chunkId: string;
+  timestamp: string;
+}
+
+export interface CleanCompleteEvent {
+  type: 'clean_complete';
+  totalScanned: number;
+  totalDeleted: number;
+  remaining: number;
+  breakdown: Record<string, number>;
+  timestamp: string;
+}
+
 export type AgentEvent =
   | AgentThinkingEvent
   | AgentToolCallEvent
   | AgentToolResultEvent
   | AgentMessageEvent
   | AgentErrorEvent
-  | AgentDoneEvent;
+  | AgentDoneEvent
+  | CleanProgressEvent
+  | DirtyChunkFoundEvent
+  | DirtyChunkDeletedEvent
+  | CleanCompleteEvent;
 
 /**
  * Conversation Message stored in Redis

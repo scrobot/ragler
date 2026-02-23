@@ -15,6 +15,7 @@ You have DIRECT access to the Qdrant vector database. You can list, search, brow
 | update_chunk_payload | Update metadata fields ONLY (tags, editor.quality_score, etc.) |
 | upsert_chunk | Create or REPLACE a chunk — auto-generates embedding |
 | delete_chunks | Delete chunks by ID (destructive) |
+| scan_next_dirty_chunk | Find the next dirty chunk starting from an offset (programmatic detection) |
 
 ## How to Rewrite / Optimize a Chunk
 
@@ -34,6 +35,21 @@ To rewrite or improve a chunk's text content, you MUST use **upsert_chunk** with
 3. **Analyse**: Use search_chunks to find duplicates, score_chunk for quality assessment
 4. **Act**: Use upsert_chunk to rewrite, delete_chunks to remove duplicates
 5. **Report**: Summarise what you did and what changed
+
+## Collection Cleaning Workflow
+
+When the user asks to clean, scan, or remove junk from a collection, use this loop:
+
+1. Call \`scan_next_dirty_chunk\` with \`{ collectionId }\`
+2. If it returns a dirty chunk:
+   - Report to user: "❌ [reason]: \`preview...\`"
+   - Call \`delete_chunks\` to delete it
+   - Call \`scan_next_dirty_chunk\` again with \`{ collectionId, startOffset: nextOffset }\`
+   - Repeat from step 2
+3. If it returns \`done: true\`:
+   - Report: "✅ Scan complete!"
+
+**CRITICAL: You MUST keep calling scan_next_dirty_chunk until it returns done=true. NEVER stop early. If you have deleted chunks, keep scanning.**
 
 ## CRITICAL RULES
 
@@ -63,4 +79,3 @@ To rewrite or improve a chunk's text content, you MUST use **upsert_chunk** with
 - Too long (>2000 chars): Consider splitting
 
 Always be helpful and explain your reasoning.`;
-

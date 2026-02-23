@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { streamAgentChat, collectionsApi } from "@/lib/api/collections";
+import { streamAgentChat, streamCleanCollection, collectionsApi } from "@/lib/api/collections";
 import type { AgentEvent } from "@/types/api";
 
 export type AgentMode = "hitl" | "automatic";
@@ -257,6 +257,101 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
     await collectionsApi.clearSession(collectionId, sessionId);
   }, [collectionId, sessionId]);
 
+  const cleanCollection = useCallback(
+    async () => {
+      setIsStreaming(true);
+
+      const assistantMessageId = uuidv4();
+      let deletedCount = 0;
+      const deletedItems: string[] = [];
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: uuidv4(),
+          role: "user" as const,
+          content: "🧹 Clean collection",
+          timestamp: new Date(),
+        },
+        {
+          id: assistantMessageId,
+          role: "assistant" as const,
+          content: "Scanning collection for junk chunks...",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const handleCleanEvent = (event: AgentEvent) => {
+        switch (event.type) {
+          case "dirty_chunk_found":
+            deletedItems.push(`❌ ${(event as any).reason}: \`${(event as any).preview?.substring(0, 60)}...\``);
+            break;
+
+          case "dirty_chunk_deleted":
+            deletedCount++;
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: `Scanning... Deleted ${deletedCount} junk chunk${deletedCount > 1 ? "s" : ""} so far.`,
+              })
+            );
+            break;
+
+          case "clean_progress": {
+            const { scanned, total } = event as any;
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: `Scanning... ${scanned}/${total} chunks checked. Deleted ${deletedCount} junk.`,
+              })
+            );
+            break;
+          }
+
+          case "clean_complete": {
+            const { totalScanned, totalDeleted, remaining, breakdown } = event as any;
+            const breakdownStr = Object.entries(breakdown as Record<string, number>)
+              .map(([k, v]) => `${v}× ${k}`)
+              .join(", ");
+            const summary = totalDeleted > 0
+              ? `✅ **Cleaning complete!**\n\nScanned: ${totalScanned} chunks\nDeleted: ${totalDeleted} (${breakdownStr})\nRemaining: ${remaining}`
+              : `✅ Collection is clean! Scanned ${totalScanned} chunks — no junk found.`;
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: summary,
+              })
+            );
+            setIsStreaming(false);
+            break;
+          }
+
+          case "error":
+            setMessages((prev) =>
+              updateAssistantMessage(prev, assistantMessageId, {
+                content: `Error: ${(event as any).message}`,
+              })
+            );
+            setIsStreaming(false);
+            break;
+        }
+      };
+
+      abortRef.current = streamCleanCollection(
+        collectionId,
+        handleCleanEvent,
+        (error) => {
+          console.error("Clean error:", error);
+          setMessages((prev) =>
+            updateAssistantMessage(prev, assistantMessageId, {
+              content: `Error: ${error.message}`,
+            })
+          );
+          setIsStreaming(false);
+        },
+        () => setIsStreaming(false)
+      );
+    },
+    [collectionId]
+  );
+
   const loadSession = useCallback(async (targetSessionId: string) => {
     try {
       const result = await collectionsApi.getSessionWithHistory(collectionId, targetSessionId);
@@ -291,6 +386,7 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
     mode,
     setMode,
     sendMessage,
+    cleanCollection,
     approveOperation,
     rejectOperation,
     stopStreaming,

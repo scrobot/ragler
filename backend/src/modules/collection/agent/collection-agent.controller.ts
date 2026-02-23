@@ -93,6 +93,48 @@ export class CollectionAgentController {
     }
   }
 
+  @Post('clean')
+  @ApiOperation({
+    summary: 'Clean collection — scan and remove junk chunks (SSE stream)',
+    description:
+      'Programmatically scans all chunks in the collection, identifies dirty chunks (HTML-only, too short, whitespace, empty) and deletes them. Streams progress as SSE events.',
+  })
+  @ApiParam({ name: 'collectionId', description: 'Collection UUID' })
+  async clean(
+    @Param('collectionId') collectionId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    this.logger.log({ event: 'clean_collection_request', collectionId });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    try {
+      const generator = this.agentService.streamCleanCollection(collectionId);
+
+      for await (const event of generator) {
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      }
+    } catch (error) {
+      this.logger.error({
+        event: 'clean_collection_stream_error',
+        collectionId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      res.write(`data: ${JSON.stringify({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      })}\n\n`);
+    } finally {
+      res.end();
+    }
+  }
+
   @Post('chat/sync')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Chat with collection AI assistant (synchronous)' })

@@ -35,6 +35,7 @@ interface AgentChatProps {
 }
 
 const SUGGESTIONS = [
+    { label: "🧹 Clean collection", action: "clean" as const },
     { label: "Analyze collection quality", message: "Analyze this collection for quality issues" },
     { label: "Find duplicate chunks", message: "Find duplicate or similar chunks" },
     { label: "Check chunk lengths", message: "Identify chunks that are too long or too short" },
@@ -52,6 +53,7 @@ export function AgentChat({ collectionId, sessionId: initialSessionId, onSession
         mode,
         setMode,
         sendMessage: rawSendMessage,
+        cleanCollection,
         approveOperation,
         rejectOperation,
         stopStreaming,
@@ -189,6 +191,7 @@ export function AgentChat({ collectionId, sessionId: initialSessionId, onSession
                 {messages.length === 0 ? (
                     <EmptyState
                         onSuggestionClick={(msg) => sendMessage(msg)}
+                        onCleanClick={() => cleanCollection()}
                         isDisabled={isStreaming}
                         mode={mode}
                     />
@@ -258,10 +261,12 @@ function ModeBadge({ mode }: { mode: AgentMode }) {
 
 function EmptyState({
     onSuggestionClick,
+    onCleanClick,
     isDisabled,
     mode,
 }: {
     onSuggestionClick: (msg: string) => void;
+    onCleanClick: () => void;
     isDisabled: boolean;
     mode: AgentMode;
 }) {
@@ -287,7 +292,7 @@ function EmptyState({
                         variant="outline"
                         size="sm"
                         className="text-xs justify-start h-auto py-2 px-3 whitespace-normal text-left"
-                        onClick={() => onSuggestionClick(s.message)}
+                        onClick={() => 'action' in s ? onCleanClick() : onSuggestionClick(s.message!)}
                         disabled={isDisabled}
                     >
                         {s.label}

@@ -225,7 +225,7 @@ export interface UpdateQualityScoreRequest {
 }
 
 // Agent Events (for AI assistant)
-export type AgentEventType = 'thinking' | 'tool_call' | 'tool_result' | 'message' | 'error' | 'done';
+export type AgentEventType = 'thinking' | 'tool_call' | 'tool_result' | 'message' | 'error' | 'done' | 'clean_progress' | 'dirty_chunk_found' | 'dirty_chunk_deleted' | 'clean_complete';
 
 export interface AgentThinkingEvent {
   type: 'thinking';
@@ -263,13 +263,47 @@ export interface AgentDoneEvent {
   timestamp: string;
 }
 
+export interface CleanProgressEvent {
+  type: 'clean_progress';
+  scanned: number;
+  total: number;
+  timestamp: string;
+}
+
+export interface DirtyChunkFoundEvent {
+  type: 'dirty_chunk_found';
+  chunkId: string;
+  reason: string;
+  preview: string;
+  timestamp: string;
+}
+
+export interface DirtyChunkDeletedEvent {
+  type: 'dirty_chunk_deleted';
+  chunkId: string;
+  timestamp: string;
+}
+
+export interface CleanCompleteEvent {
+  type: 'clean_complete';
+  totalScanned: number;
+  totalDeleted: number;
+  remaining: number;
+  breakdown: Record<string, number>;
+  timestamp: string;
+}
+
 export type AgentEvent =
   | AgentThinkingEvent
   | AgentToolCallEvent
   | AgentToolResultEvent
   | AgentMessageEvent
   | AgentErrorEvent
-  | AgentDoneEvent;
+  | AgentDoneEvent
+  | CleanProgressEvent
+  | DirtyChunkFoundEvent
+  | DirtyChunkDeletedEvent
+  | CleanCompleteEvent;
 
 export interface AgentChatRequest {
   message: string;
@@ -278,4 +312,26 @@ export interface AgentChatRequest {
 
 export interface ApproveOperationRequest {
   sessionId: string;
+}
+
+// Agent Settings
+export interface AgentSettingsResponse {
+  modelName: string;
+  hasCustomApiKey: boolean;
+  maskedApiKey: string | null;
+}
+
+export interface UpdateAgentSettingsRequest {
+  modelName?: string;
+  apiKey?: string | null;
+}
+
+export interface AvailableModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface AvailableModelsResponse {
+  models: AvailableModel[];
 }
