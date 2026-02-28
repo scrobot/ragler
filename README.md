@@ -1,32 +1,73 @@
-# RAGler
+<div align="center">
 
-RAGler is an open-source RAG knowledge operations platform.
+# 🧠 RAGler
 
-## TL;DR
+**The human-in-the-loop RAG knowledge platform**
 
-- Ingest knowledge from Confluence, web pages, or manual text.
-- Review and edit chunks in a draft session.
-- Publish validated chunks to Qdrant collections.
-- Query published knowledge from the backend API or MCP server.
+[![CI](https://github.com/scrobot/ragler/actions/workflows/ci.yml/badge.svg)](https://github.com/scrobot/ragler/actions/workflows/ci.yml)
+[![Docs](https://github.com/scrobot/ragler/actions/workflows/docs.yml/badge.svg)](https://github.com/scrobot/ragler/actions/workflows/docs.yml)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue?style=flat-square)](https://github.com/scrobot/ragler/releases)
+[![License](https://img.shields.io/badge/license-ISC-green?style=flat-square)](LICENSE)
+[![Node](https://img.shields.io/badge/node-20%2B-brightgreen?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![NestJS](https://img.shields.io/badge/NestJS-11.x-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com)
+[![Next.js](https://img.shields.io/badge/Next.js-15.x-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Qdrant](https://img.shields.io/badge/Qdrant-vector%20db-DC382D?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiPjwvc3ZnPg==)](https://qdrant.tech)
+[![Redis](https://img.shields.io/badge/Redis-sessions-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/scrobot/ragler/pulls)
 
-## Demo
+[Docs](https://scrobot.github.io/ragler/) · [API Reference](http://localhost:3000/api/docs) · [Report Bug](https://github.com/scrobot/ragler/issues) · [Request Feature](https://github.com/scrobot/ragler/issues)
+
+</div>
+
+---
+
+## ✨ What is RAGler?
+
+RAGler is an **open-source RAG knowledge operations platform** that gives you full control over your retrieval-augmented generation pipeline — from ingestion to publishing.
+
+- 📥 **Ingest** knowledge from Confluence, web pages, file uploads, or manual text
+- 🔍 **Review & edit** chunks in a draft session before they go live
+- 🚀 **Publish** validated chunks to Qdrant vector collections
+- 🤖 **AI Agent** for chat, collection cleaning, and chunk generation
+- 🔌 **MCP Server** for IDE integration (Cursor, VS Code, etc.)
+
+## 🎬 Demo
 
 <p align="center">
   <img src="demo.gif" alt="RAGler Demo — walkthrough of dashboard, collections, ingestion, sessions, chat, and settings" width="800" />
 </p>
 
-## Quick Start
+## 🏗️ Architecture
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Frontend   │────▶│   Backend    │────▶│    Qdrant    │
+│  (Next.js)   │     │  (NestJS)    │     │  (vectors)   │
+└──────────────┘     └──────┬───────┘     └──────────────┘
+                            │
+                     ┌──────┴───────┐
+                     │    Redis     │
+                     │  (sessions)  │
+                     └──────────────┘
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm
-- Docker
-- OpenAI API key
+| Requirement | Version |
+|-------------|---------|
+| Node.js     | 20+     |
+| pnpm        | 9+      |
+| Docker      | latest  |
+| OpenAI Key  | —       |
 
-### 1. Start infrastructure
+### 1. Clone & start infrastructure
 
 ```bash
+git clone https://github.com/scrobot/ragler.git
+cd ragler
 docker compose up -d redis qdrant
 ```
 
@@ -40,92 +81,96 @@ cp .env.example .env
 pnpm start:dev
 ```
 
-### 3. Verify backend
+### 3. Verify
 
 ```bash
 curl http://localhost:3000/api/health/liveness
-curl http://localhost:3000/api/health/readiness
+# → {"status":"ok"}
 ```
 
-Expected liveness response:
-
-```json
-{"status":"ok"}
-```
-
-### 4. (Optional) Start frontend
+### 4. Start frontend
 
 ```bash
-cd ../frontend
+cd frontend
 pnpm install
 pnpm dev
+# → http://localhost:3000
 ```
 
 ### 5. (Optional) Start MCP server
 
 ```bash
-cd ../mcp-server
-pnpm install
-pnpm build
-pnpm start
+cd mcp-server
+pnpm install && pnpm build && pnpm start
 ```
 
-## Configuration
+## ⚙️ Configuration
 
-Backend runtime is driven by `backend/.env`. Core variables:
+Backend config lives in `backend/.env`. Key variables:
 
-- `OPENAI_API_KEY` (required)
-- `REDIS_HOST` (required)
-- `REDIS_PORT` (default `6379`)
-- `QDRANT_URL` (required)
-- `PORT` (default `3000`)
-- `SESSION_TTL` (default `86400`)
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENAI_API_KEY` | ✅ | — | OpenAI API key |
+| `REDIS_HOST` | ✅ | — | Redis hostname |
+| `REDIS_PORT` | — | `6379` | Redis port |
+| `QDRANT_URL` | ✅ | — | Qdrant connection URL |
+| `PORT` | — | `3000` | Backend port |
+| `SESSION_TTL` | — | `86400` | Draft session TTL (seconds) |
+| `SQLITE_PATH` | — | `data/ragler.db` | SQLite path for settings |
 
-## Run and Verify Core Flow
+### 🚩 Feature Flags
 
-### 1. Create a collection
+Toggle features via environment variables or the UI (Settings → Features):
+
+| Flag | Default | Controls |
+|------|---------|----------|
+| `FEATURE_CONFLUENCE_INGEST` | `true` | Confluence ingestion |
+| `FEATURE_WEB_INGEST` | `true` | Web URL ingestion |
+| `FEATURE_FILE_INGEST` | `true` | File upload ingestion |
+| `FEATURE_AGENT` | `true` | AI agent (chat, cleaning) |
+
+## 📖 Documentation
+
+| Resource | Link |
+|----------|------|
+| 📚 Full docs | [scrobot.github.io/ragler](https://scrobot.github.io/ragler/) |
+| 🔧 API Swagger | [localhost:3000/api/docs](http://localhost:3000/api/docs) |
+| 🏛️ Architecture | [docs/architecture](https://scrobot.github.io/ragler/architecture/overview) |
+| 🚀 Getting started | [docs/getting-started](https://scrobot.github.io/ragler/getting-started/installation) |
+
+## 🧪 Testing
 
 ```bash
-curl -X POST http://localhost:3000/api/collections \
-  -H 'Content-Type: application/json' \
-  -H 'X-User-ID: demo@ragler.ai' \
-  -d '{"name":"Support KB","description":"Support knowledge"}'
+cd backend
+pnpm test        # run all tests
+pnpm lint        # lint check
+pnpm typecheck   # type check
 ```
 
-### 2. Start manual ingest
+## 🤝 Contributing
 
-```bash
-curl -X POST http://localhost:3000/api/ingest/manual \
-  -H 'Content-Type: application/json' \
-  -H 'X-User-ID: demo@ragler.ai' \
-  -d '{"content":"RAGler stores draft sessions in Redis and publishes to Qdrant."}'
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### 3. Review session and publish
+1. Fork the project
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit using [conventional commits](https://www.conventionalcommits.org/) (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
-```bash
-curl http://localhost:3000/api/session/<SESSION_ID> -H 'X-User-ID: demo@ragler.ai'
-curl -X POST http://localhost:3000/api/session/<SESSION_ID>/preview -H 'X-User-ID: demo@ragler.ai'
-curl -X POST http://localhost:3000/api/session/<SESSION_ID>/publish \
-  -H 'Content-Type: application/json' \
-  -H 'X-User-ID: demo@ragler.ai' \
-  -d '{"targetCollectionId":"<COLLECTION_ID>"}'
-```
+## 🐛 Troubleshooting
 
-## Docs
+| Problem | Solution |
+|---------|----------|
+| Readiness check fails | Check Redis/Qdrant: `docker compose ps` |
+| 401/403 errors | Ensure `X-User-ID` header is set |
+| Ingest failures | Verify `OPENAI_API_KEY` and network connectivity |
 
-- Product docs: `docs/docs`
-- Specs: `specs/`
-- Backend API Swagger: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+## 📄 License
 
-## Troubleshooting
+Distributed under the ISC License.
 
-- `readiness` fails: check Redis/Qdrant containers with `docker compose ps`.
-- `401/403` style behavior in clients: confirm `X-User-ID` header is present.
-- Ingest failures: confirm `OPENAI_API_KEY` and outbound connectivity.
+---
 
-## Next Steps
-
-1. Read `/Users/alex/ragler/docs/docs/getting-started/installation.md`.
-2. Walk through `/Users/alex/ragler/docs/docs/getting-started/first-collection.md`.
-3. Review architecture in `/Users/alex/ragler/docs/docs/architecture/overview.md`.
+<div align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/scrobot">scrobot</a></sub>
+</div>
