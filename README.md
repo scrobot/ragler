@@ -12,7 +12,7 @@ RAGler is an open-source RAG knowledge operations platform.
 ## Demo
 
 <p align="center">
-  <img src="demo.webp" alt="RAGler Demo — walkthrough of dashboard, collections, ingestion, sessions, chat, and settings" width="800" />
+  <img src="demo.gif" alt="RAGler Demo — walkthrough of dashboard, collections, ingestion, sessions, chat, and settings" width="800" />
 </p>
 
 ## Quick Start
