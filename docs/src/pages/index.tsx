@@ -49,6 +49,23 @@ export default function Home(): ReactNode {
     >
       <HomepageHeader />
       <main>
+        <section style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '2rem 0 1rem',
+          background: 'transparent',
+        }}>
+          <img
+            src="/ragler/img/demo.webp"
+            alt="RAGler application demo"
+            style={{
+              maxWidth: '860px',
+              width: '100%',
+              borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+            }}
+          />
+        </section>
         <HomepageFeatures />
       </main>
     </Layout>

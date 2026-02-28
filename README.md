@@ -9,6 +9,12 @@ RAGler is an open-source RAG knowledge operations platform.
 - Publish validated chunks to Qdrant collections.
 - Query published knowledge from the backend API or MCP server.
 
+## Demo
+
+<p align="center">
+  <img src="demo.webp" alt="RAGler Demo — walkthrough of dashboard, collections, ingestion, sessions, chat, and settings" width="800" />
+</p>
+
 ## Quick Start
 
 ### Prerequisites
