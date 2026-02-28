@@ -85,7 +85,7 @@ function HomepageHeader() {
 }
 
 function DemoSection() {
-  const demoImgSrc = useBaseUrl('/img/demo.webp');
+  const demoImgSrc = useBaseUrl('/img/demo.gif');
 
   return (
     <section className={styles.demo}>
