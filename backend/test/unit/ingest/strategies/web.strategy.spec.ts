@@ -32,6 +32,7 @@ jest.mock('@mozilla/readability', () => ({
 // Import after mocks are set up
 import { WebStrategy } from '@ingest/strategies/web.strategy';
 import { Readability } from '@mozilla/readability';
+import { JSDOM } from 'jsdom';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
@@ -385,8 +386,7 @@ describe('WebStrategy', () => {
       }));
 
       // Override JSDOM to return empty body for fallback path
-      const { JSDOM } = require('jsdom');
-      (JSDOM as jest.Mock).mockImplementation(() => ({
+      (JSDOM as unknown as jest.Mock).mockImplementation(() => ({
         window: {
           document: {
             title: '',
@@ -439,8 +439,7 @@ describe('WebStrategy', () => {
       }));
 
       // Override JSDOM to return empty body for fallback path
-      const { JSDOM } = require('jsdom');
-      (JSDOM as jest.Mock).mockImplementation(() => ({
+      (JSDOM as unknown as jest.Mock).mockImplementation(() => ({
         window: {
           document: {
             title: '',
