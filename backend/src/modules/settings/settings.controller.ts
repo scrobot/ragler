@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Body } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import {
     UpdateAgentSettingsDto,
@@ -6,10 +6,17 @@ import {
     type AgentSettingsResponse,
     type AvailableModelsResponse,
 } from './settings.dto';
+import {
+    FeatureFlagService,
+    type FeatureFlagsResponse,
+} from '@config/feature-flag.service';
 
 @Controller('settings')
 export class SettingsController {
-    constructor(private readonly settingsService: SettingsService) { }
+    constructor(
+        private readonly settingsService: SettingsService,
+        private readonly featureFlagService: FeatureFlagService,
+    ) { }
 
     @Get('agent')
     async getAgentSettings(): Promise<AgentSettingsResponse> {
@@ -32,5 +39,22 @@ export class SettingsController {
                 description: m.description,
             })),
         };
+    }
+
+    @Get('features')
+    getFeatureFlags(): FeatureFlagsResponse {
+        return this.featureFlagService.getAll();
+    }
+
+    @Patch('features')
+    updateFeatureFlags(
+        @Body() body: Partial<FeatureFlagsResponse>,
+    ): FeatureFlagsResponse {
+        return this.featureFlagService.update(body);
+    }
+
+    @Delete('features')
+    resetFeatureFlags(): FeatureFlagsResponse {
+        return this.featureFlagService.resetToDefaults();
     }
 }

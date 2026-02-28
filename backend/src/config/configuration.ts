@@ -50,5 +50,14 @@ export default () => {
       maxContentLength: env.MANUAL_MAX_CONTENT_LENGTH,
       minContentLength: env.MANUAL_MIN_CONTENT_LENGTH,
     },
+    sqlite: {
+      path: env.SQLITE_PATH,
+    },
+    features: {
+      confluenceIngest: env.FEATURE_CONFLUENCE_INGEST,
+      webIngest: env.FEATURE_WEB_INGEST,
+      fileIngest: env.FEATURE_FILE_INGEST,
+      agent: env.FEATURE_AGENT,
+    },
   };
 };

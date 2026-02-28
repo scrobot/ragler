@@ -47,7 +47,7 @@ export class CollectionAgentService implements OnModuleInit {
   ) { }
 
   onModuleInit(): void {
-    this.initializeTools();
+    void this.initializeTools();
   }
 
   private async initializeTools(): Promise<void> {

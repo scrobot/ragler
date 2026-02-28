@@ -10,6 +10,7 @@ import {
 } from './dto';
 import { User, RequestUser } from '@common/decorators';
 import { SUPPORTED_EXTENSIONS } from './parsers';
+import { RequireFeature } from '@config/feature-flag.guard';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -20,6 +21,7 @@ export class IngestController {
   constructor(private readonly ingestService: IngestService) { }
 
   @Post('confluence')
+  @RequireFeature('confluenceIngest')
   @ApiOperation({ summary: 'Start ingestion session from Confluence' })
   @ApiResponse({ status: 201, description: 'Session created', type: IngestResponseDto })
   async ingestConfluence(
@@ -30,6 +32,7 @@ export class IngestController {
   }
 
   @Post('web')
+  @RequireFeature('webIngest')
   @ApiOperation({ summary: 'Start ingestion session from Web URL' })
   @ApiResponse({ status: 201, description: 'Session created', type: IngestResponseDto })
   async ingestWeb(
@@ -50,6 +53,7 @@ export class IngestController {
   }
 
   @Post('file')
+  @RequireFeature('fileIngest')
   @ApiOperation({ summary: 'Start ingestion session from file upload' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Session created', type: IngestResponseDto })

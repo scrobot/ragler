@@ -344,3 +344,11 @@ export interface AvailableModel {
 export interface AvailableModelsResponse {
   models: AvailableModel[];
 }
+
+// Feature Flags
+export interface FeatureFlagsResponse {
+  confluenceIngest: boolean;
+  webIngest: boolean;
+  fileIngest: boolean;
+  agent: boolean;
+}

@@ -46,6 +46,15 @@ export const envSchema = z.object({
   LLM_EMBEDDING_TIMEOUT: z.coerce.number().int().positive().default(30000), // 30s
   LLM_EMBEDDING_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
   LLM_EMBEDDING_BATCH_SIZE: z.coerce.number().int().positive().default(100), // Max texts per API call
+
+  // SQLite
+  SQLITE_PATH: z.string().default('data/ragler.db'),
+
+  // Feature flags (all default to enabled)
+  FEATURE_CONFLUENCE_INGEST: z.coerce.boolean().default(true),
+  FEATURE_WEB_INGEST: z.coerce.boolean().default(true),
+  FEATURE_FILE_INGEST: z.coerce.boolean().default(true),
+  FEATURE_AGENT: z.coerce.boolean().default(true),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

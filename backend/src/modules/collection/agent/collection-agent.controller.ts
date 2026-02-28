@@ -13,15 +13,17 @@ import {
   Delete,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiHeader, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiHeader, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { CollectionAgentService } from './collection-agent.service';
 import { AgentMemoryService } from './memory/redis-memory';
 import { PromptService } from './prompts/prompt.service';
 import { AgentChatDto, AgentChatSchema, ApproveOperationDto, ApproveOperationSchema } from '../dto/agent.dto';
+import { RequireFeature } from '@config/feature-flag.guard';
 
 @ApiTags('Collection Agent')
+@RequireFeature('agent')
 @Controller('collections/:collectionId/agent')
 export class CollectionAgentController {
   private readonly logger = new Logger(CollectionAgentController.name);

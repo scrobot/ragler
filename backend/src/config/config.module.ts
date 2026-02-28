@@ -1,7 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import configuration from './configuration';
+import { FeatureFlagService } from './feature-flag.service';
 
+@Global()
 @Module({
   imports: [
     NestConfigModule.forRoot({
@@ -9,5 +11,7 @@ import configuration from './configuration';
       load: [configuration],
     }),
   ],
+  providers: [FeatureFlagService],
+  exports: [FeatureFlagService],
 })
-export class ConfigModule {}
+export class ConfigModule { }

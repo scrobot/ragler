@@ -1,4 +1,4 @@
-import { Bot, FileText, FolderOpen, LayoutDashboard, MessageCircle, ScrollText, Settings } from 'lucide-react';
+import { Bot, FileText, FolderOpen, LayoutDashboard, MessageCircle, ScrollText, Settings, ToggleLeft } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
 export const MENU_SIDEBAR: MenuConfig = [
@@ -38,6 +38,11 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Agent Model',
     icon: Bot,
     path: '/settings/agent',
+  },
+  {
+    title: 'Features',
+    icon: ToggleLeft,
+    path: '/settings/features',
   },
 ];
 

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ConfigModule as AppConfigModule } from './config';
-import { RedisModule, QdrantModule } from './infrastructure';
+import { ConfigModule as AppConfigModule, FeatureFlagGuard } from './config';
+import { RedisModule, QdrantModule, SqliteModule } from './infrastructure';
 import {
   CollectionModule,
   IngestModule,
@@ -32,6 +32,7 @@ import {
     }),
     RedisModule,
     QdrantModule,
+    SqliteModule,
     LlmModule,
     CollectionModule,
     IngestModule,
@@ -43,6 +44,10 @@ import {
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: FeatureFlagGuard,
     },
   ],
 })

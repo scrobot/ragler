@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -34,10 +34,38 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadStep } from "./FileUploadStep";
 import { ChunkingConfig, ChunkingConfigValue } from "./ChunkingConfig";
+import { useFeatureFlags } from "@/hooks/use-feature-flags";
+
+interface TabDefinition {
+    value: string;
+    label: string;
+    icon: React.ElementType;
+}
+
+const ALL_TABS: TabDefinition[] = [
+    { value: "confluence", label: "Confluence", icon: FileText },
+    { value: "web", label: "Web URL", icon: Globe },
+    { value: "manual", label: "Manual", icon: Type },
+    { value: "file", label: "File", icon: Upload },
+];
 
 export function IngestWizard() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState("confluence");
+    const { data: featureFlags } = useFeatureFlags();
+
+    const enabledTabs = useMemo(() => {
+        if (!featureFlags) return ALL_TABS;
+        const flagMap: Record<string, boolean | undefined> = {
+            confluence: featureFlags.confluenceIngest,
+            web: featureFlags.webIngest,
+            // manual is always enabled
+            file: featureFlags.fileIngest,
+        };
+        return ALL_TABS.filter((tab) => flagMap[tab.value] !== false);
+    }, [featureFlags]);
+
+    const defaultTab = enabledTabs[0]?.value ?? "manual";
+    const [activeTab, setActiveTab] = useState(defaultTab);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [chunkingConfig, setChunkingConfig] = useState<ChunkingConfigValue>({
         method: "llm",
@@ -110,19 +138,15 @@ export function IngestWizard() {
             </CardHeader>
             <CardContent>
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-6">
-                        <TabsTrigger value="confluence" className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" /> Confluence
-                        </TabsTrigger>
-                        <TabsTrigger value="web" className="flex items-center gap-2">
-                            <Globe className="h-4 w-4" /> Web URL
-                        </TabsTrigger>
-                        <TabsTrigger value="manual" className="flex items-center gap-2">
-                            <Type className="h-4 w-4" /> Manual
-                        </TabsTrigger>
-                        <TabsTrigger value="file" className="flex items-center gap-2">
-                            <Upload className="h-4 w-4" /> File
-                        </TabsTrigger>
+                    <TabsList className={`grid w-full mb-6`} style={{ gridTemplateColumns: `repeat(${enabledTabs.length}, minmax(0, 1fr))` }}>
+                        {enabledTabs.map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
+                                    <Icon className="h-4 w-4" /> {tab.label}
+                                </TabsTrigger>
+                            );
+                        })}
                     </TabsList>
 
                     <Form {...form}>
