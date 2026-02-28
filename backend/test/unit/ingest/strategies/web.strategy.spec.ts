@@ -10,7 +10,15 @@ import {
 jest.mock('jsdom', () => ({
   JSDOM: jest.fn().mockImplementation((html: string) => ({
     window: {
-      document: { html },
+      document: {
+        html,
+        title: 'Test',
+        querySelectorAll: jest.fn().mockReturnValue([]),
+        body: {
+          textContent: html.replace(/<[^>]*>/g, ' ').trim(),
+          querySelectorAll: jest.fn().mockReturnValue([]),
+        },
+      },
     },
   })),
 }));
@@ -376,6 +384,21 @@ describe('WebStrategy', () => {
         parse: jest.fn().mockReturnValue(null),
       }));
 
+      // Override JSDOM to return empty body for fallback path
+      const { JSDOM } = require('jsdom');
+      (JSDOM as jest.Mock).mockImplementation(() => ({
+        window: {
+          document: {
+            title: '',
+            querySelectorAll: jest.fn().mockReturnValue([]),
+            body: {
+              textContent: '',
+              querySelectorAll: jest.fn().mockReturnValue([]),
+            },
+          },
+        },
+      }));
+
       await expect(
         strategy.ingest('https://example.com/empty'),
       ).rejects.toThrow(ContentExtractionError);
@@ -413,6 +436,21 @@ describe('WebStrategy', () => {
           ...mockArticle,
           textContent: '   ',
         }),
+      }));
+
+      // Override JSDOM to return empty body for fallback path
+      const { JSDOM } = require('jsdom');
+      (JSDOM as jest.Mock).mockImplementation(() => ({
+        window: {
+          document: {
+            title: '',
+            querySelectorAll: jest.fn().mockReturnValue([]),
+            body: {
+              textContent: '',
+              querySelectorAll: jest.fn().mockReturnValue([]),
+            },
+          },
+        },
       }));
 
       await expect(
