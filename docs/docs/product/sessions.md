@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Sessions
 
 ## What this page is for
@@ -29,4 +33,4 @@ Operate draft sessions before publishing.
 
 ## Next steps
 
-- `/docs/product/publishing`
+- [Publishing](/docs/product/publishing)

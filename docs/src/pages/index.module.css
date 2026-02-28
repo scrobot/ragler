@@ -1,7 +1,7 @@
 /* ── Hero Section ──────────────────────────────────────────────── */
 .hero {
   position: relative;
-  padding: 6rem 0 5rem;
+  padding: 7rem 0 5rem;
   text-align: center;
   overflow: hidden;
   background: var(--ifm-background-color);
@@ -10,56 +10,85 @@
 
 .heroGlow {
   position: absolute;
-  top: -40%;
+  top: -50%;
   left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+.heroGlowSecondary {
+  position: absolute;
+  top: -20%;
+  left: 30%;
   transform: translateX(-50%);
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
   pointer-events: none;
+  animation: pulseGlow 12s ease-in-out infinite reverse;
 }
 
 [data-theme='dark'] .heroGlow {
   background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
 }
 
+[data-theme='dark'] .heroGlowSecondary {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 70%);
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+}
+
 .heroContent {
   position: relative;
   z-index: 1;
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
 .heroBadge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--rag-accent);
-  background: rgba(168, 85, 247, 0.08);
-  border: 1px solid rgba(168, 85, 247, 0.15);
+  background: rgba(168, 85, 247, 0.06);
+  border: 1px solid rgba(168, 85, 247, 0.12);
   border-radius: 999px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 [data-theme='dark'] .heroBadge {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(168, 85, 247, 0.1);
   border-color: rgba(168, 85, 247, 0.2);
 }
 
 .heroTitle {
-  font-size: 3.5rem;
+  font-size: 3.75rem;
   font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
   margin-bottom: 1rem;
   color: var(--ifm-font-color-base);
 }
 
+.heroAccent {
+  background: linear-gradient(135deg, var(--rag-accent), #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .heroSubtitle {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 500;
   color: var(--ifm-font-color-secondary);
   margin-bottom: 0.75rem;
@@ -67,11 +96,11 @@
 }
 
 .heroDescription {
-  font-size: 0.95rem;
+  font-size: 0.925rem;
   color: var(--ifm-font-color-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
   margin-bottom: 2rem;
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 /* ── CTA Buttons ──────────────────────────────────────────────── */
@@ -85,41 +114,30 @@
 .ctaPrimary {
   display: inline-flex;
   align-items: center;
-  padding: 0.65rem 1.5rem;
+  padding: 0.7rem 1.75rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: #fff;
-  background: #18181b;
-  border: 1px solid #27272a;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: 1px solid rgba(168, 85, 247, 0.3);
   border-radius: 0.5rem;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(168, 85, 247, 0.15);
 }
 
 .ctaPrimary:hover {
-  background: #27272a;
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
   color: #fff;
   text-decoration: none;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-[data-theme='dark'] .ctaPrimary {
-  color: #18181b;
-  background: #fafafa;
-  border-color: #d4d4d8;
-}
-
-[data-theme='dark'] .ctaPrimary:hover {
-  background: #e4e4e7;
-  color: #18181b;
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.25);
 }
 
 .ctaSecondary {
   display: inline-flex;
   align-items: center;
-  padding: 0.65rem 1.5rem;
+  padding: 0.7rem 1.75rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--ifm-font-color-base);
@@ -127,7 +145,7 @@
   border: 1px solid var(--rag-border);
   border-radius: 0.5rem;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .ctaSecondary:hover {
@@ -135,20 +153,242 @@
   color: var(--ifm-font-color-base);
   text-decoration: none;
   transform: translateY(-1px);
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+/* ── Hero Meta ─────────────────────────────────────────────────── */
+.heroMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  font-size: 0.75rem;
+  color: var(--ifm-font-color-secondary);
+  opacity: 0.6;
+}
+
+.heroMetaItem {
+  font-weight: 500;
+}
+
+.heroMetaDot {
+  opacity: 0.4;
+}
+
+/* ── Demo Section ──────────────────────────────────────────────── */
+.demo {
+  padding: 3rem 0 2rem;
+  background: transparent;
+}
+
+.demoWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.demoImage {
+  max-width: 900px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--rag-border);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 16px 48px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .demoImage {
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Section Header (shared) ──────────────────────────────────── */
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.sectionTitle {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+  color: var(--ifm-font-color-base);
+}
+
+.sectionSubtitle {
+  font-size: 0.95rem;
+  color: var(--ifm-font-color-secondary);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.55;
+}
+
+/* ── How It Works ──────────────────────────────────────────────── */
+.howItWorks {
+  padding: 5rem 0;
+  border-top: 1px solid var(--rag-border);
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.workflowCard {
+  position: relative;
+  padding: 1.5rem;
+  background: var(--rag-surface);
+  border: 1px solid var(--rag-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.workflowCard:hover {
+  border-color: rgba(168, 85, 247, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .workflowCard:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.workflowStep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.workflowIcon {
+  font-size: 1.5rem;
+  color: var(--rag-accent);
+  line-height: 1;
+}
+
+.workflowNumber {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ifm-font-color-secondary);
+  opacity: 0.4;
+}
+
+.workflowTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.4rem;
+  color: var(--ifm-font-color-base);
+}
+
+.workflowDescription {
+  font-size: 0.825rem;
+  line-height: 1.55;
+  color: var(--ifm-font-color-secondary);
+  margin: 0;
+}
+
+/* ── Architecture Section ──────────────────────────────────────── */
+.architecture {
+  padding: 5rem 0;
+  border-top: 1px solid var(--rag-border);
+}
+
+.archGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.archCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 1rem;
+  background: var(--rag-surface);
+  border: 1px solid var(--rag-border);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.archCard:hover {
+  border-color: rgba(168, 85, 247, 0.2);
+  transform: translateY(-1px);
+}
+
+.archLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base);
+  letter-spacing: -0.01em;
+}
+
+.archSublabel {
+  font-size: 0.7rem;
+  color: var(--ifm-font-color-secondary);
+  margin-top: 0.15rem;
+}
+
+.archCta {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+/* ── Open Source CTA ───────────────────────────────────────────── */
+.openSource {
+  padding: 5rem 0;
+  border-top: 1px solid var(--rag-border);
+}
+
+.openSourceInner {
+  text-align: center;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.openSourceTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.75rem;
+  color: var(--ifm-font-color-base);
+}
+
+.openSourceDescription {
+  font-size: 0.925rem;
+  line-height: 1.6;
+  color: var(--ifm-font-color-secondary);
+  margin-bottom: 2rem;
 }
 
 /* ── Responsive ───────────────────────────────────────────────── */
+@media screen and (max-width: 996px) {
+  .workflowGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .archGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media screen and (max-width: 768px) {
   .hero {
-    padding: 4rem 1rem 3rem;
+    padding: 5rem 1rem 3.5rem;
   }
 
   .heroTitle {
-    font-size: 2.25rem;
+    font-size: 2.5rem;
   }
 
   .heroSubtitle {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
   .heroCta {
@@ -159,5 +399,21 @@
   .ctaSecondary {
     width: 100%;
     justify-content: center;
+  }
+
+  .heroMeta {
+    flex-wrap: wrap;
+  }
+
+  .workflowGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .archGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .openSourceTitle {
+    font-size: 1.5rem;
   }
 }

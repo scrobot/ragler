@@ -1,3 +1,7 @@
+---
+sidebar_position: 2
+---
+
 # Ingestion
 
 ## What this page is for
@@ -9,6 +13,7 @@ Use ingest endpoints to start a draft session from supported source types.
 - `POST /api/ingest/confluence`
 - `POST /api/ingest/web`
 - `POST /api/ingest/manual`
+- `POST /api/ingest/file` — see [File Upload](/docs/product/file-upload)
 
 ## Steps
 
@@ -27,6 +32,10 @@ Use ingest endpoints to start a draft session from supported source types.
 - Web ingest timeout: tune `WEB_FETCH_TIMEOUT`.
 - Confluence auth errors: verify `CONFLUENCE_*` config.
 
+All ingest endpoints accept an optional `chunkingConfig` — see [Configurable Chunking](/docs/product/configurable-chunking).
+
 ## Next steps
 
-- `/docs/product/sessions`
+- [Sessions](/docs/product/sessions)
+- [File Upload](/docs/product/file-upload)
+- [Configurable Chunking](/docs/product/configurable-chunking)

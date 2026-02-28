@@ -16,6 +16,11 @@ const config: Config = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
+
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -27,7 +32,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/ragler-oss/ragler/tree/main/docs/',
+          editUrl: 'https://github.com/scrobot/ragler/tree/main/docs/',
         },
         blog: false,
         theme: {
@@ -82,7 +87,13 @@ const config: Config = {
           label: 'Changelog',
         },
         {
-          href: 'https://github.com/ragler-oss/ragler',
+          type: 'docSidebar',
+          sidebarId: 'developmentSidebar',
+          position: 'left',
+          label: 'Development',
+        },
+        {
+          href: 'https://github.com/scrobot/ragler',
           label: 'GitHub',
           position: 'right',
         },
@@ -92,21 +103,39 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Getting Started',
           items: [
-            { label: 'Quick Start', to: '/docs/getting-started/installation' },
-            { label: 'Workflow', to: '/docs/product/flows/workflow' },
-            { label: 'Architecture', to: '/docs/architecture/overview' },
+            { label: 'Installation', to: '/docs/getting-started/installation' },
+            { label: 'Configuration', to: '/docs/getting-started/configuration' },
+            { label: 'First Collection', to: '/docs/getting-started/first-collection' },
           ],
         },
         {
-          title: 'Project',
+          title: 'Product',
           items: [
-            { label: 'Repository', href: 'https://github.com/ragler-oss/ragler' },
+            { label: 'Ingestion', to: '/docs/product/ingestion' },
+            { label: 'Workflows', to: '/docs/product/flows/workflow' },
+            { label: 'Chat Playground', to: '/docs/product/chat-playground' },
+          ],
+        },
+        {
+          title: 'Architecture',
+          items: [
+            { label: 'Overview', to: '/docs/architecture/overview' },
+            { label: 'Data Model', to: '/docs/architecture/data-model' },
+            { label: 'ADRs', to: '/docs/architecture/adr/' },
+          ],
+        },
+        {
+          title: 'Community',
+          items: [
+            { label: 'GitHub', href: 'https://github.com/scrobot/ragler' },
+            { label: 'Issues', href: 'https://github.com/scrobot/ragler/issues' },
+            { label: 'Changelog', to: '/docs/changelog/overview' },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} RAGler OSS`,
+      copyright: `Copyright © ${new Date().getFullYear()} RAGler`,
     },
     prism: {
       theme: prismThemes.github,

@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Product Overview
 
 ## What this page is for
@@ -25,7 +29,10 @@ Understand the operational workflow and user-facing concepts in RAGler.
 
 ## Next steps
 
-- `/docs/product/ingestion`
-- `/docs/product/sessions`
-- `/docs/product/publishing`
-- `/docs/product/collections`
+- [Ingestion](/docs/product/ingestion)
+- [File Upload](/docs/product/file-upload)
+- [Sessions](/docs/product/sessions)
+- [Publishing](/docs/product/publishing)
+- [Collections](/docs/product/collections)
+- [Chat Playground](/docs/product/chat-playground)
+- [Collection Agent](/docs/product/collection-agent)

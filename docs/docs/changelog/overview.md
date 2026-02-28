@@ -11,4 +11,5 @@ Track doc-visible product changes and locate version notes.
 
 ## Next steps
 
-- `/docs/changelog/versions/1.0.0`
+- [Version 1.1.0](/docs/changelog/versions/1.1.0)
+- [Version 1.0.0](/docs/changelog/versions/1.0.0)

@@ -1,3 +1,7 @@
+---
+sidebar_position: 10
+---
+
 # Collections
 
 ## What this page is for
@@ -26,4 +30,7 @@ Collection editor endpoints:
 
 ## Next steps
 
-- `/docs/product/flows/intro`
+- [Document Lineage](/docs/product/documents)
+- [Chat Playground](/docs/product/chat-playground)
+- [Collection Agent](/docs/product/collection-agent)
+- [Workflows](/docs/product/flows/workflow)

@@ -1,3 +1,7 @@
+---
+sidebar_position: 9
+---
+
 # Publishing
 
 ## What this page is for
@@ -34,4 +38,4 @@ Request body:
 
 ## Next steps
 
-- `/docs/product/collections`
+- [Collections](/docs/product/collections)
