@@ -33,6 +33,19 @@ services:
     networks:
       - ragler-network
 
+  # MCP Server (for IDE integration)
+  mcp-server:
+    image: ghcr.io/scrobot/ragler/mcp-server:latest
+    build: ./mcp-server
+    ports:
+      - "3100:3100"
+    environment:
+      - RAGLER_API_URL=http://api:3000
+    depends_on:
+      - api
+    networks:
+      - ragler-network
+
   # Vector Database
   qdrant:
     image: qdrant/qdrant:latest
