@@ -1,24 +1,39 @@
-version: '3.8'
-
 services:
-  # Backend Service
-  # api:
-  #   build: ./backend
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - PORT=3000
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - QDRANT_URL=http://qdrant:6333
-  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
-  #   depends_on:
-  #     - redis
-  #     - qdrant
-  #   networks:
-  #     - kms-network
+  # Backend API
+  api:
+    image: ghcr.io/scrobot/ragler/backend:latest
+    build: ./backend
+    ports:
+      - "3010:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QDRANT_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    networks:
+      - ragler-network
 
-  # Vector Database (Self-Hosted)
+  # Frontend
+  frontend:
+    image: ghcr.io/scrobot/ragler/frontend:latest
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3000/api
+    depends_on:
+      - api
+    networks:
+      - ragler-network
+
+  # Vector Database
   qdrant:
     image: qdrant/qdrant:latest
     ports:
@@ -27,9 +42,9 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
-      - kms-network
+      - ragler-network
 
-  # Session Store (Self-Hosted)
+  # Session Store
   redis:
     image: redis:alpine
     ports:
@@ -38,9 +53,9 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - kms-network
+      - ragler-network
 
-  # redis insight
+  # Redis Insight (optional, for debugging)
   redisinsight:
     image: redis/redisinsight:latest
     ports:
@@ -48,10 +63,12 @@ services:
     depends_on:
       - redis
     networks:
-      - kms-network
+      - ragler-network
+    profiles:
+      - debug
 
 networks:
-  kms-network:
+  ragler-network:
     driver: bridge
 
 volumes:

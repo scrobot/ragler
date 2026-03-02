@@ -104,6 +104,52 @@ cd mcp-server
 pnpm install && pnpm build && pnpm start
 ```
 
+## 🐳 Docker Deployment
+
+The fastest way to run RAGler — all services in one command.
+
+### Using pre-built images (recommended)
+
+```bash
+git clone https://github.com/scrobot/ragler.git
+cd ragler
+
+# Set your OpenAI key
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+
+# Start everything
+docker compose up -d
+```
+
+This pulls pre-built images from `ghcr.io/scrobot/ragler` and starts:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | [localhost:3000](http://localhost:3000) | RAGler UI |
+| Backend API | [localhost:3010](http://localhost:3010/api/docs) | API + Swagger |
+| Qdrant | [localhost:6333](http://localhost:6333/dashboard) | Vector DB dashboard |
+| Redis | localhost:6379 | Session store |
+
+### Build from source
+
+```bash
+docker compose up -d --build
+```
+
+### Debug tools (RedisInsight)
+
+```bash
+docker compose --profile debug up -d
+# → RedisInsight at http://localhost:5540
+```
+
+### Stop & clean up
+
+```bash
+docker compose down           # stop containers
+docker compose down -v        # stop + delete volumes
+```
+
 ## ⚙️ Configuration
 
 Backend config lives in `backend/.env`. Key variables:
