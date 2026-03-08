@@ -41,6 +41,8 @@ services:
       - "3100:3100"
     environment:
       - RAGLER_API_URL=http://api:3000
+      - TRANSPORT=streamable-http
+      - PORT=3100
     depends_on:
       - api
     networks:
