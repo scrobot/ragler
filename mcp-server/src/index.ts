@@ -5,6 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { createMCPServer } from './server.js';
 import { config, TransportType } from './config.js';
+import { checkLiveness, checkReadiness } from './health/health.js';
 
 // ---------------------------------------------------------------------------
 // stdio
@@ -38,10 +39,19 @@ async function startStreamableHttp(): Promise<void> {
       return;
     }
 
-    // Health-check endpoint
-    if (url.pathname === '/health' && req.method === 'GET') {
+    // Health-check endpoints
+    if (req.method === 'GET' && (url.pathname === '/health/live' || url.pathname === '/health/liveness')) {
+      const result = checkLiveness();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      res.end(JSON.stringify(result));
+      return;
+    }
+
+    if (req.method === 'GET' && (url.pathname === '/health/ready' || url.pathname === '/health/readiness' || url.pathname === '/health')) {
+      const result = await checkReadiness();
+      const statusCode = result.status === 'ok' ? 200 : 503;
+      res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
       return;
     }
 
@@ -107,10 +117,19 @@ async function startSse(): Promise<void> {
       return;
     }
 
-    // Health-check endpoint
-    if (url.pathname === '/health' && req.method === 'GET') {
+    // Health-check endpoints
+    if (req.method === 'GET' && (url.pathname === '/health/live' || url.pathname === '/health/liveness')) {
+      const result = checkLiveness();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok' }));
+      res.end(JSON.stringify(result));
+      return;
+    }
+
+    if (req.method === 'GET' && (url.pathname === '/health/ready' || url.pathname === '/health/readiness' || url.pathname === '/health')) {
+      const result = await checkReadiness();
+      const statusCode = result.status === 'ok' ? 200 : 503;
+      res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
       return;
     }
 

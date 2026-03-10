@@ -45,6 +45,12 @@ services:
       - PORT=3100
     depends_on:
       - api
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3100/health/live" ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     networks:
       - ragler-network
 
