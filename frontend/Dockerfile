@@ -21,6 +21,9 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG BACKEND_INTERNAL_URL=http://localhost:3010
+ENV BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
+
 RUN pnpm build
 
 # Stage 3: Production runner

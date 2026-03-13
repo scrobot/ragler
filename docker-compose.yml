@@ -24,11 +24,15 @@ services:
   # Frontend
   frontend:
     image: ghcr.io/scrobot/ragler/frontend:latest
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        BACKEND_INTERNAL_URL: http://api:3000
     ports:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3010/api
+      - BACKEND_INTERNAL_URL=http://api:3000
     depends_on:
       - api
     networks:
