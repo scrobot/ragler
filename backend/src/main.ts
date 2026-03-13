@@ -15,7 +15,9 @@ async function bootstrap() {
 
   app.use(helmet());
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: ['mcp', 'sse', 'messages'],
+  });
 
   app.useGlobalPipes(new ZodValidationPipe());
 

@@ -10,7 +10,6 @@ Describe the runtime architecture and data flow used by RAGler.
 graph TB
     subgraph Client["Client Layer"]
         FE["Next.js Frontend"]
-        MCP["MCP Server<br/>(Claude Desktop)"]
     end
 
     subgraph API["Backend API (NestJS)"]
@@ -21,6 +20,7 @@ graph TB
         VEC["Vector Module"]
         HLT["Health Module"]
         SET["Settings Module"]
+        MCP["MCP Module<br/>(IDE Integration)"]
     end
 
     subgraph Storage["Storage Layer"]
@@ -31,7 +31,8 @@ graph TB
     OAI["OpenAI API"]
 
     FE --> API
-    MCP --> API
+    MCP --> VEC
+    MCP --> COL
     ING --> SES
     SES --> RED
     SES --> LLM
@@ -54,11 +55,10 @@ graph TB
 | Component | Technology | Role |
 |-----------|-----------|------|
 | Frontend | Next.js 16, Tailwind CSS 4 | User interface for all operations |
-| Backend API | NestJS | REST API with Swagger docs at `/api/docs` |
+| Backend API | NestJS | REST API with Swagger docs at `/api/docs`, built-in MCP server at `/mcp` |
 | Redis | Redis Alpine | Draft session storage with TTL |
 | Qdrant | Qdrant | Published chunk vectors + metadata |
 | OpenAI | OpenAI API | LLM chunking, embeddings, agent chat |
-| MCP Server | TypeScript | Claude Desktop integration adapter |
 
 ## Data flow
 

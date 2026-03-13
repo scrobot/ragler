@@ -33,6 +33,7 @@ cp .env.example .env
 - `SESSION_TTL`
 - `WEB_FETCH_TIMEOUT`, `WEB_MAX_CONTENT_LENGTH`
 - `CONFLUENCE_BASE_URL`, `CONFLUENCE_USER_EMAIL`, `CONFLUENCE_API_TOKEN`
+- `MCP_USER_ID` — user identity for MCP tool calls (default: `mcp-server`)
 
 4. Restart backend after edits.
 

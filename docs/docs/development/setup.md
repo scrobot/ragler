@@ -2,7 +2,7 @@
 
 ## What this page is for
 
-Set up backend, frontend, MCP server, and docs for day-to-day development.
+Set up backend, frontend, and docs for day-to-day development.
 
 ## Prerequisites
 
@@ -35,15 +35,7 @@ pnpm install
 pnpm dev
 ```
 
-4. MCP server.
-
-```bash
-cd ../mcp-server
-pnpm install
-pnpm dev
-```
-
-5. Docs site.
+4. Docs site.
 
 ```bash
 cd ../docs
@@ -54,6 +46,7 @@ pnpm start
 ## Verify
 
 - Backend Swagger: `http://localhost:3000/api/docs`
+- MCP endpoint: `curl -X POST http://localhost:3000/mcp -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'`
 - Frontend loads and calls backend.
 - Docs site loads at Docusaurus default port.
 

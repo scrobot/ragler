@@ -30,7 +30,7 @@ RAGler is an **open-source RAG knowledge operations platform** that gives you fu
 - 🔍 **Review & edit** chunks in a draft session before they go live
 - 🚀 **Publish** validated chunks to Qdrant vector collections
 - 🤖 **AI Agent** for chat, collection cleaning, and chunk generation
-- 🔌 **MCP Server** for IDE integration (Cursor, VS Code, etc.)
+- 🔌 **MCP Server** built-in — IDE integration (Cursor, VS Code, etc.) via `/mcp` endpoint
 
 ## 🎬 Demo
 
@@ -97,11 +97,12 @@ pnpm dev
 # → http://localhost:3000
 ```
 
-### 5. (Optional) Start MCP server
+### 5. (Optional) Verify MCP endpoint
 
 ```bash
-cd mcp-server
-pnpm install && pnpm build && pnpm start
+curl -X POST http://localhost:3000/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
 ## 🐳 Docker Deployment

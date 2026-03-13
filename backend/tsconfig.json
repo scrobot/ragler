@@ -50,6 +50,9 @@
       ],
       "@vector/*": [
         "src/modules/vector/*"
+      ],
+      "@mcp/*": [
+        "src/modules/mcp/*"
       ]
     }
   },

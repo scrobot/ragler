@@ -12,6 +12,7 @@ import {
   VectorModule,
   HealthModule,
   SettingsModule,
+  McpModule,
 } from './modules';
 
 @Module({
@@ -39,6 +40,7 @@ import {
     SessionModule,
     VectorModule,
     HealthModule,
+    McpModule,
   ],
   providers: [
     {

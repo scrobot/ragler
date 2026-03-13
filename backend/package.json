@@ -31,6 +31,7 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/openai": "^3.0.30",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@mozilla/readability": "^0.6.0",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",
@@ -115,7 +116,8 @@
       "^@ingest/(.*)$": "<rootDir>/src/modules/ingest/$1",
       "^@llm/(.*)$": "<rootDir>/src/modules/llm/$1",
       "^@session/(.*)$": "<rootDir>/src/modules/session/$1",
-      "^@vector/(.*)$": "<rootDir>/src/modules/vector/$1"
+      "^@vector/(.*)$": "<rootDir>/src/modules/vector/$1",
+      "^@mcp/(.*)$": "<rootDir>/src/modules/mcp/$1"
     }
   }
 }

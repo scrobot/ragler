@@ -5,3 +5,4 @@ export * from './llm';
 export * from './vector';
 export * from './health';
 export * from './settings';
+export * from './mcp';
