@@ -10,10 +10,11 @@ const nextConfig = {
   output: 'standalone',
 
   async rewrites() {
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:3010';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3010/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

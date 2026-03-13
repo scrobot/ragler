@@ -5,6 +5,7 @@ services:
     build: ./backend
     ports:
       - "3010:3000"
+      - "3100:3100"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -27,7 +28,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api:3000/api
+      - NEXT_PUBLIC_API_URL=http://localhost:3010/api
     depends_on:
       - api
     networks:
