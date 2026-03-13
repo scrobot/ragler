@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import helmet from 'helmet';
 import { createServer } from 'http';
+import { randomUUID } from 'crypto';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters';
 import { McpServerService } from './modules/mcp/mcp-server.service';
@@ -56,18 +57,16 @@ async function bootstrap(): Promise<void> {
   //    No body parser, no middleware — MCP SDK reads the raw stream directly.
   // -------------------------------------------------------------------------
   const mcpServerService = app.get(McpServerService);
-  const mcpServer = mcpServerService.createServer();
 
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined, // stateless
-  });
-  await mcpServer.connect(transport);
+  /** Active transports keyed by session ID. */
+  const sessions = new Map<string, StreamableHTTPServerTransport>();
 
   const mcpHttpServer = createServer(async (req, res) => {
     // CORS headers for cross-origin MCP clients
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Mcp-Session-Id');
+    res.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -76,7 +75,45 @@ async function bootstrap(): Promise<void> {
     }
 
     if (req.url === '/mcp') {
-      await transport.handleRequest(req, res);
+      try {
+        // Check for existing session
+        const sessionId = req.headers['mcp-session-id'] as string | undefined;
+        let transport = sessionId ? sessions.get(sessionId) : undefined;
+
+        if (transport) {
+          // Existing session — reuse transport
+          await transport.handleRequest(req, res);
+          return;
+        }
+
+        // New session — create fresh transport + server pair
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+        });
+
+        transport.onclose = () => {
+          const sid = (transport as StreamableHTTPServerTransport & { sessionId?: string }).sessionId;
+          if (sid) sessions.delete(sid);
+          logger.log({ event: 'mcp_session_closed', sessionId: sid });
+        };
+
+        const server = mcpServerService.createServer();
+        await server.connect(transport);
+
+        await transport.handleRequest(req, res);
+
+        // Store session after successful init
+        if ((transport as unknown as { sessionId?: string }).sessionId) {
+          sessions.set((transport as unknown as { sessionId: string }).sessionId, transport);
+          logger.log({ event: 'mcp_session_opened', sessionId: (transport as unknown as { sessionId: string }).sessionId });
+        }
+      } catch (error) {
+        logger.error({ event: 'mcp_request_error', error: String(error) });
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: null }));
+        }
+      }
       return;
     }
 
@@ -109,7 +146,10 @@ async function bootstrap(): Promise<void> {
 
     try {
       mcpHttpServer.close();
-      await transport.close();
+      for (const [, t] of sessions) {
+        await t.close();
+      }
+      sessions.clear();
       await app.close();
       clearTimeout(forceExitTimeout);
       logger.log('Graceful shutdown completed');
