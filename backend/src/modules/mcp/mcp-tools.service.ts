@@ -1,8 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { z } from 'zod';
 import { VectorService } from '@vector/vector.service';
 import { CollectionService } from '@collection/collection.service';
+import { IngestService } from '@ingest/ingest.service';
+import { LlmService } from '@llm/llm.service';
+import { QdrantClientService } from '@infrastructure/qdrant';
 import type { SearchResultDto } from '@vector/dto/vector.dto';
+import {
+  ChunkTypeSchema,
+  SourceTypeSchema,
+  generateChunkId,
+  formatSection,
+  createDefaultAcl,
+} from '@modules/vector/dto/payload.dto';
+import type { DocMetadata, QdrantPayload } from '@modules/vector/dto/payload.dto';
+import { computeContentHash, detectLanguage } from '@llm/utils/text-normalizer';
 
 /**
  * MCP tool definitions and handlers.
@@ -30,6 +43,73 @@ const SearchInputSchema = z.object({
 
 const GetCollectionInputSchema = z.object({
   collection_id: z.string().uuid('Invalid collection ID'),
+});
+
+const InsertChunksSourceSchema = z.object({
+  url: z.string().min(1, 'Source URL is required'),
+  title: z.string().nullable().optional().default(null),
+  source_type: SourceTypeSchema,
+});
+
+const InsertChunkItemSchema = z.object({
+  text: z.string().min(1, 'Chunk text is required'),
+  type: ChunkTypeSchema.optional().default('knowledge'),
+  heading_path: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string().min(1).max(50)).max(12).optional().default([]),
+});
+
+const InsertChunksInputSchema = z.object({
+  collection_id: z.string().uuid('Invalid collection ID'),
+  source: InsertChunksSourceSchema,
+  chunks: z.array(InsertChunkItemSchema).min(1, 'At least one chunk is required').max(500, 'Maximum 500 chunks per request'),
+  user_id: z.string().min(1, 'User ID is required'),
+});
+
+const IngestSourceTypeSchema = z.enum(['web', 'manual', 'file']);
+
+const IngestMaterialInputSchema = z.object({
+  source_type: IngestSourceTypeSchema,
+  url: z.string().url('Invalid URL format').optional(),
+  content: z.string().min(1).max(102400).optional(),
+  file_base64: z.string().optional(),
+  filename: z.string().optional(),
+  user_id: z.string().min(1, 'User ID is required'),
+  chunking_config: z.object({
+    method: z.enum(['llm', 'character']).default('llm'),
+    chunk_size: z.number().int().min(100).max(10000).default(1000),
+    overlap: z.number().int().min(0).max(2000).default(200),
+  }).optional(),
+}).superRefine((data, ctx) => {
+  if (data.source_type === 'web' && !data.url) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'url is required when source_type is "web"',
+      path: ['url'],
+    });
+  }
+  if (data.source_type === 'manual' && !data.content) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'content is required when source_type is "manual"',
+      path: ['content'],
+    });
+  }
+  if (data.source_type === 'file') {
+    if (!data.file_base64) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'file_base64 is required when source_type is "file"',
+        path: ['file_base64'],
+      });
+    }
+    if (!data.filename) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'filename is required when source_type is "file"',
+        path: ['filename'],
+      });
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -109,6 +189,124 @@ export const GET_COLLECTION_INFO_TOOL = {
   },
 };
 
+export const INSERT_CHUNKS_TOOL = {
+  name: 'insert_chunks',
+  description:
+    'Insert pre-processed chunks directly into a knowledge collection. Generates embeddings and performs atomic replacement (deletes existing chunks from the same source before inserting). Ideal for agents that handle their own chunking.',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      collection_id: {
+        type: 'string' as const,
+        description: 'UUID of the target collection',
+      },
+      source: {
+        type: 'object' as const,
+        description: 'Source document metadata',
+        properties: {
+          url: { type: 'string' as const, description: 'Original source URL' },
+          title: { type: 'string' as const, description: 'Document title (optional)' },
+          source_type: {
+            type: 'string' as const,
+            enum: ['confluence', 'web', 'manual', 'file'],
+            description: 'Type of source',
+          },
+        },
+        required: ['url', 'source_type'] as string[],
+      },
+      chunks: {
+        type: 'array' as const,
+        description: 'Array of chunks to insert (max 500)',
+        items: {
+          type: 'object' as const,
+          properties: {
+            text: { type: 'string' as const, description: 'Chunk text content' },
+            type: {
+              type: 'string' as const,
+              enum: ['knowledge', 'navigation', 'table_row', 'glossary', 'faq', 'code'],
+              description: 'Chunk type (default: knowledge)',
+            },
+            heading_path: {
+              type: 'array' as const,
+              items: { type: 'string' as const },
+              description: 'Heading hierarchy path',
+            },
+            tags: {
+              type: 'array' as const,
+              items: { type: 'string' as const },
+              description: 'Topic tags (max 12)',
+            },
+          },
+          required: ['text'] as string[],
+        },
+        minItems: 1,
+        maxItems: 500,
+      },
+      user_id: {
+        type: 'string' as const,
+        description: 'User or agent identifier for audit',
+      },
+    },
+    required: ['collection_id', 'source', 'chunks', 'user_id'] as string[],
+  },
+};
+
+export const INGEST_MATERIAL_TOOL = {
+  name: 'ingest_material',
+  description:
+    'Submit material for ingestion through the standard pipeline. Creates a session, chunks the content, and waits for user review before publishing. Supports web URLs, manual text, and file uploads (base64).',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      source_type: {
+        type: 'string' as const,
+        enum: ['web', 'manual', 'file'],
+        description: 'Type of material to ingest',
+      },
+      url: {
+        type: 'string' as const,
+        description: 'URL to ingest (required when source_type is "web")',
+      },
+      content: {
+        type: 'string' as const,
+        description: 'Text content to ingest (required when source_type is "manual", max 100KB)',
+      },
+      file_base64: {
+        type: 'string' as const,
+        description: 'Base64-encoded file content (required when source_type is "file", max 10MB)',
+      },
+      filename: {
+        type: 'string' as const,
+        description: 'Original filename with extension (required when source_type is "file")',
+      },
+      user_id: {
+        type: 'string' as const,
+        description: 'User or agent identifier for session tracking',
+      },
+      chunking_config: {
+        type: 'object' as const,
+        description: 'Optional chunking configuration',
+        properties: {
+          method: {
+            type: 'string' as const,
+            enum: ['llm', 'character'],
+            description: 'Chunking method (default: llm)',
+          },
+          chunk_size: {
+            type: 'number' as const,
+            description: 'Target chunk size for character method (100-10000, default 1000)',
+          },
+          overlap: {
+            type: 'number' as const,
+            description: 'Overlap between chunks (0-2000, default 200)',
+          },
+        },
+      },
+    },
+    required: ['source_type', 'user_id'] as string[],
+  },
+};
+
 // ---------------------------------------------------------------------------
 // MCP response helpers
 // ---------------------------------------------------------------------------
@@ -136,11 +334,20 @@ export class McpToolsService {
   constructor(
     private readonly vectorService: VectorService,
     private readonly collectionService: CollectionService,
+    private readonly ingestService: IngestService,
+    private readonly llmService: LlmService,
+    private readonly qdrantClient: QdrantClientService,
   ) {}
 
   /** All tool descriptors for MCP ListTools. */
   listTools() {
-    return [SEARCH_KNOWLEDGE_TOOL, LIST_COLLECTIONS_TOOL, GET_COLLECTION_INFO_TOOL];
+    return [
+      SEARCH_KNOWLEDGE_TOOL,
+      LIST_COLLECTIONS_TOOL,
+      GET_COLLECTION_INFO_TOOL,
+      INSERT_CHUNKS_TOOL,
+      INGEST_MATERIAL_TOOL,
+    ];
   }
 
   /** Dispatch a tool call by name. */
@@ -152,6 +359,10 @@ export class McpToolsService {
         return this.handleListCollections();
       case 'get_collection_info':
         return this.handleGetCollectionInfo(args);
+      case 'insert_chunks':
+        return this.handleInsertChunks(args);
+      case 'ingest_material':
+        return this.handleIngestMaterial(args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -215,6 +426,174 @@ export class McpToolsService {
     }
   }
 
+  private async handleInsertChunks(args: unknown): Promise<McpToolResponse> {
+    try {
+      const input = InsertChunksInputSchema.parse(args);
+      const startTime = Date.now();
+
+      const collectionName = `kb_${input.collection_id}`;
+
+      // Verify collection exists
+      const collectionExists = await this.qdrantClient.collectionExists(collectionName);
+      if (!collectionExists) {
+        return errorResponse(`Collection ${input.collection_id} not found`);
+      }
+
+      const sourceId = crypto.createHash('md5').update(input.source.url).digest('hex');
+      const now = new Date().toISOString();
+
+      // Build doc metadata
+      const docMetadata: DocMetadata = {
+        source_type: input.source.source_type,
+        source_id: sourceId,
+        url: input.source.url,
+        space_key: null,
+        title: input.source.title ?? null,
+        revision: 1,
+        last_modified_at: now,
+        last_modified_by: input.user_id,
+        filename: null,
+        file_size: null,
+        mime_type: null,
+        ingest_date: now,
+      };
+
+      // Build QdrantPayload for each chunk
+      const payloads: QdrantPayload[] = input.chunks.map((chunk, index) => {
+        const contentHash = computeContentHash(chunk.text);
+        const lang = detectLanguage(chunk.text);
+        const chunkId = generateChunkId(sourceId, contentHash);
+        const section = formatSection(chunk.heading_path);
+
+        return {
+          doc: docMetadata,
+          chunk: {
+            id: chunkId,
+            index,
+            type: chunk.type,
+            heading_path: chunk.heading_path,
+            section,
+            text: chunk.text,
+            content_hash: contentHash,
+            lang,
+          },
+          tags: chunk.tags,
+          acl: createDefaultAcl(),
+        };
+      });
+
+      // Generate embeddings
+      const texts = payloads.map((p) => p.chunk.text);
+      const embeddings = await this.llmService.generateEmbeddings(texts);
+
+      // Build Qdrant points
+      const points = payloads.map((payload, index) => ({
+        id: payload.chunk.id,
+        vector: embeddings[index],
+        payload: payload as Record<string, unknown>,
+      }));
+
+      // Atomic replacement: delete old chunks from same source, then upsert new
+      await this.qdrantClient.deletePointsByFilter(collectionName, {
+        must: [{ key: 'doc.source_id', match: { value: sourceId } }],
+      });
+
+      await this.qdrantClient.upsertPoints(collectionName, points);
+
+      const durationMs = Date.now() - startTime;
+
+      this.logger.log({
+        event: 'mcp_insert_chunks_success',
+        collectionId: input.collection_id,
+        sourceId,
+        sourceUrl: input.source.url,
+        chunkCount: points.length,
+        userId: input.user_id,
+        durationMs,
+      });
+
+      return textResponse(JSON.stringify({
+        success: true,
+        collection_id: input.collection_id,
+        source_id: sourceId,
+        inserted_chunks: points.length,
+        duration_ms: durationMs,
+      }, null, 2));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error({ event: 'mcp_insert_chunks_error', error: message });
+      return errorResponse(`Error inserting chunks: ${message}`);
+    }
+  }
+
+  private async handleIngestMaterial(args: unknown): Promise<McpToolResponse> {
+    try {
+      const input = IngestMaterialInputSchema.parse(args);
+
+      const chunkingConfig = input.chunking_config
+        ? {
+            method: input.chunking_config.method as 'llm' | 'character',
+            chunkSize: input.chunking_config.chunk_size,
+            overlap: input.chunking_config.overlap,
+          }
+        : undefined;
+
+      let result;
+
+      switch (input.source_type) {
+        case 'web': {
+          result = await this.ingestService.ingestWeb(
+            { url: input.url!, chunkingConfig },
+            input.user_id,
+          );
+          break;
+        }
+
+        case 'manual': {
+          result = await this.ingestService.ingestManual(
+            { content: input.content!, chunkingConfig },
+            input.user_id,
+          );
+          break;
+        }
+
+        case 'file': {
+          const buffer = Buffer.from(input.file_base64!, 'base64');
+          const file = {
+            buffer,
+            originalname: input.filename!,
+            size: buffer.length,
+            mimetype: this.guessMimeType(input.filename!),
+          } as Express.Multer.File;
+
+          result = await this.ingestService.ingestFile(file, input.user_id, chunkingConfig);
+          break;
+        }
+      }
+
+      this.logger.log({
+        event: 'mcp_ingest_material_success',
+        sourceType: input.source_type,
+        sessionId: result.sessionId,
+        userId: input.user_id,
+      });
+
+      return textResponse(JSON.stringify({
+        success: true,
+        session_id: result.sessionId,
+        source_type: result.sourceType,
+        source_url: result.sourceUrl,
+        status: result.status,
+        created_at: result.createdAt,
+        message: 'Session created. Content has been chunked and is ready for review in the Ragler UI.',
+      }, null, 2));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error({ event: 'mcp_ingest_material_error', error: message });
+      return errorResponse(`Error ingesting material: ${message}`);
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Formatting
   // -------------------------------------------------------------------------
@@ -238,5 +617,26 @@ export class McpToolsService {
     ];
 
     return lines.filter(Boolean).join('\n');
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  private guessMimeType(filename: string): string {
+    const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.txt': 'text/plain',
+      '.md': 'text/markdown',
+      '.csv': 'text/csv',
+      '.json': 'application/json',
+      '.html': 'text/html',
+      '.htm': 'text/html',
+      '.xml': 'application/xml',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
+    return mimeMap[ext] ?? 'application/octet-stream';
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "kms-rag-backend",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Knowledge Management System for RAG - Backend API",
   "main": "dist/main.js",
   "scripts": {
@@ -19,7 +19,9 @@
     "migrate:v1-to-v2": "tsx src/scripts/migrate-v1-to-v2.ts",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "prepare": "cd .. && husky backend/.husky",
+    "cpd": "pnpm exec jscpd src --reporters console --threshold 5"
   },
   "keywords": [
     "nestjs",
@@ -74,6 +76,7 @@
     "@types/uuid": "^9.0.0",
     "@types/yargs": "^17.0.35",
     "jest": "^30.2.0",
+    "jscpd": "^4.0.8",
     "supertest": "^7.2.2",
     "testcontainers": "^11.11.0",
     "ts-jest": "^29.4.6",
