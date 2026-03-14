@@ -17,7 +17,7 @@ import * as crypto from 'crypto';
 // ============================================================================
 
 export type ChunkType = 'knowledge' | 'navigation' | 'table_row' | 'glossary' | 'faq' | 'code';
-export type SourceType = 'confluence' | 'web' | 'manual' | 'file';
+export type SourceType = 'web' | 'manual' | 'file';
 export type Language = 'ru' | 'en' | 'mixed';
 export type Visibility = 'internal' | 'public';
 
@@ -34,7 +34,7 @@ export const ChunkTypeSchema = z.enum([
   'code',
 ]);
 
-export const SourceTypeSchema = z.enum(['confluence', 'web', 'manual', 'file']);
+export const SourceTypeSchema = z.enum(['web', 'manual', 'file']);
 
 export const LanguageSchema = z.enum(['ru', 'en', 'mixed']);
 
@@ -45,7 +45,7 @@ export const DocMetadataSchema = z.object({
   source_type: SourceTypeSchema,
   source_id: z.string().describe('MD5 hash of source URL or manual content'),
   url: z.string().describe('Original source URL or manual://hash'),
-  space_key: z.string().nullable().describe('Confluence space key (null for web/manual)'),
+  space_key: z.string().nullable().describe('Space key (null for most sources)'),
   title: z.string().nullable().describe('Document/page title'),
   revision: z.union([z.number(), z.string()]).describe('Document version'),
   last_modified_at: z.string().datetime().describe('ISO-8601 timestamp'),

@@ -95,7 +95,6 @@ export function FilterPanel({ filters, onChange }: FilterPanelProps) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All sources</SelectItem>
-                            <SelectItem value="confluence">Confluence</SelectItem>
                             <SelectItem value="web">Web</SelectItem>
                             <SelectItem value="manual">Manual</SelectItem>
                             <SelectItem value="file">File</SelectItem>

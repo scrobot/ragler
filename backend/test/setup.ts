@@ -3,8 +3,8 @@
  * Mocks modules with problematic ESM dependencies
  */
 
-// Mock document-parser to avoid JSDOM ESM issues in tests
-jest.mock('@modules/llm/parsers/document-parser', () => {
+// Mock document-structure to provide shared types in tests
+jest.mock('@modules/llm/parsers/document-structure', () => {
   // Recursive flatten implementation
   const flattenSections = (sections: any[]): any[] => {
     const result: any[] = [];
@@ -35,21 +35,8 @@ jest.mock('@modules/llm/parsers/document-parser', () => {
     return path;
   };
 
-  // Mock ConfluenceDocumentParser class
-  class ConfluenceDocumentParser {
-    parse() {
-      return {
-        title: 'Mock Document',
-        sections: [],
-        tables: [],
-        codeBlocks: [],
-      };
-    }
-  }
-
   return {
     buildHeadingPath,
     flattenSections,
-    ConfluenceDocumentParser,
   };
 });

@@ -32,7 +32,6 @@ cp .env.example .env
 - `PORT`, `THROTTLE_TTL`, `THROTTLE_LIMIT`
 - `SESSION_TTL`
 - `WEB_FETCH_TIMEOUT`, `WEB_MAX_CONTENT_LENGTH`
-- `CONFLUENCE_BASE_URL`, `CONFLUENCE_USER_EMAIL`, `CONFLUENCE_API_TOKEN`
 - `MCP_USER_ID` — user identity for MCP tool calls (default: `mcp-server`)
 
 4. Restart backend after edits.
@@ -44,7 +43,6 @@ cp .env.example .env
 
 ## Troubleshooting
 
-- Confluence ingest errors: ensure all `CONFLUENCE_*` values are set together.
 - Large manual payload errors: review `MANUAL_MAX_CONTENT_LENGTH`.
 
 ## Next steps

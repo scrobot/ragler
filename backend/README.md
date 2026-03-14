@@ -64,7 +64,7 @@ Common optional:
 - `THROTTLE_LIMIT` (default `100`)
 - `SESSION_TTL` (default `86400`)
 - `WEB_FETCH_TIMEOUT` (default `30000`)
-- `CONFLUENCE_*` (required only for Confluence ingest)
+
 
 ## Run and Verify
 
@@ -79,9 +79,9 @@ Swagger:
 
 ## Main Endpoints
 
-- `POST /api/ingest/confluence`
 - `POST /api/ingest/web`
 - `POST /api/ingest/manual`
+- `POST /api/ingest/file`
 - `GET /api/session`
 - `GET /api/session/:id`
 - `POST /api/session/:id/chunks`

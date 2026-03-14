@@ -26,7 +26,7 @@
 
 RAGler is an **open-source RAG knowledge operations platform** that gives you full control over your retrieval-augmented generation pipeline — from ingestion to publishing.
 
-- 📥 **Ingest** knowledge from Confluence, web pages, file uploads, or manual text
+- 📥 **Ingest** knowledge from web pages, file uploads, or manual text
 - 🔍 **Review & edit** chunks in a draft session before they go live
 - 🚀 **Publish** validated chunks to Qdrant vector collections
 - 🤖 **AI Agent** for chat, collection cleaning, and chunk generation
@@ -171,7 +171,6 @@ Toggle features via environment variables or the UI (Settings → Features):
 
 | Flag | Default | Controls |
 |------|---------|----------|
-| `FEATURE_CONFLUENCE_INGEST` | `true` | Confluence ingestion |
 | `FEATURE_WEB_INGEST` | `true` | Web URL ingestion |
 | `FEATURE_FILE_INGEST` | `true` | File upload ingestion |
 | `FEATURE_AGENT` | `true` | AI agent (chat, cleaning) |

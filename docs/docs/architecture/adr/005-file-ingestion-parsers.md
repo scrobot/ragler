@@ -2,7 +2,7 @@
 
 ## Context
 
-RAGler originally supported only Confluence, web, and manual text ingestion. Users need to upload local documents (PDF, DOCX, TXT, Markdown, CSV) directly.
+RAGler originally supported only web and manual text ingestion. Users need to upload local documents (PDF, DOCX, TXT, Markdown, CSV) directly.
 
 ## Decision
 

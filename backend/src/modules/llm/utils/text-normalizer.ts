@@ -29,7 +29,7 @@ export function normalizeForHash(text: string): string {
   // Collapse multiple newlines (3+ → 2)
   normalized = normalized.replace(/\n{3,}/g, '\n\n');
 
-  // Remove leading emojis (common in Confluence: 📋, 🗺️, 🎯, etc.)
+  // Remove leading emojis (common in documentation: 📋, 🗺️, 🎯, etc.)
   // Unicode ranges for emojis
   normalized = normalized.replace(
     /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+\s*/u,

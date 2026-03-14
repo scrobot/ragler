@@ -27,9 +27,6 @@ Resolve common setup and workflow issues quickly.
 
 ## Ingest/session issues
 
-- Confluence ingest fails:
-  - Verify `CONFLUENCE_BASE_URL`, `CONFLUENCE_USER_EMAIL`, `CONFLUENCE_API_TOKEN`.
-
 - Session not found:
   - Confirm `sessionId` from ingest response.
   - Check session TTL (`SESSION_TTL`).

@@ -14,7 +14,7 @@ Document current security model and operational guardrails.
 
 - Validate all request DTOs.
 - Restrict network access to backend where possible.
-- Protect environment secrets (`OPENAI_API_KEY`, Confluence credentials).
+- Protect environment secrets (`OPENAI_API_KEY`).
 
 ## Operational recommendations
 

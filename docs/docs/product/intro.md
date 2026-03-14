@@ -10,7 +10,7 @@ Understand the operational workflow and user-facing concepts in RAGler.
 
 ## Core entities
 
-- `Source`: raw content from manual input, web, or Confluence.
+- `Source`: raw content from manual input, web, or file upload.
 - `Session`: draft workspace in Redis.
 - `Chunk`: atomic knowledge unit.
 - `Collection`: published context in Qdrant.

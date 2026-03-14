@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Enable users to create draft sessions from Confluence pages, web URLs, or manual text.
+Enable users to create draft sessions from web URLs, file uploads, or manual text.
 
 ## Scope
 
 In scope:
 
-- `POST /api/ingest/confluence`
 - `POST /api/ingest/web`
 - `POST /api/ingest/manual`
+- `POST /api/ingest/file`
 - session creation with source metadata
 
 Out of scope:

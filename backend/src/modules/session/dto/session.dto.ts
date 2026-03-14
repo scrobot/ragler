@@ -12,13 +12,13 @@ export type ChunkDto = z.infer<typeof ChunkSchema>;
 export const SessionResponseSchema = z.object({
   sessionId: z.string(),
   sourceUrl: z.string(),
-  sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
+  sourceType: z.enum(['manual', 'web', 'file']),
   status: z.string(),
   chunks: z.array(ChunkSchema),
   /**
    * Raw HTML/XML content for source preview.
-   * Present for web (HTML) and confluence (storage format XML) sources.
-   * null for manual text sources.
+   * Present for web (HTML) sources.
+   * null for manual text and file sources.
    * WARNING: Must be sanitized (e.g., DOMPurify) before rendering in browser.
    */
   rawContent: z.string().nullable(),
@@ -83,7 +83,7 @@ export class PublishResponseDto extends createZodDto(PublishResponseSchema) { }
 export const SessionListItemSchema = z.object({
   sessionId: z.string(),
   sourceUrl: z.string(),
-  sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
+  sourceType: z.enum(['manual', 'web', 'file']),
   status: z.string(),
   chunkCount: z.number().int().nonnegative(),
   createdAt: z.string(),

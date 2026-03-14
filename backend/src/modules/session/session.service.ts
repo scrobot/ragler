@@ -404,9 +404,9 @@ export class SessionService {
         source_type: session.sourceType,
         source_id: sourceId,
         url: session.sourceUrl,
-        space_key: null, // TODO: Extract from Confluence metadata when available
-        title: null, // TODO: Extract from document when available
-        revision: 1, // TODO: Implement revision tracking
+        space_key: null,
+        title: null,
+        revision: 1,
         last_modified_at: now,
         last_modified_by: userId,
         filename: session.metadata?.filename ?? null,
@@ -415,7 +415,7 @@ export class SessionService {
         ingest_date: session.createdAt,
       };
 
-      // Use rawContent for Confluence (storage XML with structure) or content for others
+      // Use rawContent for richer content (e.g. HTML) or fall back to plain content
       const contentForChunking = session.rawContent || session.content;
 
       // Chunk content with v2 schema (structured chunking + tags + metadata)

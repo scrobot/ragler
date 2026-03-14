@@ -155,7 +155,7 @@ Output format:
 - Tags should be lowercase, use hyphens for multi-word (e.g., "machine-learning")
 
 Examples of good tags:
-- "rag", "langchain", "claude-code", "n8n", "confluence", "openai"
+- "rag", "langchain", "claude-code", "n8n", "openai"
 - "authentication", "api-integration", "vector-search", "embeddings"
 - "python", "typescript", "docker", "kubernetes"`;
   }

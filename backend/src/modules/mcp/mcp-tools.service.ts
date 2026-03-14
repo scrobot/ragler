@@ -31,7 +31,7 @@ const SearchInputSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(10),
   filters: z
     .object({
-      source_types: z.array(z.enum(['confluence', 'web', 'manual', 'file'])).optional(),
+      source_types: z.array(z.enum(['web', 'manual', 'file'])).optional(),
       chunk_types: z
         .array(z.enum(['knowledge', 'navigation', 'table_row', 'glossary', 'faq', 'code']))
         .optional(),
@@ -140,7 +140,7 @@ export const SEARCH_KNOWLEDGE_TOOL = {
         properties: {
           source_types: {
             type: 'array' as const,
-            items: { type: 'string' as const, enum: ['confluence', 'web', 'manual'] },
+            items: { type: 'string' as const, enum: ['web', 'manual'] },
             description: 'Filter by source type',
           },
           chunk_types: {
@@ -208,7 +208,7 @@ export const INSERT_CHUNKS_TOOL = {
           title: { type: 'string' as const, description: 'Document title (optional)' },
           source_type: {
             type: 'string' as const,
-            enum: ['confluence', 'web', 'manual', 'file'],
+            enum: ['web', 'manual', 'file'],
             description: 'Type of source',
           },
         },

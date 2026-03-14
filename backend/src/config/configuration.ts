@@ -40,12 +40,6 @@ export default () => {
       userAgent: env.WEB_FETCH_USER_AGENT,
       maxContentLength: env.WEB_MAX_CONTENT_LENGTH,
     },
-    confluence: {
-      baseUrl: env.CONFLUENCE_BASE_URL,
-      userEmail: env.CONFLUENCE_USER_EMAIL,
-      apiToken: env.CONFLUENCE_API_TOKEN,
-      fetchTimeout: env.CONFLUENCE_FETCH_TIMEOUT,
-    },
     manual: {
       maxContentLength: env.MANUAL_MAX_CONTENT_LENGTH,
       minContentLength: env.MANUAL_MIN_CONTENT_LENGTH,
@@ -54,7 +48,6 @@ export default () => {
       path: env.SQLITE_PATH,
     },
     features: {
-      confluenceIngest: env.FEATURE_CONFLUENCE_INGEST,
       webIngest: env.FEATURE_WEB_INGEST,
       fileIngest: env.FEATURE_FILE_INGEST,
       agent: env.FEATURE_AGENT,

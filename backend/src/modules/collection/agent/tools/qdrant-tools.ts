@@ -76,7 +76,7 @@ const scrollChunksSchema = z.object({
     limit: z.number().int().min(1).max(50).optional().describe('Max results (default 20)'),
     offset: z.number().int().min(0).optional().describe('Offset for pagination (default 0)'),
     sourceType: z
-        .enum(['confluence', 'web', 'manual', 'file'])
+        .enum(['web', 'manual', 'file'])
         .optional()
         .describe('Filter by source type'),
 });
@@ -99,7 +99,7 @@ export function createScrollChunksTool(
                 offset: { type: 'number', description: 'Offset for pagination' },
                 sourceType: {
                     type: 'string',
-                    enum: ['confluence', 'web', 'manual', 'file'],
+                    enum: ['web', 'manual', 'file'],
                     description: 'Filter by source type',
                 },
             },
@@ -212,7 +212,7 @@ export function createGetChunkDirectTool(
 const countChunksSchema = z.object({
     collectionId: z.string().uuid().describe('Collection UUID'),
     sourceType: z
-        .enum(['confluence', 'web', 'manual', 'file'])
+        .enum(['web', 'manual', 'file'])
         .optional()
         .describe('Filter by source type'),
 });
@@ -232,7 +232,7 @@ export function createCountChunksTool(
                 collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID' },
                 sourceType: {
                     type: 'string',
-                    enum: ['confluence', 'web', 'manual', 'file'],
+                    enum: ['web', 'manual', 'file'],
                     description: 'Filter by source type',
                 },
             },
@@ -343,7 +343,7 @@ const upsertChunkSchema = z.object({
     chunkId: z.string().optional().describe('Point ID (auto-generated if omitted)'),
     content: z.string().min(1).describe('Chunk text content — will be embedded'),
     sourceType: z
-        .enum(['confluence', 'web', 'manual', 'file'])
+        .enum(['web', 'manual', 'file'])
         .optional()
         .describe('Source type (default manual)'),
     tags: z.array(z.string()).optional().describe('Tags'),
@@ -367,7 +367,7 @@ export function createUpsertChunkTool(
                 collectionId: { type: 'string', format: 'uuid', description: 'Collection UUID' },
                 chunkId: { type: 'string', description: 'Point ID (auto-gen if omitted)' },
                 content: { type: 'string', description: 'Text content' },
-                sourceType: { type: 'string', enum: ['confluence', 'web', 'manual', 'file'] },
+                sourceType: { type: 'string', enum: ['web', 'manual', 'file'] },
                 tags: { type: 'array', items: { type: 'string' } },
                 headingPath: { type: 'array', items: { type: 'string' } },
             },

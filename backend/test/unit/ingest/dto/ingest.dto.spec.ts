@@ -1,5 +1,4 @@
 import { IngestManualSchema } from '@ingest/dto/ingest-manual.dto';
-import { IngestConfluenceSchema } from '@ingest/dto/ingest-confluence.dto';
 import { IngestWebSchema } from '@ingest/dto/ingest-web.dto';
 import { SourceTypeEnum } from '@ingest/dto/ingest.dto';
 import { IngestFileSchema } from '@ingest/dto/ingest-file.dto';
@@ -88,69 +87,9 @@ describe('Ingest DTOs', () => {
     });
   });
 
-  describe('IngestConfluenceSchema', () => {
-    it('should accept confluence request with URL', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        url: 'https://company.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('should accept confluence request with pageId only', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        pageId: '123456',
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('should accept confluence request with both URL and pageId', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        url: 'https://company.atlassian.net/wiki/spaces/SPACE/pages/123456/Title',
-        pageId: '123456',
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject confluence request without URL or pageId', () => {
-      const result = IngestConfluenceSchema.safeParse({});
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject non-numeric pageId', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        pageId: 'abc123',
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.errors[0].message).toContain('Page ID must be numeric');
-      }
-    });
-
-    it('should reject pageId with decimal', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        pageId: '123.456',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject pageId with negative number', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        pageId: '-123',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should accept large numeric pageId', () => {
-      const result = IngestConfluenceSchema.safeParse({
-        pageId: '9876543210',
-      });
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe('SourceTypeEnum', () => {
     it('should accept all valid source types', () => {
-      const validTypes = ['confluence', 'web', 'manual', 'file'];
+      const validTypes = ['web', 'manual', 'file'];
       for (const type of validTypes) {
         const result = SourceTypeEnum.safeParse(type);
         expect(result.success).toBe(true);
@@ -164,6 +103,11 @@ describe('Ingest DTOs', () => {
 
     it('should reject empty string as source type', () => {
       const result = SourceTypeEnum.safeParse('');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject confluence as source type', () => {
+      const result = SourceTypeEnum.safeParse('confluence');
       expect(result.success).toBe(false);
     });
   });

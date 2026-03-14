@@ -8,9 +8,6 @@ interface ChunkingConfig {
 }
 
 export const ingestApi = {
-  ingestConfluence: (data: { url?: string; pageId?: string; chunkingConfig?: ChunkingConfig }) =>
-    apiClient.post<IngestResponse>('/ingest/confluence', data),
-
   ingestWeb: (data: { url: string; chunkingConfig?: ChunkingConfig }) =>
     apiClient.post<IngestResponse>('/ingest/web', data),
 

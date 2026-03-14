@@ -27,11 +27,6 @@ export const envSchema = z.object({
   WEB_FETCH_USER_AGENT: z.string().default('KMS-RAG Bot/1.0'),
   WEB_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(10485760),
 
-  // Confluence ingestion (optional - only required for Confluence sources)
-  CONFLUENCE_BASE_URL: z.string().url().optional(),
-  CONFLUENCE_USER_EMAIL: z.string().email().optional(),
-  CONFLUENCE_API_TOKEN: z.string().min(1).optional(),
-  CONFLUENCE_FETCH_TIMEOUT: z.coerce.number().int().positive().default(30000),
 
   // Manual ingestion
   MANUAL_MAX_CONTENT_LENGTH: z.coerce.number().int().positive().default(102400), // 100KB
@@ -51,7 +46,6 @@ export const envSchema = z.object({
   SQLITE_PATH: z.string().default('data/ragler.db'),
 
   // Feature flags (all default to enabled)
-  FEATURE_CONFLUENCE_INGEST: z.coerce.boolean().default(true),
   FEATURE_WEB_INGEST: z.coerce.boolean().default(true),
   FEATURE_FILE_INGEST: z.coerce.boolean().default(true),
   FEATURE_AGENT: z.coerce.boolean().default(true),

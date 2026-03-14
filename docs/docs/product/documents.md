@@ -24,7 +24,7 @@ Each document summary includes:
 |-------|-------------|
 | `sourceId` | Unique identifier (MD5 of source URL) |
 | `title` | Document title |
-| `sourceType` | `confluence`, `web`, `manual`, or `file` |
+| `sourceType` | `web`, `manual`, or `file` |
 | `sourceUrl` | Original source URL |
 | `filename` | Original filename (file uploads only) |
 | `mimeType` | File MIME type (file uploads only) |
@@ -48,8 +48,8 @@ curl http://localhost:3000/api/collections/<collectionId>/documents \
     {
       "sourceId": "a1b2c3d4",
       "title": "API Authentication Guide",
-      "sourceType": "confluence",
-      "sourceUrl": "https://wiki.example.com/pages/12345",
+      "sourceType": "web",
+      "sourceUrl": "https://example.com/api-auth-guide",
       "filename": null,
       "mimeType": null,
       "chunkCount": 8,

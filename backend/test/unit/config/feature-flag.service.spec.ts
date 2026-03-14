@@ -8,7 +8,6 @@ describe('FeatureFlagService', () => {
     let sqliteService: Partial<SqliteService>;
 
     const allEnabledDefaults: FeatureFlagsResponse = {
-        confluenceIngest: true,
         webIngest: true,
         fileIngest: true,
         agent: true,
@@ -44,27 +43,27 @@ describe('FeatureFlagService', () => {
             (sqliteService.get as jest.Mock).mockReturnValue(undefined);
             (configService.get as jest.Mock).mockReturnValue(true);
 
-            expect(service.isEnabled('confluenceIngest')).toBe(true);
+            expect(service.isEnabled('webIngest')).toBe(true);
         });
 
         it('should return false from env default when env sets false', () => {
             (sqliteService.get as jest.Mock).mockReturnValue(undefined);
             (configService.get as jest.Mock).mockReturnValue(false);
 
-            expect(service.isEnabled('confluenceIngest')).toBe(false);
+            expect(service.isEnabled('webIngest')).toBe(false);
         });
 
         it('should return SQLite override when present (enabled)', () => {
             (sqliteService.get as jest.Mock).mockReturnValue({ value: 1 });
 
-            expect(service.isEnabled('confluenceIngest')).toBe(true);
+            expect(service.isEnabled('webIngest')).toBe(true);
             expect(configService.get).not.toHaveBeenCalled();
         });
 
         it('should return SQLite override when present (disabled)', () => {
             (sqliteService.get as jest.Mock).mockReturnValue({ value: 0 });
 
-            expect(service.isEnabled('confluenceIngest')).toBe(false);
+            expect(service.isEnabled('webIngest')).toBe(false);
             expect(configService.get).not.toHaveBeenCalled();
         });
     });
@@ -81,7 +80,7 @@ describe('FeatureFlagService', () => {
 
         it('should reflect SQLite overrides in the result', () => {
             (sqliteService.get as jest.Mock).mockImplementation((sql: string, key: string) => {
-                if (key === 'confluenceIngest') return { value: 0 };
+                if (key === 'webIngest') return { value: 0 };
                 if (key === 'agent') return { value: 0 };
                 return undefined;
             });
@@ -89,9 +88,8 @@ describe('FeatureFlagService', () => {
 
             const result = service.getAll();
 
-            expect(result.confluenceIngest).toBe(false);
+            expect(result.webIngest).toBe(false);
             expect(result.agent).toBe(false);
-            expect(result.webIngest).toBe(true);
             expect(result.fileIngest).toBe(true);
         });
     });
@@ -101,11 +99,11 @@ describe('FeatureFlagService', () => {
             (sqliteService.get as jest.Mock).mockReturnValue(undefined);
             (configService.get as jest.Mock).mockReturnValue(true);
 
-            service.update({ confluenceIngest: false });
+            service.update({ webIngest: false });
 
             expect(sqliteService.run).toHaveBeenCalledWith(
                 'INSERT OR REPLACE INTO feature_flags (key, value) VALUES (?, ?)',
-                'confluenceIngest',
+                'webIngest',
                 0,
             );
         });
@@ -121,11 +119,11 @@ describe('FeatureFlagService', () => {
         });
 
         it('should ignore non-boolean values', () => {
-            service.update({ confluenceIngest: 'yes' } as unknown as Partial<FeatureFlagsResponse>);
+            service.update({ webIngest: 'yes' } as unknown as Partial<FeatureFlagsResponse>);
 
             expect(sqliteService.run).not.toHaveBeenCalledWith(
                 expect.anything(),
-                'confluenceIngest',
+                'webIngest',
                 expect.anything(),
             );
         });

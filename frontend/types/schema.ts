@@ -37,12 +37,10 @@ export type Session = z.infer<typeof SessionSchema>;
 
 // Ingest
 export const IngestSchema = z.object({
-    sourceType: z.enum(['manual', 'confluence', 'web', 'file']),
+    sourceType: z.enum(['manual', 'web', 'file']),
     url: z.string().optional(),
-    pageId: z.string().optional(),
     content: z.string().optional(),
 }).refine((data) => {
-    if (data.sourceType === 'confluence' && !data.url && !data.pageId) return false;
     if (data.sourceType === 'web' && !data.url) return false;
     if (data.sourceType === 'manual' && !data.content) return false;
     return true;

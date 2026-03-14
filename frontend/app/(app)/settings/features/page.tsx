@@ -14,19 +14,13 @@ import {
 } from "lucide-react";
 
 interface FeatureDefinition {
-    key: "confluenceIngest" | "webIngest" | "fileIngest" | "agent";
+    key: "webIngest" | "fileIngest" | "agent";
     label: string;
     description: string;
     icon: React.ElementType;
 }
 
 const FEATURES: FeatureDefinition[] = [
-    {
-        key: "confluenceIngest",
-        label: "Confluence Ingestion",
-        description: "Import documents from Atlassian Confluence pages.",
-        icon: FileText,
-    },
     {
         key: "webIngest",
         label: "Web URL Ingestion",

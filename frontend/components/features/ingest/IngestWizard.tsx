@@ -43,7 +43,6 @@ interface TabDefinition {
 }
 
 const ALL_TABS: TabDefinition[] = [
-    { value: "confluence", label: "Confluence", icon: FileText },
     { value: "web", label: "Web URL", icon: Globe },
     { value: "manual", label: "Manual", icon: Type },
     { value: "file", label: "File", icon: Upload },
@@ -56,7 +55,6 @@ export function IngestWizard() {
     const enabledTabs = useMemo(() => {
         if (!featureFlags) return ALL_TABS;
         const flagMap: Record<string, boolean | undefined> = {
-            confluence: featureFlags.confluenceIngest,
             web: featureFlags.webIngest,
             // manual is always enabled
             file: featureFlags.fileIngest,
@@ -76,9 +74,8 @@ export function IngestWizard() {
     const form = useForm<IngestRequest>({
         resolver: zodResolver(IngestSchema),
         defaultValues: {
-            sourceType: "confluence",
+            sourceType: "web",
             url: "",
-            pageId: "",
             content: "",
         },
     });
@@ -87,12 +84,6 @@ export function IngestWizard() {
         mutationFn: (data: IngestRequest) => {
             const config = chunkingConfig.method === 'llm' ? undefined : chunkingConfig;
             switch (data.sourceType) {
-                case "confluence":
-                    return ingestApi.ingestConfluence({
-                        url: data.url || undefined,
-                        pageId: data.pageId || undefined,
-                        chunkingConfig: config,
-                    });
                 case "web":
                     if (!data.url) throw new Error("URL is required");
                     return ingestApi.ingestWeb({ url: data.url, chunkingConfig: config });
@@ -123,7 +114,6 @@ export function IngestWizard() {
         setActiveTab(value);
         form.setValue("sourceType", value as any);
         form.resetField("url");
-        form.resetField("pageId");
         form.resetField("content");
         setSelectedFile(null);
     };
@@ -151,38 +141,6 @@ export function IngestWizard() {
 
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <TabsContent value="confluence" className="space-y-4">
-                                <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mb-4">
-                                    Import a document from Confluence. You can provide either the full URL or the Page ID.
-                                </div>
-                                <FormField
-                                    control={form.control}
-                                    name="url"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Confluence Page URL</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="https://confluence.example.com/display/SPACE/Page+Title" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="text-center text-muted-foreground text-xs my-2">- OR -</div>
-                                <FormField
-                                    control={form.control}
-                                    name="pageId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Page ID</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="12345678" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </TabsContent>
 
                             <TabsContent value="web" className="space-y-4">
                                 <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground mb-4">

@@ -4,7 +4,7 @@ import { createZodDto } from 'nestjs-zod';
 export const DocumentSummarySchema = z.object({
     sourceId: z.string().describe('MD5 hash of source identifier'),
     title: z.string().nullable().describe('Document/page title'),
-    sourceType: z.enum(['confluence', 'web', 'manual', 'file']),
+    sourceType: z.enum(['web', 'manual', 'file']),
     sourceUrl: z.string().describe('Original source URL'),
     filename: z.string().nullable().describe('Original filename for file uploads'),
     mimeType: z.string().nullable().describe('MIME type of source'),

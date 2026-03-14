@@ -16,9 +16,9 @@ export const FEATURE_FLAG_KEY = 'requiredFeature';
  *
  * @example
  * ```typescript
- * @RequireFeature('confluenceIngest')
- * @Post('confluence')
- * async ingestConfluence() { ... }
+ * @RequireFeature('webIngest')
+ * @Post('web')
+ * async ingestWeb() { ... }
  * ```
  */
 export const RequireFeature = (flag: FeatureFlag) =>

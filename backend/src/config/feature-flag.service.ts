@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { SqliteService } from '@infrastructure/sqlite/sqlite.service';
 
 export const FEATURE_FLAGS = [
-    'confluenceIngest',
     'webIngest',
     'fileIngest',
     'agent',
@@ -12,7 +11,6 @@ export const FEATURE_FLAGS = [
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number];
 
 export interface FeatureFlagsResponse {
-    confluenceIngest: boolean;
     webIngest: boolean;
     fileIngest: boolean;
     agent: boolean;
@@ -71,7 +69,6 @@ export class FeatureFlagService implements OnModuleInit {
      */
     getAll(): FeatureFlagsResponse {
         return {
-            confluenceIngest: this.isEnabled('confluenceIngest'),
             webIngest: this.isEnabled('webIngest'),
             fileIngest: this.isEnabled('fileIngest'),
             agent: this.isEnabled('agent'),

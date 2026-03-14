@@ -4,7 +4,7 @@ import {
   Table,
   CodeBlock,
   flattenSections,
-} from '../parsers/document-parser';
+} from '../parsers/document-structure';
 import { countTokens, splitOnBoundaries } from '../utils/token-counter';
 import { ChunkType } from '@modules/vector/dto/payload.dto';
 
@@ -252,7 +252,6 @@ export class StructuredChunker {
       'где найти',
       'канал в slack',
       'github',
-      'confluence',
     ];
 
     if (navKeywords.some((kw) => lower.includes(kw))) {

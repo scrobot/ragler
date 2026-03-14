@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Loader2, Plus, FileText, Globe, BookOpen, Upload, Trash2 } from "lucide-react";
+import { Loader2, Plus, FileText, Globe, Upload, Trash2 } from "lucide-react";
 import { SourceType } from "@/types/api";
 import { ConfirmationDialog } from "@/components/app/confirmation-dialog";
 import { toast } from "sonner";
@@ -29,7 +29,6 @@ import { toast } from "sonner";
 const sourceTypeConfig: Record<SourceType, { label: string; icon: React.ReactNode }> = {
     manual: { label: "Manual", icon: <FileText className="h-4 w-4" /> },
     web: { label: "Web", icon: <Globe className="h-4 w-4" /> },
-    confluence: { label: "Confluence", icon: <BookOpen className="h-4 w-4" /> },
     file: { label: "File", icon: <Upload className="h-4 w-4" /> },
 };
 

@@ -89,7 +89,7 @@ describe('VectorService', () => {
           id: 'point-2',
           score: 0.85,
           payload: createV2Payload({
-            doc: { url: 'https://example.com/2', source_type: 'confluence' },
+            doc: { url: 'https://example.com/2', source_type: 'web' },
             chunk: { text: 'Test content 2' },
           }),
         },
@@ -137,7 +137,7 @@ describe('VectorService', () => {
             doc: {
               url: 'https://example.com/2',
               title: 'Test Document',
-              source_type: 'confluence',
+              source_type: 'web',
               revision: 1,
             },
             chunk: {

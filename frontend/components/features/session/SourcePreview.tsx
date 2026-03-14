@@ -36,28 +36,9 @@ export function SourcePreview({ rawContent, sourceType, sourceUrl }: SourcePrevi
 
   // Create a blob URL for the iframe to render the HTML safely
   const blobUrl = useMemo(() => {
-    // Wrap the raw content in a basic HTML structure if it's Confluence storage format
-    const htmlContent = sourceType === "confluence"
-      ? `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; padding: 16px; line-height: 1.6; }
-    img { max-width: 100%; height: auto; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    pre { background: #f4f4f4; padding: 12px; overflow-x: auto; }
-    code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
-  </style>
-</head>
-<body>${rawContent}</body>
-</html>`
-      : rawContent;
-
-    const blob = new Blob([htmlContent], { type: "text/html" });
+    const blob = new Blob([rawContent], { type: "text/html" });
     return URL.createObjectURL(blob);
-  }, [rawContent, sourceType]);
+  }, [rawContent]);
 
   return (
     <Card>

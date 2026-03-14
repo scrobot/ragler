@@ -43,7 +43,7 @@ describe('FeatureFlagGuard', () => {
     });
 
     it('should allow request when required feature is enabled', () => {
-        (reflector.getAllAndOverride as jest.Mock).mockReturnValue('confluenceIngest');
+        (reflector.getAllAndOverride as jest.Mock).mockReturnValue('webIngest');
         (featureFlagService.isEnabled as jest.Mock).mockReturnValue(true);
         const context = createMockContext();
 
@@ -51,12 +51,12 @@ describe('FeatureFlagGuard', () => {
     });
 
     it('should throw ForbiddenException when required feature is disabled', () => {
-        (reflector.getAllAndOverride as jest.Mock).mockReturnValue('confluenceIngest');
+        (reflector.getAllAndOverride as jest.Mock).mockReturnValue('webIngest');
         (featureFlagService.isEnabled as jest.Mock).mockReturnValue(false);
         const context = createMockContext();
 
         expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-        expect(() => guard.canActivate(context)).toThrow('Feature is disabled: confluenceIngest');
+        expect(() => guard.canActivate(context)).toThrow('Feature is disabled: webIngest');
     });
 
     it('should check the correct feature flag key', () => {

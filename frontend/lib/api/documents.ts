@@ -3,7 +3,7 @@ import { apiClient } from './client';
 export interface DocumentSummary {
     sourceId: string;
     title: string | null;
-    sourceType: 'confluence' | 'web' | 'manual' | 'file';
+    sourceType: 'web' | 'manual' | 'file';
     sourceUrl: string;
     filename: string | null;
     mimeType: string | null;

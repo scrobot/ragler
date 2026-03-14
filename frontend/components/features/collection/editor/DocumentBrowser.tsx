@@ -22,7 +22,6 @@ const SOURCE_TYPE_CONFIG: Record<
     string,
     { icon: React.ComponentType<{ className?: string }>; label: string; color: string }
 > = {
-    confluence: { icon: Globe, label: "Confluence", color: "bg-blue-500/10 text-blue-500" },
     web: { icon: Globe, label: "Web", color: "bg-emerald-500/10 text-emerald-500" },
     manual: { icon: Pencil, label: "Manual", color: "bg-amber-500/10 text-amber-500" },
     file: { icon: Upload, label: "File", color: "bg-violet-500/10 text-violet-500" },

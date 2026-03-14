@@ -1,4 +1,4 @@
-import { DocumentStructure, Section, Table, CodeBlock } from './document-parser';
+import { DocumentStructure, Section, Table, CodeBlock } from './document-structure';
 
 /**
  * Simple markdown parser for manual content

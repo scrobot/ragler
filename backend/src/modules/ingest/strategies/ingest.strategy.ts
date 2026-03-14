@@ -9,7 +9,7 @@ export interface IngestResult {
   metadata: Record<string, unknown>;
   /**
    * Raw HTML/XML content for source preview.
-   * Present for web (HTML) and confluence (storage format XML) sources.
+   * Present for web (HTML) sources.
    * Undefined for manual text sources.
    * WARNING: Must be sanitized (e.g., DOMPurify) before rendering in browser.
    */

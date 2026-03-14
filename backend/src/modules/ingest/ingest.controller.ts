@@ -3,7 +3,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiConsumes } from '@nestjs/swagger';
 import { IngestService } from './ingest.service';
 import {
-  IngestConfluenceDto,
   IngestWebDto,
   IngestManualDto,
   IngestResponseDto,
@@ -19,17 +18,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 @Controller('ingest')
 export class IngestController {
   constructor(private readonly ingestService: IngestService) { }
-
-  @Post('confluence')
-  @RequireFeature('confluenceIngest')
-  @ApiOperation({ summary: 'Start ingestion session from Confluence' })
-  @ApiResponse({ status: 201, description: 'Session created', type: IngestResponseDto })
-  async ingestConfluence(
-    @Body() dto: IngestConfluenceDto,
-    @User() user: RequestUser,
-  ): Promise<IngestResponseDto> {
-    return this.ingestService.ingestConfluence(dto, user.id);
-  }
 
   @Post('web')
   @RequireFeature('webIngest')

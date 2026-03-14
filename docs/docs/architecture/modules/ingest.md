@@ -6,9 +6,9 @@ Create draft sessions from source content.
 
 ## Endpoints
 
-- `POST /api/ingest/confluence`
 - `POST /api/ingest/web`
 - `POST /api/ingest/manual`
+- `POST /api/ingest/file`
 
 ## Responsibilities
 

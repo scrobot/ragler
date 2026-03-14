@@ -5,12 +5,10 @@ import { IngestStrategy, INGEST_STRATEGIES } from '@ingest/strategies/ingest.str
 
 describe('IngestStrategyResolver', () => {
     let resolver: IngestStrategyResolver;
-    let confluenceStrategy: IngestStrategy;
     let webStrategy: IngestStrategy;
     let manualStrategy: IngestStrategy;
 
     beforeEach(async () => {
-        confluenceStrategy = { sourceType: 'confluence', ingest: jest.fn() } as any;
         webStrategy = { sourceType: 'web', ingest: jest.fn() } as any;
         manualStrategy = { sourceType: 'manual', ingest: jest.fn() } as any;
 
@@ -19,7 +17,7 @@ describe('IngestStrategyResolver', () => {
                 IngestStrategyResolver,
                 {
                     provide: INGEST_STRATEGIES,
-                    useValue: [confluenceStrategy, webStrategy, manualStrategy],
+                    useValue: [webStrategy, manualStrategy],
                 },
             ],
         }).compile();
@@ -32,10 +30,6 @@ describe('IngestStrategyResolver', () => {
     });
 
     describe('resolve', () => {
-        it('should return confluence strategy', () => {
-            expect(resolver.resolve('confluence')).toBe(confluenceStrategy);
-        });
-
         it('should return web strategy', () => {
             expect(resolver.resolve('web')).toBe(webStrategy);
         });

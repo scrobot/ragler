@@ -52,7 +52,7 @@ pnpm test -- test/unit/session/session.service.spec.ts
 | Module | Purpose |
 |--------|---------|
 | `collection` | CRUD for knowledge collections |
-| `ingest` | Data ingestion (Confluence, web, manual) via strategy pattern |
+| `ingest` | Data ingestion (web, file upload, manual) via strategy pattern |
 | `session` | Draft lifecycle in Redis |
 | `llm` | OpenAI integration (chunking, enrichment) |
 | `vector` | Qdrant operations |
@@ -327,7 +327,6 @@ A task is NOT complete unless:
 ## Scope guard
 
 You MUST treat the following as out of scope unless explicitly instructed:
-- realtime Confluence sync
 - bulk document crawling
 - retrieval quality metrics
 - A/B testing of answers

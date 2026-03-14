@@ -1,6 +1,6 @@
 /**
  * Mock JSDOM for E2E tests.
- * Supports both WebStrategy (uses Readability) and ConfluenceStrategy (uses body.textContent).
+ * Supports WebStrategy (uses Readability) for HTML content parsing.
  */
 export class JSDOM {
   window: {

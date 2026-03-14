@@ -16,7 +16,7 @@ export const ListChunksQuerySchema = z.object({
   sortBy: z.enum(['position', 'created_at', 'quality_score']).default('position'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
   search: z.string().max(200).optional(),
-  sourceType: z.enum(['confluence', 'web', 'manual', 'file']).optional(),
+  sourceType: z.enum(['web', 'manual', 'file']).optional(),
   sourceId: z.string().max(200).optional(),
   minQuality: z.coerce.number().min(0).max(100).optional(),
   maxQuality: z.coerce.number().min(0).max(100).optional(),

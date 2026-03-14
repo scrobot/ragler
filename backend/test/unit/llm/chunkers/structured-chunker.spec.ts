@@ -1,5 +1,5 @@
 import { StructuredChunker } from '@modules/llm/chunkers/structured-chunker';
-import type { DocumentStructure } from '@modules/llm/parsers/document-parser';
+import type { DocumentStructure } from '@modules/llm/parsers/document-structure';
 
 describe('StructuredChunker', () => {
   let chunker: StructuredChunker;

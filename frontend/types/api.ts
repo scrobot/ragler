@@ -32,7 +32,7 @@ export interface Session {
   chunks: Chunk[];
   /**
    * Raw HTML/XML content for source preview.
-   * Present for web (HTML) and confluence (storage format XML) sources.
+   * Present for web (HTML) sources.
    * null for manual text sources.
    */
   rawContent: string | null;
@@ -79,17 +79,11 @@ export interface DeleteSessionResponse {
 }
 
 // Ingest
-export type SourceType = 'manual' | 'confluence' | 'web' | 'file';
+export type SourceType = 'manual' | 'web' | 'file';
 
 export interface IngestManualRequest {
   sourceType: 'manual';
   content: string;
-}
-
-export interface IngestConfluenceRequest {
-  sourceType: 'confluence';
-  url?: string;
-  pageId?: string;
 }
 
 export interface IngestWebRequest {
@@ -99,7 +93,6 @@ export interface IngestWebRequest {
 
 export type IngestRequest =
   | IngestManualRequest
-  | IngestConfluenceRequest
   | IngestWebRequest;
 
 export interface IngestResponse {
@@ -347,7 +340,6 @@ export interface AvailableModelsResponse {
 
 // Feature Flags
 export interface FeatureFlagsResponse {
-  confluenceIngest: boolean;
   webIngest: boolean;
   fileIngest: boolean;
   agent: boolean;

@@ -40,7 +40,7 @@ interface QdrantPayloadV1 {
   content: string;
   source_id: string;
   source_url: string;
-  source_type: 'confluence' | 'web' | 'manual';
+  source_type: 'web' | 'manual';
   last_modified_by: string;
   last_modified_at: string;
   revision: number;
@@ -78,7 +78,6 @@ function classifyChunkType(text: string): ChunkType {
     'где найти',
     'канал в slack',
     'github',
-    'confluence',
     'contact',
     'repository',
     'quick navigation',
@@ -124,7 +123,6 @@ function extractKeywordTags(text: string): string[] {
     'n8n': /\bn8n\b/i,
     'claude': /\bclaude\b|\bclaude.?code\b/i,
     'openai': /\bopenai\b|\bgpt-?[0-9]\b/i,
-    'confluence': /\bconfluence\b/i,
     'qdrant': /\bqdrant\b/i,
     'vector-search': /\bvector\b.*\bsearch\b/i,
     'embeddings': /\bembedding[s]?\b/i,

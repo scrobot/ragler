@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '@infrastructure/redis';
 import { LlmService } from '@llm/llm.service';
 import {
-  IngestConfluenceDto,
   IngestWebDto,
   IngestManualDto,
   IngestResponseDto,
@@ -35,8 +34,8 @@ export interface SessionData {
   }>;
   /**
    * Raw HTML/XML content for source preview.
-   * Present for web (HTML) and confluence (storage format XML) sources.
-   * Undefined for manual text sources.
+   * Present for web (HTML) sources.
+   * Undefined for manual text and file sources.
    */
   rawContent?: string;
   /** Document metadata from ingestion strategy */
@@ -56,11 +55,7 @@ export class IngestService {
     private readonly llmService: LlmService,
   ) { }
 
-  async ingestConfluence(dto: IngestConfluenceDto, userId: string): Promise<IngestResponseDto> {
-    const input = dto.pageId ?? dto.url;
-    // We already validated that one exists in the DTO
-    return this.createSession(input!, 'confluence', userId, dto.chunkingConfig);
-  }
+
 
   async ingestWeb(dto: IngestWebDto, userId: string): Promise<IngestResponseDto> {
     return this.createSession(dto.url, 'web', userId, dto.chunkingConfig);

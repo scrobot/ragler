@@ -13,7 +13,7 @@ Define what RAGler must deliver from a product perspective for knowledge operati
 
 ## In Scope
 
-- Source ingestion (Confluence, web, manual)
+- Source ingestion (web, file upload, manual)
 - Source ingestion from file uploads (PDF, DOCX, MD, TXT, CSV)
 - Draft session editing workflow
 - Collection management
@@ -46,7 +46,7 @@ Define what RAGler must deliver from a product perspective for knowledge operati
 
 ## Functional Requirements Summary
 
-- FR-BRD-001: Support ingestion from Confluence, web, and manual text.
+- FR-BRD-001: Support ingestion from web, file upload, and manual text.
 - FR-BRD-002: Support session-based chunk operations (edit, split, merge).
 - FR-BRD-003: Require explicit user confirmation before publish.
 - FR-BRD-004: Support collection CRUD and direct chunk editing in collections.
