@@ -23,12 +23,10 @@ export class MarkdownParser {
     let tableStart = 0;
 
     const finishSection = () => {
-      if (currentSection && sectionContent.length > 0) {
+      if (currentSection) {
         currentSection.content = sectionContent.join('\n').trim();
         currentSection.endIndex = currentPosition;
-        if (currentSection.content) {
-          sections.push(currentSection);
-        }
+        sections.push(currentSection);
       }
       sectionContent = [];
     };
