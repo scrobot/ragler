@@ -197,22 +197,22 @@
 | **Type** | Smoke |
 | **Preconditions** | Backend запущен. |
 | **Steps** | 1. Перейти на `/settings/features` |
-| **Expected Result** | Заголовок "Feature Flags". Описание: "Enable or disable features... Changes take effect immediately." Четыре toggle: Confluence Ingestion, Web URL Ingestion, File Upload, AI Agent. Каждый с описанием и switch. Секция "Reset to Defaults" с кнопкой "Reset". |
+| **Expected Result** | Заголовок "Feature Flags". Описание: "Enable or disable features... Changes take effect immediately." Три toggle: Web URL Ingestion, File Upload, AI Agent. Каждый с описанием и switch. Confluence Ingestion **отсутствует** (удалён из продукта). Секция "Reset to Defaults" с кнопкой "Reset". |
 
 ---
 
-#### TC-06.13: Toggle Confluence Ingestion OFF
+#### TC-06.13: Confluence toggle отсутствует (REMOVED)
 
 | Field | Value |
 |-------|-------|
 | **ID** | TC-06.13 |
-| **Title** | Отключение Confluence Ingestion |
-| **Priority** | High |
-| **Severity** | Major |
-| **Type** | Functional |
-| **Preconditions** | Confluence Ingestion включен. |
-| **Steps** | 1. Toggle Confluence OFF 2. Перейти на `/ingest` |
-| **Expected Result** | Toggle переключён. Таб Confluence на странице Ingestion скрыт или disabled. API endpoint `/api/ingest/confluence` возвращает ошибку. |
+| **Title** | Toggle Confluence Ingestion отсутствует на странице Feature Flags |
+| **Priority** | Medium |
+| **Severity** | Minor |
+| **Type** | Regression |
+| **Preconditions** | Backend запущен. |
+| **Steps** | 1. Перейти на `/settings/features` 2. Проверить список toggles |
+| **Expected Result** | Toggle "Confluence Ingestion" **не отображается**. Только: Web URL Ingestion, File Upload, AI Agent. |
 
 ---
 
@@ -271,8 +271,8 @@
 | **Severity** | Minor |
 | **Type** | Edge case |
 | **Preconditions** | Все флаги включены. |
-| **Steps** | 1. Отключить все 4 toggle 2. Проверить `/ingest` 3. Проверить Chat 4. Проверить Collection AI Assistant |
-| **Expected Result** | Ingestion: только Manual таб остаётся (если Manual не управляется flag). Chat и Agent недоступны. Приложение не крашится. |
+| **Steps** | 1. Отключить все 3 toggle (Web URL, File Upload, AI Agent) 2. Проверить `/ingest` 3. Проверить Chat 4. Проверить Collection AI Assistant |
+| **Expected Result** | Ingestion: только Manual таб остаётся (Manual не управляется feature flag). Web URL и File табы скрыты. Chat и Agent недоступны. Приложение не крашится. |
 
 ---
 
@@ -301,8 +301,8 @@
 | **Severity** | Major |
 | **Type** | Functional |
 | **Preconditions** | — |
-| **Steps** | 1. Toggle Confluence OFF 2. **Без перезагрузки** перейти на `/ingest` 3. Проверить |
-| **Expected Result** | Confluence таб уже недоступен. Не требуется перезагрузка страницы или backend restart. |
+| **Steps** | 1. Toggle Web URL Ingestion OFF 2. **Без перезагрузки** перейти на `/ingest` 3. Проверить |
+| **Expected Result** | Web URL таб уже недоступен. Не требуется перезагрузка страницы или backend restart. |
 
 ---
 
@@ -317,7 +317,7 @@
 | Model selection | TC-06.08 | — | — |
 | API Key | TC-06.09, TC-06.11 | TC-06.10 | — |
 | Feature Flags page | TC-06.12 | — | — |
-| Confluence flag | TC-06.13 | — | — |
+| Confluence (REMOVED) | TC-06.13 | — | — |
 | Web URL flag | TC-06.14 | — | — |
 | File flag | TC-06.15 | — | — |
 | AI Agent flag | TC-06.16 | — | TC-06.17 |

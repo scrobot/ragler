@@ -9,7 +9,9 @@
 
 ## 1. Overview
 
-Страница Ingestion — точка входа контента в систему. Четыре таба источников: Confluence, Web URL, Manual, File. Каждый таб имеет свои поля ввода. Общие элементы: Chunking Settings (LLM / Character), кнопка "Start Processing". Результат — создание draft-сессии с chunk-ами.
+Страница Ingestion — точка входа контента в систему. Три таба источников: Web URL, Manual, File. Каждый таб имеет свои поля ввода. Общие элементы: Chunking Settings (LLM / Character), кнопка "Start Processing". Результат — создание draft-сессии с chunk-ами.
+
+> **Note:** Confluence ingestion был удалён из продукта. Таб Confluence отсутствует в UI, strategy удалена из backend, sourceType enum: `web | manual | file`.
 
 ---
 
@@ -22,13 +24,13 @@
 | Field | Value |
 |-------|-------|
 | **ID** | TC-02.01 |
-| **Title** | Страница Ingestion загружается с четырьмя табами |
+| **Title** | Страница Ingestion загружается с тремя табами |
 | **Priority** | Critical |
 | **Severity** | Blocker |
 | **Type** | Smoke |
 | **Preconditions** | Backend запущен. |
 | **Steps** | 1. Перейти на `/ingest` |
-| **Expected Result** | Заголовок "Add Knowledge Source", подзаголовок "Import content to create a new editing session." Четыре таба: Confluence (активный по умолчанию), Web URL, Manual, File. Кнопка "Start Processing" внизу. |
+| **Expected Result** | Заголовок "Add Knowledge Source", подзаголовок "Import content to create a new editing session." Три таба: Web URL (активный по умолчанию), Manual, File. Таб Confluence **отсутствует**. Кнопка "Start Processing" внизу. |
 
 ---
 
@@ -42,8 +44,8 @@
 | **Severity** | Major |
 | **Type** | Functional |
 | **Preconditions** | Страница `/ingest` загружена. |
-| **Steps** | 1. Кликнуть "Web URL" — проверить поля 2. Кликнуть "Manual" — проверить textarea 3. Кликнуть "File" — проверить drag-and-drop зону 4. Вернуться на "Confluence" |
-| **Expected Result** | Confluence: поля "Confluence Page URL" и "Page ID". Web URL: поле "Web Page URL". Manual: textarea "Content". File: зона drag-and-drop с подписью "Drop a file here or click to browse". Активный таб визуально выделен. |
+| **Steps** | 1. Кликнуть "Web URL" — проверить поля 2. Кликнуть "Manual" — проверить textarea 3. Кликнуть "File" — проверить drag-and-drop зону |
+| **Expected Result** | Web URL: поле "Web Page URL". Manual: textarea "Content". File: зона drag-and-drop с подписью "Drop a file here or click to browse". Активный таб визуально выделен. Таб Confluence **отсутствует**. |
 
 ---
 
@@ -77,125 +79,35 @@
 
 ---
 
-### 2.2 Confluence Ingestion
+### 2.2 Confluence (REMOVED — regression check)
 
-#### TC-02.05: Confluence — успешный инжест по URL
+#### TC-02.05: Confluence — таб отсутствует в UI
 
 | Field | Value |
 |-------|-------|
 | **ID** | TC-02.05 |
-| **Title** | Инжест Confluence страницы по URL создаёт сессию |
-| **Priority** | Critical |
-| **Severity** | Blocker |
-| **Type** | Functional |
-| **Preconditions** | Confluence credentials настроены в env. Страница доступна. |
-| **Steps** | 1. Перейти на `/ingest`, таб Confluence 2. Ввести валидный Confluence URL 3. Нажать "Start Processing" |
-| **Expected Result** | Появляется индикатор загрузки. После завершения — редирект на Session Editor (`/session/:id`). Сессия содержит chunk-и из Confluence-документа. |
+| **Title** | Таб Confluence полностью удалён из Ingestion UI |
+| **Priority** | Medium |
+| **Severity** | Minor |
+| **Type** | Regression |
+| **Preconditions** | Backend запущен. |
+| **Steps** | 1. Перейти на `/ingest` 2. Проверить список табов |
+| **Expected Result** | Только три таба: Web URL, Manual, File. Таб "Confluence" **не отображается**. |
 
 ---
 
-#### TC-02.06: Confluence — успешный инжест по Page ID
+#### TC-02.06: Confluence — API endpoint отклоняет запросы
 
 | Field | Value |
 |-------|-------|
 | **ID** | TC-02.06 |
-| **Title** | Инжест Confluence страницы по Page ID работает |
-| **Priority** | High |
-| **Severity** | Major |
-| **Type** | Functional |
-| **Preconditions** | Confluence настроен. Известен Page ID. |
-| **Steps** | 1. Таб Confluence 2. Оставить URL пустым 3. Ввести валидный Page ID 4. Start Processing |
-| **Expected Result** | Сессия создана. Redirect на Session Editor. |
-
----
-
-#### TC-02.07: Confluence — пустые поля
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.07 |
-| **Title** | Сабмит без URL и Page ID показывает ошибку |
-| **Priority** | High |
-| **Severity** | Major |
-| **Type** | Negative |
-| **Preconditions** | Таб Confluence. |
-| **Steps** | 1. Не заполнять ни URL, ни Page ID 2. Нажать "Start Processing" |
-| **Expected Result** | Ошибка валидации: "Please provide either a Confluence URL or Page ID". Кнопка не отправляет запрос. |
-
----
-
-#### TC-02.08: Confluence — оба поля заполнены
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.08 |
-| **Title** | Поведение при заполнении и URL, и Page ID одновременно |
+| **Title** | POST /api/ingest/confluence возвращает 404 или 400 |
 | **Priority** | Medium |
 | **Severity** | Minor |
-| **Type** | Edge case |
-| **Preconditions** | Таб Confluence. |
-| **Steps** | 1. Ввести и URL, и Page ID 2. Start Processing |
-| **Expected Result** | Система использует один из параметров (приоритет URL или показывает предупреждение). Инжест выполняется без ошибки. |
-
----
-
-#### TC-02.09: Confluence — невалидный URL
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.09 |
-| **Title** | Невалидный Confluence URL — ошибка |
-| **Priority** | High |
-| **Severity** | Major |
-| **Type** | Negative |
-| **Preconditions** | Confluence настроен. |
-| **Steps** | 1. Ввести `not-a-url` 2. Start Processing |
-| **Expected Result** | Ошибка: URL не валиден. Toast/notification с описанием ошибки. |
-
----
-
-#### TC-02.10: Confluence — неверные credentials
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.10 |
-| **Title** | Ошибка аутентификации при неверных Confluence credentials |
-| **Priority** | High |
-| **Severity** | Major |
-| **Type** | Negative |
-| **Preconditions** | Confluence credentials в env некорректны или отсутствуют. |
-| **Steps** | 1. Ввести валидный URL 2. Start Processing |
-| **Expected Result** | Ошибка 401: "Confluence credentials invalid" или аналогичное сообщение. Toast с ошибкой. |
-
----
-
-#### TC-02.11: Confluence — несуществующая страница
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.11 |
-| **Title** | Инжест несуществующей Confluence-страницы |
-| **Priority** | Medium |
-| **Severity** | Minor |
-| **Type** | Negative |
-| **Preconditions** | Confluence настроен. |
-| **Steps** | 1. Ввести URL несуществующей страницы или невалидный Page ID 2. Start Processing |
-| **Expected Result** | Ошибка 404: "Page not found". Чёткое сообщение пользователю. |
-
----
-
-#### TC-02.12: Confluence — feature flag отключен
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-02.12 |
-| **Title** | Таб Confluence скрыт/недоступен при отключённом feature flag |
-| **Priority** | Medium |
-| **Severity** | Minor |
-| **Type** | Functional |
-| **Preconditions** | Feature flag "Confluence Ingestion" отключен в Settings → Features. |
-| **Steps** | 1. Перейти на `/ingest` |
-| **Expected Result** | Таб "Confluence" отсутствует или неактивен. Попытка инжеста через API возвращает ошибку. |
+| **Type** | Regression / API |
+| **Preconditions** | — |
+| **Steps** | 1. Отправить POST запрос на `/api/ingest/confluence` с валидными данными |
+| **Expected Result** | Ответ 404 (Not Found) или 400 (Bad Request). Endpoint не обрабатывает запросы. SourceType "confluence" отклоняется Zod-валидацией. |
 
 ---
 
@@ -505,7 +417,62 @@
 
 ---
 
-### 2.6 Общие негативные
+### 2.6 Known Issues — Web Ingest HTML Pollution & Chunk Duplication
+
+#### TC-02.35: Web URL — длинная HTML-страница с тяжёлой разметкой (crash или HTML-мусор)
+
+| Field | Value |
+|-------|-------|
+| **ID** | TC-02.35 |
+| **Title** | Инжест длинной HTML-страницы — HTML-теги загрязняют chunk-и после publish |
+| **Priority** | Critical |
+| **Severity** | Critical |
+| **Type** | Known Bug / Regression |
+| **Preconditions** | Backend запущен. OpenAI API доступен. Chunking = LLM (default). |
+| **Steps** | 1. Таб "Web URL" 2. Вставить URL длинной статьи с тяжёлой HTML-разметкой (например, `https://dtf.ru/retro/4843876-inzhenernye-resheniya-sony-psp-chto-skryvayetsya-vnutri-konsoli` или аналогичная статья >30KB HTML) 3. Chunking Settings: оставить "LLM" (default) 4. Start Processing 5. **Вариант A — crash:** наблюдать за поведением (таймаут / ошибка / зависание) 6. **Вариант B — успех:** дождаться Session Editor, визуально проверить chunk-и 7. Если chunk-и выглядят чисто в Session Editor — нажать Preview → Publish в коллекцию 8. Открыть коллекцию → All Chunks 9. Проверить содержимое chunk-ов на наличие HTML-тегов (`<div>`, `<span>`, `<p>`, `class=`, `data-*`, CSS-стили) |
+| **Expected Result (desired)** | Chunk-и содержат чистый текст без HTML-разметки на всех этапах: в Session Editor, после Preview и после Publish. Либо, если HTML не может быть очищен, система показывает предупреждение. |
+| **Actual Behavior (known bug)** | **Одно из двух:** (A) Инжест отваливается — таймаут, ошибка обработки, зависание на processing. (B) Инжест проходит, chunk-и в Session Editor выглядят чисто, но после Publish в Qdrant попадают chunk-и с мусорными HTML-тегами (`<div class="...">`, `<span style="...">`, etc.), которые загрязняют поисковые результаты и chat-ответы. |
+| **Root Cause Hypothesis** | Web fetcher извлекает raw HTML, но strip/sanitize не полностью очищает разметку перед записью в Qdrant. Возможно, LLM chunking видит чистый текст, но embedding pipeline получает оригинальный HTML. |
+| **Repro Rate** | Высокая — воспроизводится на любой HTML-странице с богатой разметкой (media-сайты, блоги с inline-стилями). |
+
+---
+
+#### TC-02.36: Web URL — переключение на Character chunking → дублирование chunk-ов
+
+| Field | Value |
+|-------|-------|
+| **ID** | TC-02.36 |
+| **Title** | Переключение chunking method на Character вызывает многократное дублирование chunk-ов |
+| **Priority** | Critical |
+| **Severity** | Critical |
+| **Type** | Known Bug / Regression |
+| **Preconditions** | Backend запущен. |
+| **Steps** | 1. Таб "Web URL" (или Manual / File — проверить все) 2. Ввести URL длинной статьи (или длинный текст в Manual) 3. Раскрыть "Chunking Settings" 4. Переключить с "LLM" на "Character" 5. Оставить default Chunk Size (1000) и Overlap (200) 6. Start Processing 7. Открыть Session Editor 8. Просмотреть список chunk-ов — подсчитать уникальные vs дублирующиеся |
+| **Expected Result (desired)** | Chunk-и уникальны. Каждый fragment текста встречается ровно один раз. Общее количество chunk-ов = ceil(длина_текста / (chunk_size - overlap)). |
+| **Actual Behavior (known bug)** | Каждый chunk повторяется ~10 раз. Например, для текста из 5 уникальных chunk-ов — в списке отображается 50 chunk-ов, где каждый из 5 повторяется 10 раз. Session Editor визуально показывает длинный список дублей. |
+| **Root Cause Hypothesis** | Race condition или баг в character chunking strategy: генератор chunk-ов вызывается многократно, или результат не дедуплицируется. Возможно, overlapping логика некорректно пересоздаёт chunk-и. |
+| **Repro Rate** | Высокая — воспроизводится при переключении на Character chunking с любым достаточно длинным контентом. |
+| **Additional Checks** | 1. Проверить, происходит ли дублирование на Manual с тем же текстом 2. Проверить, происходит ли при File upload 3. Проверить, сохраняются ли дубли после Publish 4. Проверить API response: `GET /api/session/:id` — содержит ли дубли на уровне данных или только UI |
+
+---
+
+#### TC-02.37: Web URL — сравнение chunk content в Session Editor vs Published
+
+| Field | Value |
+|-------|-------|
+| **ID** | TC-02.37 |
+| **Title** | Контент chunk-ов в Session Editor совпадает с контентом после Publish |
+| **Priority** | High |
+| **Severity** | Major |
+| **Type** | Data Integrity / Regression |
+| **Preconditions** | Web-страница с HTML-разметкой инжестирована и chunk-и созданы. |
+| **Steps** | 1. Инжестировать web-страницу (LLM chunking) 2. В Session Editor: скопировать текст первых 3 chunk-ов 3. Preview → Publish в коллекцию 4. Открыть коллекцию → All Chunks 5. Сравнить текст тех же chunk-ов |
+| **Expected Result** | Текст идентичен в Session Editor и в Published collection. Никакой HTML-мусор не появляется при transition draft → published. |
+| **Actual Behavior (suspected)** | Текст в Session Editor чистый, но Published версия содержит HTML-теги, которых не было видно при редактировании. |
+
+---
+
+### 2.7 Общие негативные
 
 #### TC-02.33: Start Processing при недоступном backend
 
@@ -544,11 +511,12 @@
 | Page structure | TC-02.01 | — | — | — |
 | Tab switching | TC-02.02 | — | — | — |
 | Chunking Settings | TC-02.03 | — | TC-02.04 | TC-02.04 |
-| Confluence | TC-02.05, TC-02.06 | TC-02.07, TC-02.09, TC-02.10, TC-02.11 | TC-02.08 | TC-02.07 |
-| Confluence feature | TC-02.12 | — | — | — |
+| Confluence (REMOVED) | — | TC-02.05, TC-02.06 | — | — |
 | Web URL | TC-02.13 | TC-02.14, TC-02.15, TC-02.16 | — | TC-02.14 |
 | Web URL feature | TC-02.17 | — | — | — |
 | Manual | TC-02.18 | TC-02.19 | TC-02.20, TC-02.21, TC-02.22 | TC-02.19 |
 | File Upload | TC-02.23, TC-02.24, TC-02.25 | TC-02.26, TC-02.27, TC-02.31 | TC-02.28, TC-02.29, TC-02.30 | TC-02.26, TC-02.27 |
 | File feature | TC-02.32 | — | — | — |
+| HTML Pollution (Known Bug) | — | TC-02.35 | TC-02.37 | — |
+| Chunk Duplication (Known Bug) | — | TC-02.36 | — | — |
 | Error handling | — | TC-02.33 | TC-02.34 | — |
