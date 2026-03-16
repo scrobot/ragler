@@ -3,6 +3,7 @@ import { resolveFileParser, SUPPORTED_EXTENSIONS } from '@ingest/parsers/file-pa
 import { PdfParser } from '@ingest/parsers/pdf.parser';
 import { DocxParser } from '@ingest/parsers/docx.parser';
 import { TextParser } from '@ingest/parsers/text.parser';
+import { HtmlParser } from '@ingest/parsers/html.parser';
 
 describe('FileParserResolver', () => {
     describe('resolveFileParser', () => {
@@ -36,6 +37,21 @@ describe('FileParserResolver', () => {
             expect(parser).toBeInstanceOf(TextParser);
         });
 
+        it('should resolve .html to HtmlParser', () => {
+            const parser = resolveFileParser('page.html');
+            expect(parser).toBeInstanceOf(HtmlParser);
+        });
+
+        it('should resolve .htm to HtmlParser', () => {
+            const parser = resolveFileParser('page.htm');
+            expect(parser).toBeInstanceOf(HtmlParser);
+        });
+
+        it('should resolve .xhtml to HtmlParser', () => {
+            const parser = resolveFileParser('page.xhtml');
+            expect(parser).toBeInstanceOf(HtmlParser);
+        });
+
         it('should handle case-insensitive extensions', () => {
             const parser = resolveFileParser('DOCUMENT.PDF');
             expect(parser).toBeInstanceOf(PdfParser);
@@ -67,10 +83,13 @@ describe('FileParserResolver', () => {
             expect(SUPPORTED_EXTENSIONS).toContain('.txt');
             expect(SUPPORTED_EXTENSIONS).toContain('.md');
             expect(SUPPORTED_EXTENSIONS).toContain('.csv');
+            expect(SUPPORTED_EXTENSIONS).toContain('.html');
+            expect(SUPPORTED_EXTENSIONS).toContain('.htm');
+            expect(SUPPORTED_EXTENSIONS).toContain('.xhtml');
         });
 
-        it('should have exactly 6 supported extensions', () => {
-            expect(SUPPORTED_EXTENSIONS).toHaveLength(6);
+        it('should have exactly 9 supported extensions', () => {
+            expect(SUPPORTED_EXTENSIONS).toHaveLength(9);
         });
     });
 });

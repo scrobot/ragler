@@ -1,4 +1,8 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { PdfParser } from '@ingest/parsers/pdf.parser';
+
+const FIXTURES_DIR = join(__dirname, '../../../resources');
 
 describe('PdfParser', () => {
     const parser = new PdfParser();
@@ -19,25 +23,37 @@ describe('PdfParser', () => {
         await expect(parser.parse(buffer, 'empty.pdf')).rejects.toThrow();
     });
 
-    it('should return correct metadata structure on success', async () => {
-        // Mock pdfParse at module level to test metadata extraction
-        const mockBuffer = Buffer.from('fake');
-        jest.spyOn(parser, 'parse').mockResolvedValueOnce({
-            content: 'Extracted text from PDF',
-            title: 'report',
-            metadata: {
-                filename: 'report.pdf',
-                fileSize: mockBuffer.length,
-                mimeType: 'application/pdf',
-            },
+    describe('real-world fixture: AI Agents Theory and Tools (1.5MB)', () => {
+        const FIXTURE_FILENAME = 'AI Agents Theory and Tools.pdf';
+
+        let buffer: Buffer;
+        let result: Awaited<ReturnType<PdfParser['parse']>>;
+
+        beforeAll(async () => {
+            buffer = readFileSync(join(FIXTURES_DIR, FIXTURE_FILENAME));
+            result = await parser.parse(buffer, FIXTURE_FILENAME);
         });
 
-        const result = await parser.parse(mockBuffer, 'report.pdf');
+        it('should extract meaningful text content', () => {
+            expect(result.content.length).toBeGreaterThan(1000);
+        });
 
-        expect(result.content).toBe('Extracted text from PDF');
-        expect(result.title).toBe('report');
-        expect(result.metadata.filename).toBe('report.pdf');
-        expect(result.metadata.mimeType).toBe('application/pdf');
-        expect(result.metadata.fileSize).toBe(mockBuffer.length);
+        it('should extract title from filename', () => {
+            expect(result.title).toBe('AI Agents Theory and Tools');
+        });
+
+        it('should return correct metadata', () => {
+            expect(result.metadata.filename).toBe(FIXTURE_FILENAME);
+            expect(result.metadata.fileSize).toBe(buffer.length);
+            expect(result.metadata.mimeType).toBe('application/pdf');
+        });
+
+        it('should parse within 5 seconds', async () => {
+            const start = Date.now();
+            await parser.parse(buffer, FIXTURE_FILENAME);
+            const elapsed = Date.now() - start;
+
+            expect(elapsed).toBeLessThan(5000);
+        });
     });
 });

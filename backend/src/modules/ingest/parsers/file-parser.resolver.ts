@@ -3,11 +3,13 @@ import { FileParser } from './file-parser.interface';
 import { PdfParser } from './pdf.parser';
 import { DocxParser } from './docx.parser';
 import { TextParser } from './text.parser';
+import { HtmlParser } from './html.parser';
 
 const PARSERS: FileParser[] = [
     new PdfParser(),
     new DocxParser(),
     new TextParser(),
+    new HtmlParser(),
 ];
 
 const EXTENSION_MAP = new Map<string, FileParser>();
