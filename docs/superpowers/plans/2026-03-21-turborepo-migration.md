@@ -283,6 +283,32 @@ rm -f apps/frontend/package-lock.json
 
 npm lockfiles coexist with pnpm and cause confusion in CI. This removes it.
 
+- [ ] **Step 3.11: Align frontend to zod v3**
+
+The frontend currently has `zod@^4.1.13`. `@ragler/shared` is compiled against zod v3 (which `nestjs-zod` requires). To avoid a version split where the frontend gets v4 schema instances from a v3-authored package, standardize both apps on v3.
+
+First, check if the frontend uses any zod v4-specific APIs:
+
+```bash
+grep -r "z\." apps/frontend/src --include="*.ts" --include="*.tsx" | grep -v node_modules
+```
+
+Common v4-only APIs to watch for: `z.email()`, `z.url()` (moved to standalone), `z.pipe()`, `z.transform()` chaining changes. If any found, update them to v3 equivalents before proceeding.
+
+Then downgrade:
+
+```bash
+pnpm --filter @ragler/frontend add zod@^3.23.0
+```
+
+Run `pnpm install` to update lockfile. Verify frontend still typechecks:
+
+```bash
+pnpm --filter @ragler/frontend typecheck
+```
+
+Expected: no errors. If there are zod API incompatibilities, fix them (v4→v3 migration is mostly about `.email()` / `.url()` moving back into string methods: `z.string().email()` ✓ works in both).
+
 - [ ] **Step 3.10: Commit**
 
 ```bash
@@ -311,7 +337,7 @@ mkdir -p packages/shared/src/types
 
 - [ ] **Step 4.2: Create `packages/shared/package.json`**
 
-> **Zod version note:** The backend uses `zod ^3.23.0`; the frontend uses `zod ^4.1.13`. The shared package accepts both via a wide peer dependency range. The schemas use the basic Zod API (`z.object`, `z.string`, `z.array`, `z.enum`, `.optional()`, `.nullable()`, `.refine()`) which is compatible with both v3 and v4. The shared package is compiled with v3 as its devDependency (aligning with the backend).
+> **Zod strategy:** The shared package pins zod@3 as a regular `dependency` (not peer). This means the shared package's compiled `dist/` always runs against zod v3, regardless of what the consumer has installed. The frontend currently has `zod^4.1.13` — see Task 3 Step 3.11 which aligns it to v3 before shared is created. `nestjs-zod@5.x` requires zod v3. Standardizing on v3 across the monorepo is the only sound approach.
 
 ```json
 {
@@ -331,11 +357,10 @@ mkdir -p packages/shared/src/types
     "build": "tsc --build",
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "zod": ">=3.22.0 <5.0.0"
+  "dependencies": {
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "zod": "^3.23.0",
     "typescript": "^5.9.3"
   }
 }
