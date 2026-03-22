@@ -1,41 +1,21 @@
 import { z } from 'zod';
 
-// Collections
-export const CollectionSchema = z.object({
-    id: z.string().uuid(),
-    name: z.string(),
-    description: z.string().optional(),
-    createdBy: z.string(),
-    createdAt: z.string(),
-});
-export type Collection = z.infer<typeof CollectionSchema>;
+// Re-export shared schemas to avoid duplication
+export {
+    CollectionSchema,
+    CreateCollectionSchema,
+    ChunkSchema,
+    SessionResponseSchema as SessionSchema,
+} from '@ragler/shared';
 
-export const CreateCollectionSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    description: z.string().optional(),
-});
-export type CreateCollectionRequest = z.infer<typeof CreateCollectionSchema>;
+export type {
+    Collection,
+    CreateCollectionInput as CreateCollectionRequest,
+    Chunk,
+    SessionResponse as Session,
+} from '@ragler/shared';
 
-// Chunks
-export const ChunkSchema = z.object({
-    id: z.string(),
-    text: z.string(),
-    isDirty: z.boolean(),
-});
-export type Chunk = z.infer<typeof ChunkSchema>;
-
-// Sessions
-export const SessionSchema = z.object({
-    sessionId: z.string(),
-    sourceUrl: z.string(),
-    status: z.string(),
-    chunks: z.array(ChunkSchema),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-});
-export type Session = z.infer<typeof SessionSchema>;
-
-// Ingest
+// Ingest form schema — UI-specific (combines web/manual/file into a single form)
 export const IngestSchema = z.object({
     sourceType: z.enum(['manual', 'web', 'file']),
     url: z.string().optional(),
