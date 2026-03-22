@@ -12,8 +12,16 @@ interface SourcePreviewProps {
 }
 
 export function SourcePreview({ rawContent, sourceType, sourceUrl }: SourcePreviewProps) {
+  // Create a blob URL for the iframe to render the HTML safely
+  // Must be called unconditionally (Rules of Hooks) before any early return
+  const blobUrl = useMemo(() => {
+    if (!rawContent) return null;
+    const blob = new Blob([rawContent], { type: "text/html" });
+    return URL.createObjectURL(blob);
+  }, [rawContent]);
+
   // For manual sources, there's no preview
-  if (sourceType === "manual" || !rawContent) {
+  if (sourceType === "manual" || !rawContent || !blobUrl) {
     return (
       <Card className="bg-muted/30">
         <CardHeader className="pb-3">
@@ -33,12 +41,6 @@ export function SourcePreview({ rawContent, sourceType, sourceUrl }: SourcePrevi
 
   const icon = sourceType === "web" ? Globe : FileCode;
   const Icon = icon;
-
-  // Create a blob URL for the iframe to render the HTML safely
-  const blobUrl = useMemo(() => {
-    const blob = new Blob([rawContent], { type: "text/html" });
-    return URL.createObjectURL(blob);
-  }, [rawContent]);
 
   return (
     <Card>

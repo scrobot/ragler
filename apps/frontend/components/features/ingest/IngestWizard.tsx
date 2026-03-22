@@ -101,8 +101,8 @@ export function IngestWizard() {
             toast.success("Ingestion started successfully");
             router.push(`/session/${data.sessionId}`);
         },
-        onError: (error: any) => {
-            toast.error(error.message || "Failed to start ingestion");
+        onError: (error: unknown) => {
+            toast.error(error instanceof Error ? error.message : "Failed to start ingestion");
         },
     });
 
@@ -112,7 +112,7 @@ export function IngestWizard() {
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
-        form.setValue("sourceType", value as any);
+        form.setValue("sourceType", value as 'web' | 'manual' | 'file');
         form.resetField("url");
         form.resetField("content");
         setSelectedFile(null);

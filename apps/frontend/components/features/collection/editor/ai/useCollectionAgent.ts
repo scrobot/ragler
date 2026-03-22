@@ -3,7 +3,15 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { streamAgentChat, streamCleanCollection, collectionsApi } from "@/lib/api/collections";
-import type { AgentEvent } from "@/types/api";
+import type {
+  AgentEvent,
+  DirtyChunkFoundEvent,
+  CleanProgressEvent,
+  AgentMessageEvent,
+  ChunkCleanedEvent,
+  CleanCompleteEvent,
+  AgentErrorEvent,
+} from "@/types/api";
 
 export type AgentMode = "hitl" | "automatic";
 
@@ -284,9 +292,11 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
 
       const handleCleanEvent = (event: AgentEvent) => {
         switch (event.type) {
-          case "dirty_chunk_found":
-            deletedItems.push(`❌ ${(event as any).reason}: \`${(event as any).preview?.substring(0, 60)}...\``);
+          case "dirty_chunk_found": {
+            const dirtyEvent = event as DirtyChunkFoundEvent;
+            deletedItems.push(`❌ ${dirtyEvent.reason}: \`${dirtyEvent.preview?.substring(0, 60)}...\``);
             break;
+          }
 
           case "dirty_chunk_deleted":
             deletedCount++;
@@ -298,7 +308,7 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
             break;
 
           case "clean_progress": {
-            const { scanned, total } = event as any;
+            const { scanned, total } = event as CleanProgressEvent;
             setMessages((prev) =>
               updateAssistantMessage(prev, assistantMessageId, {
                 content: `Scanning... ${scanned}/${total} chunks checked. Deleted ${deletedCount} junk.`,
@@ -307,25 +317,29 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
             break;
           }
 
-          case "message":
+          case "message": {
+            const msgEvent = event as AgentMessageEvent;
             setMessages((prev) =>
               updateAssistantMessage(prev, assistantMessageId, {
-                content: (event as any).content,
+                content: msgEvent.content,
               })
             );
             break;
+          }
 
-          case "chunk_cleaned":
+          case "chunk_cleaned": {
             cleanedCount++;
+            const cleanedEvent = event as ChunkCleanedEvent;
             setMessages((prev) =>
               updateAssistantMessage(prev, assistantMessageId, {
-                content: `Cleaning HTML... ${cleanedCount} chunk${cleanedCount > 1 ? "s" : ""} cleaned so far.\n\n✨ ${(event as any).preview?.substring(0, 80)}...`,
+                content: `Cleaning HTML... ${cleanedCount} chunk${cleanedCount > 1 ? "s" : ""} cleaned so far.\n\n✨ ${cleanedEvent.preview?.substring(0, 80)}...`,
               })
             );
             break;
+          }
 
           case "clean_complete": {
-            const { totalScanned, totalDeleted, totalCleaned, remaining, breakdown } = event as any;
+            const { totalScanned, totalDeleted, totalCleaned, remaining, breakdown } = event as CleanCompleteEvent;
             const breakdownStr = Object.entries(breakdown as Record<string, number>)
               .map(([k, v]) => `${v}× ${k}`)
               .join(", ");
@@ -342,14 +356,16 @@ export function useCollectionAgent(collectionId: string, userId: string, initial
             break;
           }
 
-          case "error":
+          case "error": {
+            const errEvent = event as AgentErrorEvent;
             setMessages((prev) =>
               updateAssistantMessage(prev, assistantMessageId, {
-                content: `Error: ${(event as any).message}`,
+                content: `Error: ${errEvent.message}`,
               })
             );
             setIsStreaming(false);
             break;
+          }
         }
       };
 

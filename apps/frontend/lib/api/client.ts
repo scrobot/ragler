@@ -32,7 +32,7 @@ export class ApiClient {
         const apiError: ApiError = {
           statusCode: error.response?.status || 500,
           error: error.message,
-          message: (error.response?.data as any)?.message || 'An error occurred',
+          message: (error.response?.data as Record<string, unknown>)?.['message'] as string || 'An error occurred',
           timestamp: new Date().toISOString(),
           path: error.config?.url || '',
         };
