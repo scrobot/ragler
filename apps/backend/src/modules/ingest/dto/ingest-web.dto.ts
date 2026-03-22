@@ -1,10 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { z } from 'zod';
-import { ChunkingConfigSchema } from './chunking-config.dto';
+import { IngestWebSchema } from '@ragler/shared';
 
-export const IngestWebSchema = z.object({
-    url: z.string().url('Invalid URL format'),
-    chunkingConfig: ChunkingConfigSchema,
-});
-
-export class IngestWebDto extends createZodDto(IngestWebSchema) { }
+export { IngestWebSchema };
+export class IngestWebDto extends createZodDto(IngestWebSchema) {}

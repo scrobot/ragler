@@ -1,12 +1,5 @@
-import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { ErrorResponseSchema, type ErrorResponse } from '@ragler/shared';
 
-export const ErrorResponseSchema = z.object({
-  statusCode: z.number().int(),
-  error: z.string(),
-  message: z.union([z.string(), z.array(z.string())]),
-  timestamp: z.string(),
-  path: z.string(),
-});
-
+export { ErrorResponseSchema, type ErrorResponse };
 export class ErrorResponseDto extends createZodDto(ErrorResponseSchema) {}
