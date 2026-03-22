@@ -1,0 +1,79 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile.dev
+    volumes:
+      # Bind-mount source — changes on host appear in container
+      - ./apps/backend:/app/apps/backend
+      - ./packages/shared:/app/packages/shared
+      # Named volume prevents host node_modules from overriding container's
+      # (host is macOS/Windows, container is Linux — incompatible native binaries)
+      - backend_node_modules:/app/node_modules
+    ports:
+      - "3010:3000"
+      - "3100:3100"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QDRANT_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    command: pnpm --filter @ragler/backend start:dev
+    depends_on:
+      - redis
+      - qdrant
+    networks:
+      - ragler-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.dev
+    volumes:
+      - ./apps/frontend:/app/apps/frontend
+      - ./packages/shared:/app/packages/shared
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3010/api
+      - BACKEND_INTERNAL_URL=http://api:3000
+    command: pnpm --filter @ragler/frontend dev
+    depends_on:
+      - api
+    networks:
+      - ragler-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - ragler-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - ragler-network
+
+networks:
+  ragler-network:
+    driver: bridge
+
+volumes:
+  qdrant_data:
+  redis_data:
+  backend_node_modules:
+  frontend_node_modules:
+  # Note: packages/shared is bind-mounted. It has no runtime node_modules
+  # (zod is a peerDep satisfied by apps). No shared_node_modules volume needed.

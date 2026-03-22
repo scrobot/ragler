@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY apps/frontend/package.json ./apps/frontend/package.json
+COPY apps/backend/package.json ./apps/backend/package.json
+
+RUN pnpm install --frozen-lockfile
+
+# Source code is mounted at runtime via docker-compose.dev.yml volumes.
+# The CMD is provided by docker-compose.dev.yml (pnpm --filter @ragler/frontend dev).
