@@ -20,7 +20,6 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
-    "prepare": "cd .. && husky backend/.husky || true",
     "cpd": "pnpm exec jscpd src --reporters console --threshold 5"
   },
   "keywords": [
