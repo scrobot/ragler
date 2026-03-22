@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Build tools required for better-sqlite3 native addon
+RUN apk add --no-cache python3 make g++
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy workspace manifests — reinstall when any package.json changes
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY apps/backend/package.json ./apps/backend/package.json
+COPY apps/frontend/package.json ./apps/frontend/package.json
+
+RUN pnpm install --frozen-lockfile
+
+# Source code is mounted at runtime via docker-compose.dev.yml volumes.
+# The CMD is provided by docker-compose.dev.yml (pnpm --filter @ragler/backend start:dev).

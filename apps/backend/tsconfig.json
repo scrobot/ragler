@@ -1,0 +1,70 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@common/*": [
+        "src/common/*"
+      ],
+      "@config/*": [
+        "src/config/*"
+      ],
+      "@modules/*": [
+        "src/modules/*"
+      ],
+      "@infrastructure/*": [
+        "src/infrastructure/*"
+      ],
+      "@collection/*": [
+        "src/modules/collection/*"
+      ],
+      "@health/*": [
+        "src/modules/health/*"
+      ],
+      "@ingest/*": [
+        "src/modules/ingest/*"
+      ],
+      "@llm/*": [
+        "src/modules/llm/*"
+      ],
+      "@session/*": [
+        "src/modules/session/*"
+      ],
+      "@vector/*": [
+        "src/modules/vector/*"
+      ],
+      "@mcp/*": [
+        "src/modules/mcp/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    { "path": "../../packages/shared" }
+  ]
+}

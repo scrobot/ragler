@@ -1,0 +1,123 @@
+{
+  "name": "kms-rag-backend",
+  "version": "1.2.0",
+  "description": "Knowledge Management System for RAG - Backend API",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migrate:v1-to-v2": "tsx src/scripts/migrate-v1-to-v2.ts",
+    "cpd": "pnpm exec jscpd src --reporters console --threshold 5"
+  },
+  "keywords": [
+    "nestjs",
+    "rag",
+    "kms",
+    "knowledge-management"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ragler/shared": "workspace:*",
+    "@ai-sdk/openai": "^3.0.30",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@mozilla/readability": "^0.6.0",
+    "@nestjs/common": "^11.1.12",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.12",
+    "@nestjs/platform-express": "^11.1.12",
+    "@nestjs/swagger": "^11.2.5",
+    "@nestjs/terminus": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
+    "@qdrant/js-client-rest": "^1.16.2",
+    "ai": "^6.0.94",
+    "better-sqlite3": "^12.6.2",
+    "cheerio": "^1.2.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.9.2",
+    "jsdom": "^27.4.0",
+    "mammoth": "^1.11.0",
+    "nestjs-zod": "^5.1.1",
+    "openai": "^6.17.0",
+    "pdf-parse": "1.1.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "tiktoken": "^1.0.22",
+    "uuid": "^9.0.0",
+    "yargs": "^18.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@nestjs/cli": "^11.0.16",
+    "@nestjs/testing": "^11.1.12",
+    "@testcontainers/redis": "^11.11.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/jsdom": "^27.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^25.1.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/supertest": "^6.0.3",
+    "@types/uuid": "^9.0.0",
+    "@types/yargs": "^17.0.35",
+    "jest": "^30.2.0",
+    "jscpd": "^4.0.8",
+    "supertest": "^7.2.2",
+    "testcontainers": "^11.11.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": ".",
+    "roots": [
+      "<rootDir>/test/unit"
+    ],
+    "testRegex": ".*\\.spec\\.ts$",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(jsdom|@exodus|html-encoding-sniffer|whatwg-encoding|whatwg-url|saxes|w3c-xmlserializer|xml-name-validator|data-urls|domexception)/)"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.(t|j)s"
+    ],
+    "coverageDirectory": "coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@common/(.*)$": "<rootDir>/src/common/$1",
+      "^@config/(.*)$": "<rootDir>/src/config/$1",
+      "^@modules/(.*)$": "<rootDir>/src/modules/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
+      "^@collection/(.*)$": "<rootDir>/src/modules/collection/$1",
+      "^@health/(.*)$": "<rootDir>/src/modules/health/$1",
+      "^@ingest/(.*)$": "<rootDir>/src/modules/ingest/$1",
+      "^@llm/(.*)$": "<rootDir>/src/modules/llm/$1",
+      "^@session/(.*)$": "<rootDir>/src/modules/session/$1",
+      "^@vector/(.*)$": "<rootDir>/src/modules/vector/$1",
+      "^@mcp/(.*)$": "<rootDir>/src/modules/mcp/$1"
+    }
+  }
+}

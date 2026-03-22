@@ -1,8 +1,9 @@
 services:
-  # Backend API
   api:
     image: ghcr.io/scrobot/ragler/backend:latest
-    build: ./backend
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
     ports:
       - "3010:3000"
       - "3100:3100"
@@ -21,11 +22,11 @@ services:
     networks:
       - ragler-network
 
-  # Frontend
   frontend:
     image: ghcr.io/scrobot/ragler/frontend:latest
     build:
-      context: ./frontend
+      context: .
+      dockerfile: apps/frontend/Dockerfile
       args:
         BACKEND_INTERNAL_URL: http://api:3000
     ports:
@@ -38,7 +39,6 @@ services:
     networks:
       - ragler-network
 
-  # Vector Database
   qdrant:
     image: qdrant/qdrant:latest
     ports:
@@ -49,7 +49,6 @@ services:
     networks:
       - ragler-network
 
-  # Session Store
   redis:
     image: redis:alpine
     ports:
@@ -60,7 +59,6 @@ services:
     networks:
       - ragler-network
 
-  # Redis Insight (optional, for debugging)
   redisinsight:
     image: redis/redisinsight:latest
     ports:
